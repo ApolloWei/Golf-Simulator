@@ -158,13 +158,25 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 6px;
+      margin-top: 12px;
       padding: 5px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #f4f8f3;
     }
 
+    .difficulty-label {
+      display: block;
+      margin-top: 14px;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
     .difficulty-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       height: 36px;
       border: 0;
       border-radius: 7px;
@@ -566,17 +578,15 @@
         <label for="lobbyPlayer" data-i18n="choosePlayer">选择球员</label>
         <select id="lobbyPlayer"></select>
       </div>
-      <div class="control">
-        <label data-i18n="classicDifficulty">经典模式难度</label>
-        <div class="difficulty-toggle" role="group" aria-label="Classic difficulty">
-          <button class="difficulty-button active" id="classicEasyBtn" type="button" data-difficulty="easy" data-i18n="easyMode">简单</button>
-          <button class="difficulty-button" id="classicHardBtn" type="button" data-difficulty="hard" data-i18n="hardMode">困难</button>
-        </div>
-      </div>
       <div class="mode-grid">
         <button class="mode-button" id="startGameBtn" type="button">
           <strong data-i18n="classicMode">经典模式</strong>
           <span data-i18n="classicModeDesc">随机生成 250-470 码的洞位，用尽量少的杆数把球打进洞。</span>
+          <span class="difficulty-label" data-i18n="classicDifficulty">经典模式难度</span>
+          <span class="difficulty-toggle" role="group" aria-label="Classic difficulty">
+            <span class="difficulty-button active" id="classicEasyBtn" role="button" tabindex="0" data-difficulty="easy" data-i18n="easyMode">简单</span>
+            <span class="difficulty-button" id="classicHardBtn" role="button" tabindex="0" data-difficulty="hard" data-i18n="hardMode">困难</span>
+          </span>
         </button>
         <button class="mode-button" id="startPrecisionBtn" type="button">
           <strong data-i18n="precisionMode">精准模式</strong>
@@ -852,7 +862,7 @@
         flightPhase: "飞行阶段",
         availableClubs: "当前球员可用球杆",
         gameInfo: "洞距：{target} yd｜剩余：{remaining} yd｜杆数：{shots}",
-        hardGameInfo: "经典困难｜只显示 100 码刻度｜杆数：{shots}",
+        hardGameInfo: "经典困难｜只显示粗略刻度｜杆数：{shots}",
         precisionInfo: "精准模式｜一杆机会｜已打：{shots}",
         rating: "评分：{stars}",
         ball: "小球",
@@ -885,6 +895,7 @@
         precisionCompleteTitle: "本关结果",
         precisionCompleteText: "你离旗杆还差 {remaining} yd。本关评分：{score}。3 秒后进入下一关。",
         gameReady: "游戏开始。目标在 {target} yd 处，选择球杆、角度和力度后发射。",
+        hardGameReady: "经典困难模式开始。只显示粗略刻度，观察旗杆位置后发射。",
         precisionReady: "精准模式开始。只有一杆机会，观察旗杆位置后发射。",
         gameShotReady: "当前位置已更新。继续选择球杆、角度和力度，争取进洞。"
       },
@@ -922,7 +933,7 @@
         flightPhase: "Flight Phase",
         availableClubs: "Available Clubs",
         gameInfo: "Hole: {target} yd | Remaining: {remaining} yd | Shots: {shots}",
-        hardGameInfo: "Classic Hard | 100 yd marks only | Shots: {shots}",
+        hardGameInfo: "Classic Hard | Coarse marks only | Shots: {shots}",
         precisionInfo: "Precision Mode | One shot | Shots: {shots}",
         rating: "Rating: {stars}",
         ball: "Ball",
@@ -955,6 +966,7 @@
         precisionCompleteTitle: "Round Result",
         precisionCompleteText: "You finished {remaining} yd from the flag. Score: {score}. The next hole starts in 3 seconds.",
         gameReady: "Game started. The flag is {target} yd away. Choose club, angle, and power, then launch.",
+        hardGameReady: "Classic Hard started. Only coarse marks are shown. Read the flag position and launch.",
         precisionReady: "Precision Mode started. You have one shot. Read the flag position and launch.",
         gameShotReady: "Ball position updated. Choose the next shot and try to hole out."
       }
@@ -1132,7 +1144,10 @@
       gameFinished = false;
       previousTrails = [];
       trail = [];
-      resetShot(mode === "precision" ? "precisionReady" : "gameReady", { target: gameTargetYards });
+      const readyKey = mode === "precision"
+        ? "precisionReady"
+        : (isClassicHardMode() ? "hardGameReady" : "gameReady");
+      resetShot(readyKey, { target: gameTargetYards });
     }
 
     function updateGameInfo() {
@@ -1855,8 +1870,21 @@
       if (isChallengeMode()) startGame(mode);
       else resetShot("reset");
     });
-    classicEasyBtn.addEventListener("click", () => setClassicDifficulty("easy"));
-    classicHardBtn.addEventListener("click", () => setClassicDifficulty("hard"));
+    function handleDifficultyChoice(event, value) {
+      event.stopPropagation();
+      setClassicDifficulty(value);
+    }
+
+    function handleDifficultyKey(event, value) {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      handleDifficultyChoice(event, value);
+    }
+
+    classicEasyBtn.addEventListener("click", (event) => handleDifficultyChoice(event, "easy"));
+    classicHardBtn.addEventListener("click", (event) => handleDifficultyChoice(event, "hard"));
+    classicEasyBtn.addEventListener("keydown", (event) => handleDifficultyKey(event, "easy"));
+    classicHardBtn.addEventListener("keydown", (event) => handleDifficultyKey(event, "hard"));
     startGameBtn.addEventListener("click", () => showSimulator("classic"));
     startPrecisionBtn.addEventListener("click", () => showSimulator("precision"));
     startFreeBtn.addEventListener("click", () => showSimulator("free"));
