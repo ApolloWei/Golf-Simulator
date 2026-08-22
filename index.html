@@ -1222,18 +1222,72 @@
       }
     }
 
+    function drawCloud(x, y, size, alpha = 0.72) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.42, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.35, y - size * 0.18, size * 0.5, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.82, y, size * 0.38, 0, Math.PI * 2);
+      ctx.arc(x + size * 0.45, y + size * 0.16, size * 0.48, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawGameScenery(rect, origin) {
+      drawCloud(rect.width * 0.12, 70, 54, 0.68);
+      drawCloud(rect.width * 0.5, 52, 44, 0.54);
+      drawCloud(rect.width * 0.78, 92, 62, 0.62);
+
+      const ground = ctx.createLinearGradient(0, origin.y - 12, 0, rect.height);
+      ground.addColorStop(0, "#76c768");
+      ground.addColorStop(0.46, "#4aaa55");
+      ground.addColorStop(1, "#2e7c43");
+      ctx.fillStyle = ground;
+      ctx.beginPath();
+      ctx.moveTo(0, origin.y + 4);
+      ctx.bezierCurveTo(rect.width * 0.22, origin.y - 8, rect.width * 0.42, origin.y + 14, rect.width * 0.66, origin.y + 2);
+      ctx.bezierCurveTo(rect.width * 0.82, origin.y - 6, rect.width * 0.95, origin.y + 8, rect.width, origin.y);
+      ctx.lineTo(rect.width, rect.height);
+      ctx.lineTo(0, rect.height);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(22, 98, 58, 0.42)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(24, origin.y);
+      ctx.lineTo(rect.width - 24, origin.y);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 7; i += 1) {
+        const y = origin.y + 18 + i * 12;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.bezierCurveTo(rect.width * 0.28, y - 8, rect.width * 0.62, y + 8, rect.width, y - 3);
+        ctx.stroke();
+      }
+    }
+
     function drawGrid(rect, origin, scale, maxX, maxY) {
       ctx.clearRect(0, 0, rect.width, rect.height);
 
       const sky = ctx.createLinearGradient(0, 0, 0, rect.height);
-      sky.addColorStop(0, "#e7f5ff");
-      sky.addColorStop(0.58, "#f9fcf8");
-      sky.addColorStop(1, "#dcefd8");
+      sky.addColorStop(0, mode === "game" ? "#d8f0ff" : "#e7f5ff");
+      sky.addColorStop(0.58, mode === "game" ? "#f7fcff" : "#f9fcf8");
+      sky.addColorStop(1, mode === "game" ? "#dff3db" : "#dcefd8");
       ctx.fillStyle = sky;
       ctx.fillRect(0, 0, rect.width, rect.height);
 
-      ctx.fillStyle = "rgba(45, 139, 87, 0.16)";
-      ctx.fillRect(origin.x, origin.y, rect.width - origin.x - 26, 20);
+      if (mode === "game") {
+        drawGameScenery(rect, origin);
+      } else {
+        ctx.fillStyle = "rgba(45, 139, 87, 0.16)";
+        ctx.fillRect(origin.x, origin.y, rect.width - origin.x - 26, 20);
+      }
 
       if (mode !== "game") {
         ctx.strokeStyle = "rgba(87, 113, 96, 0.2)";
@@ -1260,17 +1314,15 @@
           ctx.stroke();
           if (y > 0) ctx.fillText(String(y), 12, py + 4);
         }
-      }
 
-      ctx.strokeStyle = "#26362c";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(origin.x, 24);
-      ctx.lineTo(origin.x, origin.y);
-      ctx.lineTo(rect.width - 24, origin.y);
-      ctx.stroke();
+        ctx.strokeStyle = "#26362c";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(origin.x, 24);
+        ctx.lineTo(origin.x, origin.y);
+        ctx.lineTo(rect.width - 24, origin.y);
+        ctx.stroke();
 
-      if (mode !== "game") {
         ctx.fillStyle = "#26362c";
         ctx.font = "700 13px Arial";
         ctx.fillText(tr("axisHeight"), 12, 20);
