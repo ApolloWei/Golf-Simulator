@@ -690,14 +690,23 @@
       const distanceYards = players[player].find(([name]) => name === club)[1];
       const angleDeg = Number(angleSlider.value);
       const angleRad = angleDeg * Math.PI / 180;
+      const baselineAngleDeg = defaultAngles[club] || angleDeg;
+      const baselineAngleRad = baselineAngleDeg * Math.PI / 180;
       const powerPercent = Number(powerSlider.value);
       const powerRatio = powerPercent / 100;
       const fullDistanceMeters = distanceYards * YARD_TO_METER;
-      const fullSpeed = Math.sqrt(fullDistanceMeters * G / Math.sin(2 * angleRad));
+      const fullSpeed = Math.sqrt(fullDistanceMeters * G / Math.sin(2 * baselineAngleRad));
       const speed = fullSpeed * powerRatio;
+      const angleDeviation = Math.abs(angleDeg - baselineAngleDeg);
+      const angleTolerance = 20 - powerRatio * 2 + Math.min(1, baselineAngleDeg / 55) * 5;
+      const vacuumAngleRatio = Math.sin(2 * angleRad) / Math.sin(2 * baselineAngleRad);
+      const angleEfficiency = Math.max(
+        0,
+        vacuumAngleRatio * Math.exp(-Math.pow(angleDeviation / angleTolerance, 2))
+      );
       const distanceMeters = powerRatio === 0
         ? 0
-        : Math.pow(speed, 2) * Math.sin(2 * angleRad) / G;
+        : fullDistanceMeters * Math.pow(powerRatio, 2) * angleEfficiency;
       const adjustedDistanceYards = distanceMeters * METER_TO_YARD;
       const duration = speed === 0 ? 0 : distanceMeters / (speed * Math.cos(angleRad));
       const normalizedAngle = Math.min(1, Math.max(0, angleDeg / 55));
@@ -719,6 +728,8 @@
         powerRatio,
         angleDeg,
         angleRad,
+        baselineAngleDeg,
+        baselineAngleRad,
         visualAngleRad,
         descentShape,
         speed,
