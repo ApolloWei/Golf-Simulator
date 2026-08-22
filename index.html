@@ -121,7 +121,7 @@
 
     .mode-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: 14px;
       margin-top: 18px;
     }
@@ -542,8 +542,12 @@
       </div>
       <div class="mode-grid">
         <button class="mode-button" id="startGameBtn" type="button">
-          <strong data-i18n="gameMode">游戏模式</strong>
-          <span data-i18n="gameModeDesc">随机生成 250-470 码的洞位，用尽量少的杆数把球打进洞。</span>
+          <strong data-i18n="classicMode">经典模式</strong>
+          <span data-i18n="classicModeDesc">随机生成 250-470 码的洞位，用尽量少的杆数把球打进洞。</span>
+        </button>
+        <button class="mode-button" id="startPrecisionBtn" type="button">
+          <strong data-i18n="precisionMode">精准模式</strong>
+          <span data-i18n="precisionModeDesc">只有一杆机会，纯凭感觉把球打到离旗杆越近越好。</span>
         </button>
         <button class="mode-button" id="startFreeBtn" type="button">
           <strong data-i18n="freeMode">自由模式</strong>
@@ -711,6 +715,7 @@
     const launchDock = document.querySelector("#launchDock");
     const lobbyPlayerSelect = document.querySelector("#lobbyPlayer");
     const startGameBtn = document.querySelector("#startGameBtn");
+    const startPrecisionBtn = document.querySelector("#startPrecisionBtn");
     const startFreeBtn = document.querySelector("#startFreeBtn");
     const lobbyLanguageBtn = document.querySelector("#lobbyLanguageBtn");
     const homeBtn = document.querySelector("#homeBtn");
@@ -780,8 +785,10 @@
         lobbyTitle: "高尔夫模拟器",
         lobbySubtitle: "先选择球员，再进入自由练习或挑战模式。",
         choosePlayer: "选择球员",
-        gameMode: "游戏模式",
-        gameModeDesc: "随机生成 250-470 码的洞位，用尽量少的杆数把球打进洞。",
+        classicMode: "经典模式",
+        classicModeDesc: "随机生成 250-470 码的洞位，用尽量少的杆数把球打进洞。",
+        precisionMode: "精准模式",
+        precisionModeDesc: "只有一杆机会，纯凭感觉把球打到离旗杆越近越好。",
         freeMode: "自由模式",
         freeModeDesc: "自由选择球员、球杆、角度和力度，观察飞行轨迹。",
         homeTitle: "返回大厅",
@@ -803,6 +810,7 @@
         flightPhase: "飞行阶段",
         availableClubs: "当前球员可用球杆",
         gameInfo: "洞距：{target} yd｜剩余：{remaining} yd｜杆数：{shots}",
+        precisionInfo: "精准模式｜一杆机会｜已打：{shots}",
         rating: "评分：{stars}",
         ball: "小球",
         trace: "飞行中留下的轨迹",
@@ -830,7 +838,11 @@
         gameCompleteMessage: "进洞！总共用了 {shots} 杆。",
         holeCompleteTitle: "恭喜！",
         holeCompleteText: "你用了 {shots} 杆打进了。3 秒后进入下一关。",
+        precisionCompleteMessage: "本杆距离旗杆 {remaining} yd。",
+        precisionCompleteTitle: "本关结果",
+        precisionCompleteText: "你离旗杆还差 {remaining} yd。3 秒后进入下一关。",
         gameReady: "游戏开始。目标在 {target} yd 处，选择球杆、角度和力度后发射。",
+        precisionReady: "精准模式开始。只有一杆机会，观察旗杆位置后发射。",
         gameShotReady: "当前位置已更新。继续选择球杆、角度和力度，争取进洞。"
       },
       en: {
@@ -839,8 +851,10 @@
         lobbyTitle: "Golf Simulator",
         lobbySubtitle: "Choose a player, then enter Free Mode or Game Mode.",
         choosePlayer: "Choose Player",
-        gameMode: "Game Mode",
-        gameModeDesc: "A random hole appears 250-470 yd away. Reach it in as few shots as possible.",
+        classicMode: "Classic Mode",
+        classicModeDesc: "A random hole appears 250-470 yd away. Reach it in as few shots as possible.",
+        precisionMode: "Precision Mode",
+        precisionModeDesc: "One shot only. Judge by feel and finish as close to the flag as possible.",
         freeMode: "Free Mode",
         freeModeDesc: "Freely choose player, club, angle, and power to study the shot.",
         homeTitle: "Back to Lobby",
@@ -862,6 +876,7 @@
         flightPhase: "Flight Phase",
         availableClubs: "Available Clubs",
         gameInfo: "Hole: {target} yd | Remaining: {remaining} yd | Shots: {shots}",
+        precisionInfo: "Precision Mode | One shot | Shots: {shots}",
         rating: "Rating: {stars}",
         ball: "Ball",
         trace: "Live Trail",
@@ -889,7 +904,11 @@
         gameCompleteMessage: "Holed out in {shots} shots.",
         holeCompleteTitle: "Congratulations!",
         holeCompleteText: "You holed out in {shots} shots. The next hole starts in 3 seconds.",
+        precisionCompleteMessage: "This shot finished {remaining} yd from the flag.",
+        precisionCompleteTitle: "Round Result",
+        precisionCompleteText: "You finished {remaining} yd from the flag. The next hole starts in 3 seconds.",
         gameReady: "Game started. The flag is {target} yd away. Choose club, angle, and power, then launch.",
+        precisionReady: "Precision Mode started. You have one shot. Read the flag position and launch.",
         gameShotReady: "Ball position updated. Choose the next shot and try to hole out."
       }
     };
@@ -913,24 +932,35 @@
       holeAdvanceTimer = null;
     }
 
-    function updateHoleModalText() {
-      fields.holeModalTitle.textContent = tr("holeCompleteTitle");
-      fields.holeModalText.textContent = tr("holeCompleteText", { shots: holeCompleteShots });
-    }
-
     function hideHoleModal() {
       holeModal.classList.add("hidden");
     }
 
-    function showHoleCompleteModal(shots) {
+    function showRoundCompleteModal(titleKey, textKey, vars = {}) {
       clearHoleAdvanceTimer();
-      holeCompleteShots = shots;
-      updateHoleModalText();
+      holeCompleteShots = vars.shots || 0;
+      fields.holeModalTitle.textContent = tr(titleKey, vars);
+      fields.holeModalText.textContent = tr(textKey, vars);
       holeModal.classList.remove("hidden");
       holeAdvanceTimer = setTimeout(() => {
         holeAdvanceTimer = null;
-        if (mode === "game") startGame();
+        if (isChallengeMode()) startGame(mode);
       }, 3000);
+    }
+
+    function updateHoleModalText() {
+      if (mode === "precision") {
+        const remaining = Math.round(gameRemainingYards);
+        fields.holeModalTitle.textContent = tr("precisionCompleteTitle", { remaining });
+        fields.holeModalText.textContent = tr("precisionCompleteText", { remaining });
+      } else {
+        fields.holeModalTitle.textContent = tr("holeCompleteTitle");
+        fields.holeModalText.textContent = tr("holeCompleteText", { shots: holeCompleteShots });
+      }
+    }
+
+    function showHoleCompleteModal(shots) {
+      showRoundCompleteModal("holeCompleteTitle", "holeCompleteText", { shots });
     }
 
     function ratingStars(player) {
@@ -939,6 +969,14 @@
 
     function randomTarget() {
       return Math.floor(250 + Math.random() * 221);
+    }
+
+    function isChallengeMode() {
+      return mode === "classic" || mode === "precision";
+    }
+
+    function isClassicMode() {
+      return mode === "classic";
     }
 
     function fillPlayers() {
@@ -977,17 +1015,18 @@
     }
 
     function showSimulator(nextMode) {
+      const challengeMode = nextMode === "classic" || nextMode === "precision";
       mode = nextMode;
       lobby.classList.add("hidden");
       app.classList.remove("hidden");
       launchDock.classList.remove("hidden");
       homeBtn.classList.add("show");
       playerSelect.value = lobbyPlayerSelect.value;
-      playerSelect.disabled = nextMode === "game";
-      playerControl.classList.toggle("hidden", nextMode === "game");
-      fields.gameInfo.classList.toggle("show", nextMode === "game");
+      playerSelect.disabled = challengeMode;
+      playerControl.classList.toggle("hidden", challengeMode);
+      fields.gameInfo.classList.toggle("show", challengeMode);
       fillClubs();
-      if (nextMode === "game") startGame();
+      if (challengeMode) startGame(nextMode);
       else {
         previousTrails = [];
         gameFinished = false;
@@ -995,9 +1034,10 @@
       }
     }
 
-    function startGame() {
+    function startGame(nextMode = mode) {
       clearHoleAdvanceTimer();
       hideHoleModal();
+      mode = nextMode;
       gameTargetYards = randomTarget();
       gameRemainingYards = gameTargetYards;
       gameBallYards = 0;
@@ -1011,14 +1051,15 @@
       gameFinished = false;
       previousTrails = [];
       trail = [];
-      resetShot("gameReady", { target: gameTargetYards });
+      resetShot(mode === "precision" ? "precisionReady" : "gameReady", { target: gameTargetYards });
     }
 
     function updateGameInfo() {
-      if (mode !== "game") return;
+      if (!isChallengeMode()) return;
+      const infoKey = mode === "precision" ? "precisionInfo" : "gameInfo";
       fields.gameInfo.textContent = [
         tr("rating", { stars: ratingStars(playerSelect.value) }),
-        tr("gameInfo", {
+        tr(infoKey, {
           target: gameTargetYards,
           remaining: Math.round(gameRemainingYards),
           shots: gameShots
@@ -1027,7 +1068,7 @@
     }
 
     function adjustShotSettings(messageKey, vars = {}) {
-      if (mode === "game" && landed && !gameFinished) {
+      if (isClassicMode() && landed && !gameFinished) {
         shot = getShot();
         showLandingMarker = false;
         updateText(messageKey, vars);
@@ -1196,8 +1237,8 @@
 
     function getScale(rect) {
       const baselineMaxX = Math.ceil((shot.distanceYards * 1.12) / 50) * 50;
-      const maxX = mode === "game" ? gameViewMaxX : Math.max(50, baselineMaxX);
-      const maxY = mode === "game" ? gameViewMaxY : Math.max(30, Math.ceil((shot.maxHeightYards * 1.45) / 25) * 25);
+      const maxX = isChallengeMode() ? gameViewMaxX : Math.max(50, baselineMaxX);
+      const maxY = isChallengeMode() ? gameViewMaxY : Math.max(30, Math.ceil((shot.maxHeightYards * 1.45) / 25) * 25);
       const origin = { x: 52, y: rect.height - 68 };
       const xScale = (rect.width - origin.x - 38) / maxX;
       const yScale = (origin.y - 30) / maxY;
@@ -1205,7 +1246,7 @@
     }
 
     function updateGameViewForPoint(point) {
-      if (mode !== "game") return;
+      if (!isChallengeMode()) return;
       const neededX = Math.max(gameTargetYards, Math.abs(point.x || 0)) * 1.08;
       const nextX = Math.max(500, Math.ceil(neededX / 50) * 50);
       if (nextX > gameViewTargetMaxX) gameViewTargetMaxX = nextX;
@@ -1269,20 +1310,20 @@
       ctx.clearRect(0, 0, rect.width, rect.height);
 
       const sky = ctx.createLinearGradient(0, 0, 0, rect.height);
-      sky.addColorStop(0, mode === "game" ? "#d8f0ff" : "#e7f5ff");
-      sky.addColorStop(0.58, mode === "game" ? "#f7fcff" : "#f9fcf8");
-      sky.addColorStop(1, mode === "game" ? "#dff3db" : "#dcefd8");
+      sky.addColorStop(0, isChallengeMode() ? "#d8f0ff" : "#e7f5ff");
+      sky.addColorStop(0.58, isChallengeMode() ? "#f7fcff" : "#f9fcf8");
+      sky.addColorStop(1, isChallengeMode() ? "#dff3db" : "#dcefd8");
       ctx.fillStyle = sky;
       ctx.fillRect(0, 0, rect.width, rect.height);
 
-      if (mode === "game") {
+      if (isChallengeMode()) {
         drawGameScenery(rect, origin);
       } else {
         ctx.fillStyle = "rgba(45, 139, 87, 0.16)";
         ctx.fillRect(origin.x, origin.y, rect.width - origin.x - 26, 20);
       }
 
-      if (mode !== "game") {
+      if (!isChallengeMode()) {
         ctx.strokeStyle = "rgba(87, 113, 96, 0.2)";
         ctx.lineWidth = 1;
         ctx.font = "12px Arial";
@@ -1369,7 +1410,7 @@
     }
 
     function drawPrediction(origin, scale) {
-      if (mode !== "game" || animation || gameFinished) return;
+      if (!isChallengeMode() || animation || gameFinished) return;
       const preview = getShot();
       if (preview.distanceYards <= 0) return;
       const direction = gameTargetYards >= gameBallYards ? 1 : -1;
@@ -1393,7 +1434,7 @@
     }
 
     function drawFlag(origin, scale) {
-      if (mode !== "game") return;
+      if (!isChallengeMode()) return;
       const p = screenPoint({ x: gameTargetYards, y: 0 }, origin, scale);
       ctx.save();
       ctx.strokeStyle = "#26362c";
@@ -1409,15 +1450,12 @@
       ctx.lineTo(p.x + 2, p.y - 24);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = "#26362c";
-      ctx.font = "700 13px Arial";
-      ctx.fillText(`${Math.round(gameRemainingYards)} yd`, Math.min(p.x - 20, canvas.clientWidth - 70), p.y - 54);
       ctx.restore();
     }
 
     function drawLanding(origin, scale) {
       if (!landed || !showLandingMarker) return;
-      const p = screenPoint({ x: mode === "game" ? gameBallYards : shot.distanceYards, y: 0 }, origin, scale);
+      const p = screenPoint({ x: isChallengeMode() ? gameBallYards : shot.distanceYards, y: 0 }, origin, scale);
       ctx.save();
       ctx.strokeStyle = "rgba(216, 115, 50, 0.46)";
       ctx.fillStyle = "rgba(216, 115, 50, 0.14)";
@@ -1495,7 +1533,7 @@
       currentMessageKey = messageKey;
       currentMessageVars = vars;
       const t = ballPosition.time || 0;
-      const shotProgressX = ballPosition.shotX || (mode === "game" ? 0 : ballPosition.x || 0);
+      const shotProgressX = ballPosition.shotX || (isChallengeMode() ? 0 : ballPosition.x || 0);
       const hasLaunched = shotProgressX > 0 || ballPosition.y > 0 || landed;
       const velocity = hasLaunched ? velocityAt(t) : { vx: 0, vy: 0, speed: 0 };
       let phaseKey = "phaseReady";
@@ -1551,7 +1589,7 @@
       hideHoleModal();
       shot = getShot();
       trail = [];
-      ballPosition = { x: mode === "game" ? gameBallYards : 0, y: 0, time: 0, shotX: 0 };
+      ballPosition = { x: isChallengeMode() ? gameBallYards : 0, y: 0, time: 0, shotX: 0 };
       landed = false;
       showLandingMarker = false;
       flightProgress = 0;
@@ -1563,16 +1601,16 @@
 
     function launch() {
       if (animation) cancelAnimationFrame(animation);
-      if (mode === "game" && gameFinished) return;
+      if (isChallengeMode() && gameFinished) return;
       clearHoleAdvanceTimer();
       hideHoleModal();
       playLaunchSound();
-      if (mode === "game" && landed && trail.length > 1) {
+      if (isClassicMode() && landed && trail.length > 1) {
         previousTrails.push([...trail]);
       }
       shot = getShot();
       trail = [];
-      if (mode === "game") {
+      if (isChallengeMode()) {
         gameShotStartYards = gameBallYards;
         gameShotDirection = gameTargetYards >= gameShotStartYards ? 1 : -1;
         ballPosition = { x: gameShotStartYards, y: 0, time: 0, shotX: 0 };
@@ -1600,7 +1638,7 @@
 
         flightProgress = Math.min(1, (elapsed - swingMs) / flightMs);
         const localPoint = pointAt(flightProgress);
-        ballPosition = mode === "game"
+        ballPosition = isChallengeMode()
           ? {
               x: gameShotStartYards + gameShotDirection * localPoint.x,
               y: localPoint.y,
@@ -1611,7 +1649,7 @@
         trail.push({ x: ballPosition.x, y: ballPosition.y });
 
         if (flightProgress >= 1) {
-          ballPosition = mode === "game"
+          ballPosition = isChallengeMode()
             ? {
                 x: gameShotStartYards + gameShotDirection * shot.distanceYards,
                 y: 0,
@@ -1622,20 +1660,29 @@
           trail.push(ballPosition);
           landed = true;
           showLandingMarker = true;
-          if (mode === "game") {
+          if (isChallengeMode()) {
             gameShots += 1;
             gameBallYards = ballPosition.x;
             gameRemainingYards = Math.abs(gameTargetYards - gameBallYards);
             updateGameViewForPoint(ballPosition);
-            gameFinished = gameRemainingYards <= 5;
+            gameFinished = mode === "precision" || gameRemainingYards <= 5;
+            const messageKey = mode === "precision"
+              ? "precisionCompleteMessage"
+              : (gameFinished ? "gameCompleteMessage" : "gameLandedMessage");
             setLaunchButton(gameFinished ? "relaunch" : "launch", gameFinished);
-            updateText(gameFinished ? "gameCompleteMessage" : "gameLandedMessage", {
+            updateText(messageKey, {
               shots: gameShots,
               distance: Math.round(shot.distanceYards),
               remaining: Math.round(gameRemainingYards)
             });
             updateGameInfo();
-            if (gameFinished) showHoleCompleteModal(gameShots);
+            if (mode === "precision") {
+              showRoundCompleteModal("precisionCompleteTitle", "precisionCompleteText", {
+                remaining: Math.round(gameRemainingYards)
+              });
+            } else if (gameFinished) {
+              showHoleCompleteModal(gameShots);
+            }
           } else {
             setLaunchButton("relaunch", false);
             updateText("landedMessage", {
@@ -1695,10 +1742,11 @@
     });
     launchBtn.addEventListener("click", launch);
     resetBtn.addEventListener("click", () => {
-      if (mode === "game") startGame();
+      if (isChallengeMode()) startGame(mode);
       else resetShot("reset");
     });
-    startGameBtn.addEventListener("click", () => showSimulator("game"));
+    startGameBtn.addEventListener("click", () => showSimulator("classic"));
+    startPrecisionBtn.addEventListener("click", () => showSimulator("precision"));
     startFreeBtn.addEventListener("click", () => showSimulator("free"));
     homeBtn.addEventListener("click", showLobby);
     [languageBtn, lobbyLanguageBtn].forEach((button) => button.addEventListener("click", () => {
