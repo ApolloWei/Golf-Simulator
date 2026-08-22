@@ -708,6 +708,13 @@
     let audioContext = null;
     let gameTargetYards = 0;
     let gameRemainingYards = 0;
+    let gameBallYards = 0;
+    let gameShotStartYards = 0;
+    let gameShotDirection = 1;
+    let gameViewMaxX = 500;
+    let gameViewTargetMaxX = 500;
+    let gameViewMaxY = 160;
+    let gameViewTargetMaxY = 160;
     let gameShots = 0;
     let gameFinished = false;
     let currentLang = detectInitialLanguage();
@@ -905,6 +912,13 @@
     function startGame() {
       gameTargetYards = randomTarget();
       gameRemainingYards = gameTargetYards;
+      gameBallYards = 0;
+      gameShotStartYards = 0;
+      gameShotDirection = 1;
+      gameViewMaxX = Math.max(500, Math.ceil((gameTargetYards * 1.08) / 50) * 50);
+      gameViewTargetMaxX = gameViewMaxX;
+      gameViewMaxY = 160;
+      gameViewTargetMaxY = 160;
       gameShots = 0;
       gameFinished = false;
       previousTrails = [];
@@ -1091,13 +1105,30 @@
 
     function getScale(rect) {
       const baselineMaxX = Math.ceil((shot.distanceYards * 1.12) / 50) * 50;
-      const gameMaxX = mode === "game" ? Math.ceil((gameRemainingYards * 1.08) / 50) * 50 : 0;
-      const maxX = Math.max(50, baselineMaxX, gameMaxX);
-      const maxY = Math.max(30, Math.ceil((shot.maxHeightYards * 1.45) / 25) * 25);
+      const maxX = mode === "game" ? gameViewMaxX : Math.max(50, baselineMaxX);
+      const maxY = mode === "game" ? gameViewMaxY : Math.max(30, Math.ceil((shot.maxHeightYards * 1.45) / 25) * 25);
       const origin = { x: 52, y: rect.height - 68 };
       const xScale = (rect.width - origin.x - 38) / maxX;
       const yScale = (origin.y - 30) / maxY;
       return { origin, maxX, maxY, scale: Math.min(xScale, yScale) };
+    }
+
+    function updateGameViewForPoint(point) {
+      if (mode !== "game") return;
+      const neededX = Math.max(gameTargetYards, Math.abs(point.x || 0)) * 1.08;
+      const nextX = Math.max(500, Math.ceil(neededX / 50) * 50);
+      if (nextX > gameViewTargetMaxX) gameViewTargetMaxX = nextX;
+      if (gameViewMaxX < gameViewTargetMaxX) {
+        gameViewMaxX += (gameViewTargetMaxX - gameViewMaxX) * 0.08;
+        if (gameViewTargetMaxX - gameViewMaxX < 0.5) gameViewMaxX = gameViewTargetMaxX;
+      }
+      const neededY = (point.y || 0) * 1.35;
+      const nextY = Math.max(160, Math.ceil(neededY / 25) * 25);
+      if (nextY > gameViewTargetMaxY) gameViewTargetMaxY = nextY;
+      if (gameViewMaxY < gameViewTargetMaxY) {
+        gameViewMaxY += (gameViewTargetMaxY - gameViewMaxY) * 0.08;
+        if (gameViewTargetMaxY - gameViewMaxY < 0.5) gameViewMaxY = gameViewTargetMaxY;
+      }
     }
 
     function drawGrid(rect, origin, scale, maxX, maxY) {
@@ -1158,7 +1189,7 @@
 
     function screenPoint(point, origin, scale) {
       return {
-        x: origin.x + point.x * scale,
+        x: origin.x + Math.max(0, point.x) * scale,
         y: origin.y - point.y * scale
       };
     }
@@ -1205,6 +1236,7 @@
       if (mode !== "game" || animation || gameFinished) return;
       const preview = getShot();
       if (preview.distanceYards <= 0) return;
+      const direction = gameTargetYards >= gameBallYards ? 1 : -1;
       ctx.save();
       ctx.strokeStyle = "rgba(36, 120, 183, 0.55)";
       ctx.lineWidth = 3;
@@ -1212,7 +1244,8 @@
       ctx.beginPath();
       for (let i = 0; i <= 40; i += 1) {
         const u = (i / 40) * 0.2;
-        const x = preview.distanceYards * u;
+        const localX = preview.distanceYards * u;
+        const x = gameBallYards + direction * localX;
         const y = preview.distanceYards * Math.tan(preview.visualAngleRad) * u
           * (1 - Math.pow(u, preview.descentShape));
         const p = screenPoint({ x, y }, origin, scale);
@@ -1225,7 +1258,7 @@
 
     function drawFlag(origin, scale) {
       if (mode !== "game") return;
-      const p = screenPoint({ x: gameRemainingYards, y: 0 }, origin, scale);
+      const p = screenPoint({ x: gameTargetYards, y: 0 }, origin, scale);
       ctx.save();
       ctx.strokeStyle = "#26362c";
       ctx.lineWidth = 3;
@@ -1248,7 +1281,7 @@
 
     function drawLanding(origin, scale) {
       if (!landed) return;
-      const p = screenPoint({ x: shot.distanceYards, y: 0 }, origin, scale);
+      const p = screenPoint({ x: mode === "game" ? gameBallYards : shot.distanceYards, y: 0 }, origin, scale);
       ctx.save();
       ctx.strokeStyle = "rgba(216, 115, 50, 0.46)";
       ctx.fillStyle = "rgba(216, 115, 50, 0.14)";
@@ -1302,6 +1335,7 @@
     function drawScene() {
       if (!shot) shot = getShot();
       const rect = resizeCanvas();
+      updateGameViewForPoint(ballPosition);
       const { origin, maxX, maxY, scale } = getScale(rect);
 
       drawGrid(rect, origin, scale, maxX, maxY);
@@ -1325,7 +1359,8 @@
       currentMessageKey = messageKey;
       currentMessageVars = vars;
       const t = ballPosition.time || 0;
-      const hasLaunched = ballPosition.x > 0 || ballPosition.y > 0 || landed;
+      const shotProgressX = ballPosition.shotX || (mode === "game" ? 0 : ballPosition.x || 0);
+      const hasLaunched = shotProgressX > 0 || ballPosition.y > 0 || landed;
       const velocity = hasLaunched ? velocityAt(t) : { vx: 0, vy: 0, speed: 0 };
       let phaseKey = "phaseReady";
       if (landed) phaseKey = "phaseLanded";
@@ -1338,7 +1373,7 @@
       fields.angle.textContent = `${shot.angleDeg}°`;
       fields.power.textContent = `${shot.powerPercent}%`;
       fields.distance.textContent = `${Math.round(shot.distanceYards)} yd`;
-      fields.liveDistance.textContent = `${Math.round(ballPosition.x)} yd`;
+      fields.liveDistance.textContent = `${Math.round(shotProgressX)} yd`;
       fields.speed.textContent = `${shot.speed.toFixed(1)} m/s`;
       fields.currentSpeed.textContent = `${velocity.speed.toFixed(1)} m/s`;
       fields.horizontalSpeed.textContent = `${velocity.vx.toFixed(1)} m/s`;
@@ -1361,7 +1396,7 @@
       if (animation) cancelAnimationFrame(animation);
       shot = getShot();
       trail = [];
-      ballPosition = { x: 0, y: 0, time: 0 };
+      ballPosition = { x: mode === "game" ? gameBallYards : 0, y: 0, time: 0, shotX: 0 };
       landed = false;
       flightProgress = 0;
       setLaunchButton("launch", false);
@@ -1379,7 +1414,13 @@
       }
       shot = getShot();
       trail = [];
-      ballPosition = { x: 0, y: 0, time: 0 };
+      if (mode === "game") {
+        gameShotStartYards = gameBallYards;
+        gameShotDirection = gameTargetYards >= gameShotStartYards ? 1 : -1;
+        ballPosition = { x: gameShotStartYards, y: 0, time: 0, shotX: 0 };
+      } else {
+        ballPosition = { x: 0, y: 0, time: 0, shotX: 0 };
+      }
       landed = false;
       flightProgress = 0;
       setLaunchButton("flying", true);
@@ -1398,16 +1439,33 @@
         }
 
         flightProgress = Math.min(1, (elapsed - swingMs) / flightMs);
-        ballPosition = pointAt(flightProgress);
+        const localPoint = pointAt(flightProgress);
+        ballPosition = mode === "game"
+          ? {
+              x: gameShotStartYards + gameShotDirection * localPoint.x,
+              y: localPoint.y,
+              time: localPoint.time,
+              shotX: localPoint.x
+            }
+          : { ...localPoint, shotX: localPoint.x };
         trail.push({ x: ballPosition.x, y: ballPosition.y });
 
         if (flightProgress >= 1) {
-          ballPosition = { x: shot.distanceYards, y: 0, time: shot.duration };
+          ballPosition = mode === "game"
+            ? {
+                x: gameShotStartYards + gameShotDirection * shot.distanceYards,
+                y: 0,
+                time: shot.duration,
+                shotX: shot.distanceYards
+              }
+            : { x: shot.distanceYards, y: 0, time: shot.duration, shotX: shot.distanceYards };
           trail.push(ballPosition);
           landed = true;
           if (mode === "game") {
             gameShots += 1;
-            gameRemainingYards = Math.abs(gameRemainingYards - shot.distanceYards);
+            gameBallYards = ballPosition.x;
+            gameRemainingYards = Math.abs(gameTargetYards - gameBallYards);
+            updateGameViewForPoint(ballPosition);
             gameFinished = gameRemainingYards <= 5;
             setLaunchButton(gameFinished ? "relaunch" : "launch", gameFinished);
             updateText(gameFinished ? "gameCompleteMessage" : "gameLandedMessage", {
