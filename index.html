@@ -554,7 +554,7 @@
     let landed = false;
     let flightProgress = 0;
     let audioContext = null;
-    let currentLang = "zh";
+    let currentLang = detectInitialLanguage();
     let currentMessageKey = "ready";
     let currentMessageVars = {};
     let launchButtonKey = "launch";
@@ -651,6 +651,14 @@
     function tr(key, vars = {}) {
       const template = translations[currentLang][key] || translations.zh[key] || key;
       return template.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
+    }
+
+    function detectInitialLanguage() {
+      const languages = navigator.languages?.length
+        ? navigator.languages
+        : [navigator.language || navigator.userLanguage || ""];
+      const preferred = languages.find(Boolean)?.toLowerCase() || "";
+      return preferred.startsWith("zh") ? "zh" : "en";
     }
 
     function fillPlayers() {
