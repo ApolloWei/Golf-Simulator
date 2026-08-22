@@ -398,8 +398,24 @@
             <strong id="speedText">0 m/s</strong>
           </div>
           <div class="stat">
+            <span>当前速度</span>
+            <strong id="currentSpeedText">0 m/s</strong>
+          </div>
+          <div class="stat">
+            <span>水平速度</span>
+            <strong id="horizontalSpeedText">0 m/s</strong>
+          </div>
+          <div class="stat">
+            <span>垂直速度</span>
+            <strong id="verticalSpeedText">0 m/s</strong>
+          </div>
+          <div class="stat">
             <span>飞行时间</span>
             <strong id="timeText">0.0 s</strong>
+          </div>
+          <div class="stat">
+            <span>飞行阶段</span>
+            <strong id="phaseText">待发射</strong>
           </div>
         </div>
 
@@ -479,7 +495,11 @@
       distance: document.querySelector("#distanceText"),
       liveDistance: document.querySelector("#liveDistanceText"),
       speed: document.querySelector("#speedText"),
+      currentSpeed: document.querySelector("#currentSpeedText"),
+      horizontalSpeed: document.querySelector("#horizontalSpeedText"),
+      verticalSpeed: document.querySelector("#verticalSpeedText"),
       time: document.querySelector("#timeText"),
+      phase: document.querySelector("#phaseText"),
       message: document.querySelector("#message"),
       chips: document.querySelector("#clubChips")
     };
@@ -547,6 +567,16 @@
         x: Math.min(shot.distanceYards, Math.max(0, xMeters * METER_TO_YARD)),
         y: Math.max(0, yMeters * METER_TO_YARD),
         time: t
+      };
+    }
+
+    function velocityAt(time) {
+      const vx = shot.speed * Math.cos(shot.angleRad);
+      const vy = shot.speed * Math.sin(shot.angleRad) - G * time;
+      return {
+        vx,
+        vy,
+        speed: Math.sqrt(vx * vx + vy * vy)
       };
     }
 
@@ -756,11 +786,25 @@
     }
 
     function updateText(message) {
+      const t = ballPosition.time || 0;
+      const velocity = velocityAt(t);
+      let phase = "待发射";
+      if (landed) phase = "已落地";
+      else if (ballPosition.x > 0 || ballPosition.y > 0) {
+        if (velocity.vy > 0.4) phase = "上升变慢";
+        else if (velocity.vy < -0.4) phase = "下降加快";
+        else phase = "最高点";
+      }
+
       fields.angle.textContent = `${shot.angleDeg}°`;
       fields.distance.textContent = `${shot.distanceYards} yd`;
       fields.liveDistance.textContent = `${Math.round(ballPosition.x)} yd`;
       fields.speed.textContent = `${shot.speed.toFixed(1)} m/s`;
-      fields.time.textContent = `${ballPosition.time ? ballPosition.time.toFixed(1) : "0.0"} s`;
+      fields.currentSpeed.textContent = `${velocity.speed.toFixed(1)} m/s`;
+      fields.horizontalSpeed.textContent = `${velocity.vx.toFixed(1)} m/s`;
+      fields.verticalSpeed.textContent = `${velocity.vy.toFixed(1)} m/s`;
+      fields.time.textContent = `${t.toFixed(1)} s`;
+      fields.phase.textContent = phase;
       fields.message.textContent = message;
       fields.message.classList.toggle("land", landed);
 
@@ -811,8 +855,7 @@
         }
 
         flightProgress = Math.min(1, (elapsed - swingMs) / flightMs);
-        const eased = 1 - Math.pow(1 - flightProgress, 1.22);
-        ballPosition = pointAt(eased);
+        ballPosition = pointAt(flightProgress);
         trail.push({ x: ballPosition.x, y: ballPosition.y });
 
         if (flightProgress >= 1) {
