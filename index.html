@@ -1821,7 +1821,7 @@
             } else if (gameFinished) {
               showHoleCompleteModal(gameShots);
             }
-            resetSwingControlsToDefault();
+            if (!isClassicMode()) resetSwingControlsToDefault();
           } else {
             setLaunchButton("relaunch", false);
             updateText("landedMessage", {
