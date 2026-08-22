@@ -183,7 +183,12 @@
       margin-top: 7px;
       font-size: 21px;
       font-variant-numeric: tabular-nums;
-      white-space: nowrap;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+    }
+
+    #phaseText {
+      font-size: 18px;
     }
 
     .message {
@@ -521,6 +526,13 @@
       "3 Wood": 10, "Driver": 12
     };
 
+    const playerAxisMax = {
+      "Calvin": 400,
+      "Youtube Golfer": 450,
+      "Pro (Bryson DeChambeau)": 500,
+      "Pro (Nelly Korda)": 400
+    };
+
     const playerSelect = document.querySelector("#player");
     const clubSelect = document.querySelector("#club");
     const angleSlider = document.querySelector("#angle");
@@ -635,7 +647,7 @@
         phaseReady: "Ready",
         phaseLanded: "Landed",
         phaseRising: "Rising, slowing",
-        phaseFalling: "Falling, speeding up",
+        phaseFalling: "Falling faster",
         phaseApex: "Apex",
         ready: "Choose a player and club, then press Launch in the lower-right corner.",
         clubChanged: "Club changed. Press Launch to see the new flight.",
@@ -838,7 +850,7 @@
 
     function getScale(rect) {
       const baselineMaxX = Math.ceil((shot.scaleDistanceYards * 1.12) / 50) * 50;
-      const maxX = Math.max(400, baselineMaxX);
+      const maxX = Math.max(playerAxisMax[shot.player] || 400, baselineMaxX);
       const maxY = Math.max(60, Math.ceil((shot.scaleMaxHeightYards * 1.45) / 25) * 25);
       const origin = { x: 52, y: rect.height - 68 };
       const xScale = (rect.width - origin.x - 38) / maxX;
