@@ -726,7 +726,11 @@
         : fullDistanceMeters * Math.pow(powerRatio, 2) * angleEfficiency;
       const adjustedDistanceYards = distanceMeters * METER_TO_YARD;
       const scaleDistanceYards = fullDistanceMeters * scaleAngleEfficiency * METER_TO_YARD;
-      const duration = speed === 0 ? 0 : distanceMeters / (speed * Math.cos(angleRad));
+      const horizontalSpeed = speed * Math.cos(angleRad);
+      const horizontalDuration = horizontalSpeed === 0 ? 0 : distanceMeters / horizontalSpeed;
+      const verticalHangTime = speed === 0 ? 0 : (2 * speed * Math.sin(angleRad)) / G;
+      const verticalDuration = verticalHangTime * Math.sqrt(Math.min(1, angleEfficiency));
+      const duration = speed === 0 ? 0 : Math.max(horizontalDuration, verticalDuration);
       const normalizedAngle = Math.min(1, Math.max(0, angleDeg / 55));
       const descentShape = 1.12 + powerRatio * 0.52 + (1 - normalizedAngle) * 0.34;
       const scaleDescentShape = 1.12 + 1 * 0.52 + (1 - normalizedAngle) * 0.34;
