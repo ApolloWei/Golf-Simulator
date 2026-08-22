@@ -450,6 +450,41 @@
       filter: grayscale(0.2) brightness(0.92);
     }
 
+    .hole-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(23, 36, 29, 0.34);
+      backdrop-filter: blur(6px);
+    }
+
+    .hole-modal-card {
+      width: min(420px, 100%);
+      padding: 24px;
+      border: 1px solid rgba(205, 219, 209, 0.95);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 24px 60px rgba(30, 56, 39, 0.24);
+      text-align: center;
+    }
+
+    .hole-modal-card h2 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    .hole-modal-card p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
     @media (max-width: 850px) {
       .app {
         width: min(100vw - 20px, 680px);
@@ -619,6 +654,13 @@
     </button>
   </div>
 
+  <div class="hole-modal hidden" id="holeModal" role="status" aria-live="polite">
+    <div class="hole-modal-card">
+      <h2 id="holeModalTitle">恭喜！</h2>
+      <p id="holeModalText">你用了 0 杆打进了。3 秒后进入下一关。</p>
+    </div>
+  </div>
+
   <script>
     const YARD_TO_METER = 0.9144;
     const METER_TO_YARD = 1 / YARD_TO_METER;
@@ -680,6 +722,7 @@
     const ctx = canvas.getContext("2d");
     const launchBtn = document.querySelector("#launchBtn");
     const resetBtn = document.querySelector("#resetBtn");
+    const holeModal = document.querySelector("#holeModal");
 
     const fields = {
       angle: document.querySelector("#angleValue"),
@@ -694,7 +737,9 @@
       phase: document.querySelector("#phaseText"),
       message: document.querySelector("#message"),
       chips: document.querySelector("#clubChips"),
-      gameInfo: document.querySelector("#gameInfo")
+      gameInfo: document.querySelector("#gameInfo"),
+      holeModalTitle: document.querySelector("#holeModalTitle"),
+      holeModalText: document.querySelector("#holeModalText")
     };
 
     let mode = "lobby";
@@ -718,6 +763,8 @@
     let gameViewTargetMaxY = 160;
     let gameShots = 0;
     let gameFinished = false;
+    let holeAdvanceTimer = null;
+    let holeCompleteShots = 0;
     let currentLang = detectInitialLanguage();
     let currentMessageKey = "ready";
     let currentMessageVars = {};
@@ -778,6 +825,8 @@
         landedMessage: "{player} 使用 {club}，{power}% 力度让小球飞行了 {distance} yd。",
         gameLandedMessage: "第 {shots} 杆飞行 {distance} yd，距离洞口还剩 {remaining} yd。",
         gameCompleteMessage: "进洞！总共用了 {shots} 杆。",
+        holeCompleteTitle: "恭喜！",
+        holeCompleteText: "你用了 {shots} 杆打进了。3 秒后进入下一关。",
         gameReady: "游戏开始。目标在 {target} yd 处，选择球杆、角度和力度后发射。",
         gameShotReady: "当前位置已更新。继续选择球杆、角度和力度，争取进洞。"
       },
@@ -835,6 +884,8 @@
         landedMessage: "{player} used {club} at {power}% power. The ball flew {distance} yd.",
         gameLandedMessage: "Shot {shots} flew {distance} yd. {remaining} yd left to the hole.",
         gameCompleteMessage: "Holed out in {shots} shots.",
+        holeCompleteTitle: "Congratulations!",
+        holeCompleteText: "You holed out in {shots} shots. The next hole starts in 3 seconds.",
         gameReady: "Game started. The flag is {target} yd away. Choose club, angle, and power, then launch.",
         gameShotReady: "Ball position updated. Choose the next shot and try to hole out."
       }
@@ -851,6 +902,32 @@
         : [navigator.language || navigator.userLanguage || ""];
       const preferred = languages.find(Boolean)?.toLowerCase() || "";
       return preferred.startsWith("zh") ? "zh" : "en";
+    }
+
+    function clearHoleAdvanceTimer() {
+      if (!holeAdvanceTimer) return;
+      clearTimeout(holeAdvanceTimer);
+      holeAdvanceTimer = null;
+    }
+
+    function updateHoleModalText() {
+      fields.holeModalTitle.textContent = tr("holeCompleteTitle");
+      fields.holeModalText.textContent = tr("holeCompleteText", { shots: holeCompleteShots });
+    }
+
+    function hideHoleModal() {
+      holeModal.classList.add("hidden");
+    }
+
+    function showHoleCompleteModal(shots) {
+      clearHoleAdvanceTimer();
+      holeCompleteShots = shots;
+      updateHoleModalText();
+      holeModal.classList.remove("hidden");
+      holeAdvanceTimer = setTimeout(() => {
+        holeAdvanceTimer = null;
+        if (mode === "game") startGame();
+      }, 3000);
     }
 
     function ratingStars(player) {
@@ -879,6 +956,8 @@
 
     function showLobby() {
       if (animation) cancelAnimationFrame(animation);
+      clearHoleAdvanceTimer();
+      hideHoleModal();
       mode = "lobby";
       app.classList.add("hidden");
       launchDock.classList.add("hidden");
@@ -912,6 +991,8 @@
     }
 
     function startGame() {
+      clearHoleAdvanceTimer();
+      hideHoleModal();
       gameTargetYards = randomTarget();
       gameRemainingYards = gameTargetYards;
       gameBallYards = 0;
@@ -1397,6 +1478,8 @@
 
     function resetShot(messageKey, vars = {}) {
       if (animation) cancelAnimationFrame(animation);
+      clearHoleAdvanceTimer();
+      hideHoleModal();
       shot = getShot();
       trail = [];
       ballPosition = { x: mode === "game" ? gameBallYards : 0, y: 0, time: 0, shotX: 0 };
@@ -1412,6 +1495,8 @@
     function launch() {
       if (animation) cancelAnimationFrame(animation);
       if (mode === "game" && gameFinished) return;
+      clearHoleAdvanceTimer();
+      hideHoleModal();
       playLaunchSound();
       if (mode === "game" && landed && trail.length > 1) {
         previousTrails.push([...trail]);
@@ -1480,6 +1565,7 @@
               remaining: Math.round(gameRemainingYards)
             });
             updateGameInfo();
+            if (gameFinished) showHoleCompleteModal(gameShots);
           } else {
             setLaunchButton("relaunch", false);
             updateText("landedMessage", {
@@ -1515,6 +1601,7 @@
       });
       if (mode !== "lobby") setLaunchButton(launchButtonKey, launchBtn.disabled);
       if (shot) updateText();
+      if (!holeModal.classList.contains("hidden")) updateHoleModalText();
       updateGameInfo();
       if (mode !== "lobby") drawScene();
     }
