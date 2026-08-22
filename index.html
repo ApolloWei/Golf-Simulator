@@ -665,6 +665,7 @@
     const YARD_TO_METER = 0.9144;
     const METER_TO_YARD = 1 / YARD_TO_METER;
     const G = 9.81;
+    const DEFAULT_POWER_RATIO = 0.8;
 
     const players = {
       "Calvin": [
@@ -1056,11 +1057,12 @@
       const baselineAngleRad = baselineAngleDeg * Math.PI / 180;
       const powerPercent = Number(powerSlider.value);
       const powerRatio = powerPercent / 100;
-      const fullDistanceMeters = distanceYards * YARD_TO_METER;
-      const fullSpeed = Math.sqrt(fullDistanceMeters * G / Math.sin(2 * baselineAngleRad));
-      const speed = fullSpeed * powerRatio;
+      const swingRatio = powerRatio / DEFAULT_POWER_RATIO;
+      const baselineDistanceMeters = distanceYards * YARD_TO_METER;
+      const baselineSpeed = Math.sqrt(baselineDistanceMeters * G / Math.sin(2 * baselineAngleRad));
+      const speed = baselineSpeed * swingRatio;
       const angleDeviation = Math.abs(angleDeg - baselineAngleDeg);
-      const angleTolerance = 20 - powerRatio * 2 + Math.min(1, baselineAngleDeg / 55) * 5;
+      const angleTolerance = 20 - Math.min(swingRatio, 1.25) * 2 + Math.min(1, baselineAngleDeg / 55) * 5;
       const vacuumAngleRatio = Math.sin(2 * angleRad) / Math.sin(2 * baselineAngleRad);
       const angleEfficiency = Math.max(
         0,
@@ -1068,7 +1070,7 @@
       );
       const distanceMeters = powerRatio === 0
         ? 0
-        : fullDistanceMeters * Math.pow(powerRatio, 2) * angleEfficiency;
+        : baselineDistanceMeters * Math.pow(swingRatio, 2) * angleEfficiency;
       const adjustedDistanceYards = distanceMeters * METER_TO_YARD;
       const horizontalSpeed = speed * Math.cos(angleRad);
       const horizontalDuration = horizontalSpeed === 0 ? 0 : distanceMeters / horizontalSpeed;
@@ -1092,6 +1094,7 @@
         distanceMeters,
         powerPercent,
         powerRatio,
+        swingRatio,
         angleDeg,
         angleRad,
         baselineAngleDeg,
