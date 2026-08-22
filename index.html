@@ -489,7 +489,6 @@
     let trail = [];
     let ballPosition = { x: 0, y: 0 };
     let landed = false;
-    let swingProgress = 0;
     let flightProgress = 0;
 
     function fillPlayers() {
@@ -697,25 +696,6 @@
       ctx.restore();
     }
 
-    function drawClub(origin) {
-      ctx.save();
-      const baseX = origin.x - 8;
-      const baseY = origin.y - 2;
-      const angle = -55 + swingProgress * 98;
-      ctx.translate(baseX, baseY);
-      ctx.rotate(angle * Math.PI / 180);
-      ctx.strokeStyle = "#4d5a51";
-      ctx.lineWidth = 5;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(-8, -82);
-      ctx.stroke();
-      ctx.fillStyle = "#2f3d33";
-      ctx.fillRect(-18, 0, 28, 7);
-      ctx.restore();
-    }
-
     function drawScene() {
       if (!shot) shot = getShot();
       const rect = resizeCanvas();
@@ -724,7 +704,6 @@
       drawGrid(rect, origin, scale, maxX, maxY);
       drawTrace(origin, scale);
       drawLanding(origin, scale);
-      drawClub(origin);
 
       const ballScreen = screenPoint(ballPosition, origin, scale);
       drawGolfBall(ballScreen.x, ballScreen.y, 8, flightProgress * 18);
@@ -754,7 +733,6 @@
       trail = [];
       ballPosition = { x: 0, y: 0, time: 0 };
       landed = false;
-      swingProgress = 0;
       flightProgress = 0;
       launchBtn.disabled = false;
       launchBtn.innerHTML = '<span class="ball-dot" aria-hidden="true"></span>发射';
@@ -779,17 +757,12 @@
       function frame(now) {
         const elapsed = now - started;
         if (elapsed < swingMs) {
-          const raw = elapsed / swingMs;
-          swingProgress = raw < 0.6
-            ? raw * 0.55
-            : 0.33 + Math.pow((raw - 0.6) / 0.4, 0.45) * 0.67;
-          updateText("正在挥杆，准备击球。");
+          updateText("准备发射小球。");
           drawScene();
           animation = requestAnimationFrame(frame);
           return;
         }
 
-        swingProgress = 1;
         flightProgress = Math.min(1, (elapsed - swingMs) / flightMs);
         const eased = 1 - Math.pow(1 - flightProgress, 1.22);
         ballPosition = pointAt(eased);
