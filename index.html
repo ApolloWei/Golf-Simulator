@@ -699,30 +699,44 @@
       const speed = fullSpeed * powerRatio;
       const angleDeviation = Math.abs(angleDeg - baselineAngleDeg);
       const angleTolerance = 20 - powerRatio * 2 + Math.min(1, baselineAngleDeg / 55) * 5;
+      const scaleAngleTolerance = 20 - 1 * 2 + Math.min(1, baselineAngleDeg / 55) * 5;
       const vacuumAngleRatio = Math.sin(2 * angleRad) / Math.sin(2 * baselineAngleRad);
       const angleEfficiency = Math.max(
         0,
         vacuumAngleRatio * Math.exp(-Math.pow(angleDeviation / angleTolerance, 2))
       );
+      const scaleAngleEfficiency = Math.max(
+        0,
+        vacuumAngleRatio * Math.exp(-Math.pow(angleDeviation / scaleAngleTolerance, 2))
+      );
       const distanceMeters = powerRatio === 0
         ? 0
         : fullDistanceMeters * Math.pow(powerRatio, 2) * angleEfficiency;
       const adjustedDistanceYards = distanceMeters * METER_TO_YARD;
+      const scaleDistanceYards = fullDistanceMeters * scaleAngleEfficiency * METER_TO_YARD;
       const duration = speed === 0 ? 0 : distanceMeters / (speed * Math.cos(angleRad));
       const normalizedAngle = Math.min(1, Math.max(0, angleDeg / 55));
       const descentShape = 1.12 + powerRatio * 0.52 + (1 - normalizedAngle) * 0.34;
+      const scaleDescentShape = 1.12 + 1 * 0.52 + (1 - normalizedAngle) * 0.34;
       const visualAngleRad = angleRad * (1.04 + powerRatio * 0.08);
+      const scaleVisualAngleRad = angleRad * (1.04 + 1 * 0.08);
       const apexProgress = descentShape === 0
         ? 0
         : Math.pow(1 / (1 + descentShape), 1 / descentShape);
+      const scaleApexProgress = scaleDescentShape === 0
+        ? 0
+        : Math.pow(1 / (1 + scaleDescentShape), 1 / scaleDescentShape);
       const maxHeightYards = adjustedDistanceYards * Math.tan(visualAngleRad) * apexProgress
         * (1 - Math.pow(apexProgress, descentShape));
+      const scaleMaxHeightYards = scaleDistanceYards * Math.tan(scaleVisualAngleRad) * scaleApexProgress
+        * (1 - Math.pow(scaleApexProgress, scaleDescentShape));
 
       return {
         player,
         club,
         distanceYards: adjustedDistanceYards,
         fullDistanceYards: distanceYards,
+        scaleDistanceYards,
         distanceMeters,
         powerPercent,
         powerRatio,
@@ -734,7 +748,8 @@
         descentShape,
         speed,
         duration,
-        maxHeightYards
+        maxHeightYards,
+        scaleMaxHeightYards
       };
     }
 
@@ -822,8 +837,9 @@
     }
 
     function getScale(rect) {
-      const maxX = Math.max(50, Math.ceil((shot.distanceYards * 1.12) / 50) * 50);
-      const maxY = Math.max(60, Math.ceil((shot.maxHeightYards * 1.45) / 25) * 25);
+      const baselineMaxX = Math.ceil((shot.scaleDistanceYards * 1.12) / 50) * 50;
+      const maxX = Math.max(400, baselineMaxX);
+      const maxY = Math.max(60, Math.ceil((shot.scaleMaxHeightYards * 1.45) / 25) * 25);
       const origin = { x: 52, y: rect.height - 68 };
       const xScale = (rect.width - origin.x - 38) / maxX;
       const yScale = (origin.y - 30) / maxY;
