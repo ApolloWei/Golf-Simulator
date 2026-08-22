@@ -704,6 +704,7 @@
     let previousTrails = [];
     let ballPosition = { x: 0, y: 0 };
     let landed = false;
+    let showLandingMarker = false;
     let flightProgress = 0;
     let audioContext = null;
     let gameTargetYards = 0;
@@ -888,6 +889,7 @@
       previousTrails = [];
       trail = [];
       landed = false;
+      showLandingMarker = false;
       gameFinished = false;
     }
 
@@ -941,6 +943,7 @@
     function adjustShotSettings(messageKey, vars = {}) {
       if (mode === "game" && landed && !gameFinished) {
         shot = getShot();
+        showLandingMarker = false;
         updateText(messageKey, vars);
         drawScene();
       } else {
@@ -1280,7 +1283,7 @@
     }
 
     function drawLanding(origin, scale) {
-      if (!landed) return;
+      if (!landed || !showLandingMarker) return;
       const p = screenPoint({ x: mode === "game" ? gameBallYards : shot.distanceYards, y: 0 }, origin, scale);
       ctx.save();
       ctx.strokeStyle = "rgba(216, 115, 50, 0.46)";
@@ -1398,6 +1401,7 @@
       trail = [];
       ballPosition = { x: mode === "game" ? gameBallYards : 0, y: 0, time: 0, shotX: 0 };
       landed = false;
+      showLandingMarker = false;
       flightProgress = 0;
       setLaunchButton("launch", false);
       updateText(messageKey, vars);
@@ -1422,6 +1426,7 @@
         ballPosition = { x: 0, y: 0, time: 0, shotX: 0 };
       }
       landed = false;
+      showLandingMarker = false;
       flightProgress = 0;
       setLaunchButton("flying", true);
 
@@ -1461,6 +1466,7 @@
             : { x: shot.distanceYards, y: 0, time: shot.duration, shotX: shot.distanceYards };
           trail.push(ballPosition);
           landed = true;
+          showLandingMarker = true;
           if (mode === "game") {
             gameShots += 1;
             gameBallYards = ballPosition.x;
