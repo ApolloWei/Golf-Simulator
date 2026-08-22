@@ -888,6 +888,7 @@
         inFlight: "小球正在飞行，轨迹会随着它向前延伸。",
         landedMessage: "{player} 使用 {club}，{power}% 力度让小球飞行了 {distance} yd。",
         gameLandedMessage: "第 {shots} 杆飞行 {distance} yd，距离洞口还剩 {remaining} yd。",
+        hardGameLandedMessage: "第 {shots} 杆已落地。继续根据旗杆位置和粗略刻度估算下一杆。",
         gameCompleteMessage: "进洞！总共用了 {shots} 杆。本关评分：{score}。",
         holeCompleteTitle: "恭喜！",
         holeCompleteText: "你用了 {shots} 杆打进了。本关评分：{score}。3 秒后进入下一关。",
@@ -959,6 +960,7 @@
         inFlight: "The ball is in flight, and the trail is being drawn behind it.",
         landedMessage: "{player} used {club} at {power}% power. The ball flew {distance} yd.",
         gameLandedMessage: "Shot {shots} flew {distance} yd. {remaining} yd left to the hole.",
+        hardGameLandedMessage: "Shot {shots} landed. Use the flag position and coarse marks to judge the next shot.",
         gameCompleteMessage: "Holed out in {shots} shots. Score: {score}.",
         holeCompleteTitle: "Congratulations!",
         holeCompleteText: "You holed out in {shots} shots. Score: {score}. The next hole starts in 3 seconds.",
@@ -1788,9 +1790,10 @@
               ? precisionScore(gameRemainingYards, gameTargetYards)
               : classicScore(gameShots);
             const score = scoreStars(roundScore);
-            const messageKey = mode === "precision"
-              ? "precisionCompleteMessage"
-              : (gameFinished ? "gameCompleteMessage" : "gameLandedMessage");
+            let messageKey = "gameLandedMessage";
+            if (mode === "precision") messageKey = "precisionCompleteMessage";
+            else if (gameFinished) messageKey = "gameCompleteMessage";
+            else if (isClassicHardMode()) messageKey = "hardGameLandedMessage";
             setLaunchButton(gameFinished ? "relaunch" : "launch", gameFinished);
             updateText(messageKey, {
               shots: gameShots,
