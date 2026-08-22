@@ -85,7 +85,7 @@
     .home-button {
       position: absolute;
       top: 2px;
-      right: 92px;
+      right: 82px;
       display: none;
       width: 38px;
       height: 38px;
@@ -563,10 +563,11 @@
 
     <section class="layout">
       <aside class="panel">
-        <div class="control">
+        <div class="game-info" id="gameInfo"></div>
+
+        <div class="control" id="playerControl">
           <label for="player" data-i18n="playerPower">球员力量</label>
           <select id="player"></select>
-          <div class="game-info" id="gameInfo"></div>
         </div>
 
         <div class="control">
@@ -713,6 +714,7 @@
     const startFreeBtn = document.querySelector("#startFreeBtn");
     const lobbyLanguageBtn = document.querySelector("#lobbyLanguageBtn");
     const homeBtn = document.querySelector("#homeBtn");
+    const playerControl = document.querySelector("#playerControl");
     const playerSelect = document.querySelector("#player");
     const clubSelect = document.querySelector("#club");
     const angleSlider = document.querySelector("#angle");
@@ -964,6 +966,7 @@
       launchDock.classList.add("hidden");
       lobby.classList.remove("hidden");
       homeBtn.classList.remove("show");
+      playerControl.classList.remove("hidden");
       playerSelect.disabled = false;
       fields.gameInfo.classList.remove("show");
       previousTrails = [];
@@ -981,6 +984,7 @@
       homeBtn.classList.add("show");
       playerSelect.value = lobbyPlayerSelect.value;
       playerSelect.disabled = nextMode === "game";
+      playerControl.classList.toggle("hidden", nextMode === "game");
       fields.gameInfo.classList.toggle("show", nextMode === "game");
       fillClubs();
       if (nextMode === "game") startGame();
@@ -1479,6 +1483,23 @@
       });
     }
 
+    function resetFlightStats(messageKey = "preparing", vars = {}) {
+      currentMessageKey = messageKey;
+      currentMessageVars = vars;
+      fields.angle.textContent = `${shot.angleDeg}°`;
+      fields.power.textContent = `${shot.powerPercent}%`;
+      fields.distance.textContent = "0 yd";
+      fields.liveDistance.textContent = "0 yd";
+      fields.speed.textContent = "0.0 m/s";
+      fields.currentSpeed.textContent = "0.0 m/s";
+      fields.horizontalSpeed.textContent = "0.0 m/s";
+      fields.verticalSpeed.textContent = "0.0 m/s";
+      fields.time.textContent = "0.0 s";
+      fields.phase.textContent = tr("phaseReady");
+      fields.message.textContent = tr(messageKey, vars);
+      fields.message.classList.remove("land");
+    }
+
     function resetShot(messageKey, vars = {}) {
       if (animation) cancelAnimationFrame(animation);
       clearHoleAdvanceTimer();
@@ -1516,6 +1537,7 @@
       landed = false;
       showLandingMarker = false;
       flightProgress = 0;
+      resetFlightStats("preparing");
       setLaunchButton("flying", true);
 
       const swingMs = 520;
@@ -1525,7 +1547,7 @@
       function frame(now) {
         const elapsed = now - started;
         if (elapsed < swingMs) {
-          updateText("preparing");
+          resetFlightStats("preparing");
           drawScene();
           animation = requestAnimationFrame(frame);
           return;
