@@ -716,6 +716,7 @@
     const DEFAULT_POWER_RATIO = 0.8;
     const DEFAULT_LAUNCH_ANGLE = 12;
     const DEFAULT_POWER_PERCENT = 80;
+    const FLIGHT_TIME_SCALE = 1.55;
 
     const players = {
       "Calvin": [
@@ -1230,7 +1231,7 @@
       const horizontalDuration = horizontalSpeed === 0 ? 0 : distanceMeters / horizontalSpeed;
       const verticalHangTime = speed === 0 ? 0 : (2 * speed * Math.sin(angleRad)) / G;
       const verticalDuration = verticalHangTime * Math.sqrt(Math.min(1, angleEfficiency));
-      const duration = speed === 0 ? 0 : Math.max(horizontalDuration, verticalDuration);
+      const duration = speed === 0 ? 0 : Math.max(horizontalDuration, verticalDuration) * FLIGHT_TIME_SCALE;
       const normalizedAngle = Math.min(1, Math.max(0, angleDeg / 55));
       const descentShape = 1.12 + powerRatio * 0.52 + (1 - normalizedAngle) * 0.34;
       const visualAngleRad = angleRad * (1.04 + powerRatio * 0.08);
@@ -1755,7 +1756,7 @@
       setLaunchButton("flying", true);
 
       const swingMs = 520;
-      const flightMs = Math.max(1600, Math.min(4300, shot.duration * 620));
+      const flightMs = Math.max(1800, Math.min(7800, shot.duration * 1000));
       const started = performance.now();
 
       function frame(now) {
