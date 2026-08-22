@@ -773,6 +773,9 @@
     let gameFinished = false;
     let holeAdvanceTimer = null;
     let holeCompleteShots = 0;
+    let modalTitleKey = "holeCompleteTitle";
+    let modalTextKey = "holeCompleteText";
+    let modalVars = {};
     let currentLang = detectInitialLanguage();
     let currentMessageKey = "ready";
     let currentMessageVars = {};
@@ -835,12 +838,12 @@
         inFlight: "小球正在飞行，轨迹会随着它向前延伸。",
         landedMessage: "{player} 使用 {club}，{power}% 力度让小球飞行了 {distance} yd。",
         gameLandedMessage: "第 {shots} 杆飞行 {distance} yd，距离洞口还剩 {remaining} yd。",
-        gameCompleteMessage: "进洞！总共用了 {shots} 杆。",
+        gameCompleteMessage: "进洞！总共用了 {shots} 杆。本关评分：{score}。",
         holeCompleteTitle: "恭喜！",
-        holeCompleteText: "你用了 {shots} 杆打进了。3 秒后进入下一关。",
-        precisionCompleteMessage: "本杆距离旗杆 {remaining} yd。",
+        holeCompleteText: "你用了 {shots} 杆打进了。本关评分：{score}。3 秒后进入下一关。",
+        precisionCompleteMessage: "本杆距离旗杆 {remaining} yd。本关评分：{score}。",
         precisionCompleteTitle: "本关结果",
-        precisionCompleteText: "你离旗杆还差 {remaining} yd。3 秒后进入下一关。",
+        precisionCompleteText: "你离旗杆还差 {remaining} yd。本关评分：{score}。3 秒后进入下一关。",
         gameReady: "游戏开始。目标在 {target} yd 处，选择球杆、角度和力度后发射。",
         precisionReady: "精准模式开始。只有一杆机会，观察旗杆位置后发射。",
         gameShotReady: "当前位置已更新。继续选择球杆、角度和力度，争取进洞。"
@@ -849,7 +852,7 @@
         docTitle: "2D Golf Flight Simulator",
         languageButton: "中文",
         lobbyTitle: "Golf Simulator",
-        lobbySubtitle: "Choose a player, then enter Free Mode or Game Mode.",
+        lobbySubtitle: "Choose a player, then enter Classic, Precision, or Free Mode.",
         choosePlayer: "Choose Player",
         classicMode: "Classic Mode",
         classicModeDesc: "A random hole appears 250-470 yd away. Reach it in as few shots as possible.",
@@ -901,12 +904,12 @@
         inFlight: "The ball is in flight, and the trail is being drawn behind it.",
         landedMessage: "{player} used {club} at {power}% power. The ball flew {distance} yd.",
         gameLandedMessage: "Shot {shots} flew {distance} yd. {remaining} yd left to the hole.",
-        gameCompleteMessage: "Holed out in {shots} shots.",
+        gameCompleteMessage: "Holed out in {shots} shots. Score: {score}.",
         holeCompleteTitle: "Congratulations!",
-        holeCompleteText: "You holed out in {shots} shots. The next hole starts in 3 seconds.",
-        precisionCompleteMessage: "This shot finished {remaining} yd from the flag.",
+        holeCompleteText: "You holed out in {shots} shots. Score: {score}. The next hole starts in 3 seconds.",
+        precisionCompleteMessage: "This shot finished {remaining} yd from the flag. Score: {score}.",
         precisionCompleteTitle: "Round Result",
-        precisionCompleteText: "You finished {remaining} yd from the flag. The next hole starts in 3 seconds.",
+        precisionCompleteText: "You finished {remaining} yd from the flag. Score: {score}. The next hole starts in 3 seconds.",
         gameReady: "Game started. The flag is {target} yd away. Choose club, angle, and power, then launch.",
         precisionReady: "Precision Mode started. You have one shot. Read the flag position and launch.",
         gameShotReady: "Ball position updated. Choose the next shot and try to hole out."
@@ -938,9 +941,11 @@
 
     function showRoundCompleteModal(titleKey, textKey, vars = {}) {
       clearHoleAdvanceTimer();
+      modalTitleKey = titleKey;
+      modalTextKey = textKey;
+      modalVars = { ...vars };
       holeCompleteShots = vars.shots || 0;
-      fields.holeModalTitle.textContent = tr(titleKey, vars);
-      fields.holeModalText.textContent = tr(textKey, vars);
+      updateHoleModalText();
       holeModal.classList.remove("hidden");
       holeAdvanceTimer = setTimeout(() => {
         holeAdvanceTimer = null;
@@ -949,22 +954,40 @@
     }
 
     function updateHoleModalText() {
-      if (mode === "precision") {
-        const remaining = Math.round(gameRemainingYards);
-        fields.holeModalTitle.textContent = tr("precisionCompleteTitle", { remaining });
-        fields.holeModalText.textContent = tr("precisionCompleteText", { remaining });
-      } else {
-        fields.holeModalTitle.textContent = tr("holeCompleteTitle");
-        fields.holeModalText.textContent = tr("holeCompleteText", { shots: holeCompleteShots });
-      }
+      fields.holeModalTitle.textContent = tr(modalTitleKey, modalVars);
+      fields.holeModalText.textContent = tr(modalTextKey, modalVars);
     }
 
     function showHoleCompleteModal(shots) {
-      showRoundCompleteModal("holeCompleteTitle", "holeCompleteText", { shots });
+      showRoundCompleteModal("holeCompleteTitle", "holeCompleteText", {
+        shots,
+        score: scoreStars(classicScore(shots))
+      });
     }
 
     function ratingStars(player) {
       return "⭐️".repeat(playerRatings[player] || 1);
+    }
+
+    function scoreStars(score) {
+      return "⭐️".repeat(Math.max(1, Math.min(5, score)));
+    }
+
+    function classicScore(shots) {
+      if (shots <= 1) return 5;
+      if (shots === 2) return 4;
+      if (shots <= 4) return 3;
+      if (shots <= 6) return 2;
+      return 1;
+    }
+
+    function precisionScore(remainingYards, targetYards) {
+      if (remainingYards <= 20) return 5;
+      const ratio = targetYards <= 0 ? 1 : remainingYards / targetYards;
+      if (ratio <= 0.1) return 4;
+      if (ratio <= 0.2) return 3;
+      if (ratio <= 0.4) return 2;
+      return 1;
     }
 
     function randomTarget() {
@@ -1666,6 +1689,10 @@
             gameRemainingYards = Math.abs(gameTargetYards - gameBallYards);
             updateGameViewForPoint(ballPosition);
             gameFinished = mode === "precision" || gameRemainingYards <= 5;
+            const roundScore = mode === "precision"
+              ? precisionScore(gameRemainingYards, gameTargetYards)
+              : classicScore(gameShots);
+            const score = scoreStars(roundScore);
             const messageKey = mode === "precision"
               ? "precisionCompleteMessage"
               : (gameFinished ? "gameCompleteMessage" : "gameLandedMessage");
@@ -1673,12 +1700,14 @@
             updateText(messageKey, {
               shots: gameShots,
               distance: Math.round(shot.distanceYards),
-              remaining: Math.round(gameRemainingYards)
+              remaining: Math.round(gameRemainingYards),
+              score
             });
             updateGameInfo();
             if (mode === "precision") {
               showRoundCompleteModal("precisionCompleteTitle", "precisionCompleteText", {
-                remaining: Math.round(gameRemainingYards)
+                remaining: Math.round(gameRemainingYards),
+                score
               });
             } else if (gameFinished) {
               showHoleCompleteModal(gameShots);
