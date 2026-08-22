@@ -382,6 +382,14 @@
           </div>
         </div>
 
+        <div class="control">
+          <label for="power">力度</label>
+          <div class="range-row">
+            <input id="power" type="range" min="0" max="100" step="1" value="100" />
+            <span class="value-pill" id="powerValue">100%</span>
+          </div>
+        </div>
+
         <p class="hint">距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。</p>
 
         <div class="stats">
@@ -485,6 +493,7 @@
     const playerSelect = document.querySelector("#player");
     const clubSelect = document.querySelector("#club");
     const angleSlider = document.querySelector("#angle");
+    const powerSlider = document.querySelector("#power");
     const canvas = document.querySelector("#trajectoryCanvas");
     const ctx = canvas.getContext("2d");
     const launchBtn = document.querySelector("#launchBtn");
@@ -492,6 +501,7 @@
 
     const fields = {
       angle: document.querySelector("#angleValue"),
+      power: document.querySelector("#powerValue"),
       distance: document.querySelector("#distanceText"),
       liveDistance: document.querySelector("#liveDistanceText"),
       speed: document.querySelector("#speedText"),
@@ -541,16 +551,26 @@
       const distanceYards = players[player].find(([name]) => name === club)[1];
       const angleDeg = Number(angleSlider.value);
       const angleRad = angleDeg * Math.PI / 180;
-      const distanceMeters = distanceYards * YARD_TO_METER;
-      const speed = Math.sqrt(distanceMeters * G / Math.sin(2 * angleRad));
-      const duration = distanceMeters / (speed * Math.cos(angleRad));
+      const powerPercent = Number(powerSlider.value);
+      const powerRatio = powerPercent / 100;
+      const fullDistanceMeters = distanceYards * YARD_TO_METER;
+      const fullSpeed = Math.sqrt(fullDistanceMeters * G / Math.sin(2 * angleRad));
+      const speed = fullSpeed * powerRatio;
+      const distanceMeters = powerRatio === 0
+        ? 0
+        : Math.pow(speed, 2) * Math.sin(2 * angleRad) / G;
+      const adjustedDistanceYards = distanceMeters * METER_TO_YARD;
+      const duration = speed === 0 ? 0 : distanceMeters / (speed * Math.cos(angleRad));
       const maxHeightMeters = Math.pow(speed * Math.sin(angleRad), 2) / (2 * G);
 
       return {
         player,
         club,
-        distanceYards,
+        distanceYards: adjustedDistanceYards,
+        fullDistanceYards: distanceYards,
         distanceMeters,
+        powerPercent,
+        powerRatio,
         angleDeg,
         angleRad,
         speed,
@@ -635,7 +655,7 @@
     }
 
     function getScale(rect) {
-      const maxX = Math.ceil((shot.distanceYards * 1.12) / 50) * 50;
+      const maxX = Math.max(50, Math.ceil((shot.distanceYards * 1.12) / 50) * 50);
       const maxY = Math.max(60, Math.ceil((shot.maxHeightYards * 1.45) / 25) * 25);
       const origin = { x: 52, y: rect.height - 68 };
       const xScale = (rect.width - origin.x - 38) / maxX;
@@ -736,7 +756,7 @@
       ctx.fill();
       ctx.fillStyle = "#1d2a22";
       ctx.font = "700 14px Arial";
-      ctx.fillText(`${shot.distanceYards} yd`, Math.min(p.x - 28, canvas.clientWidth - 86), p.y - 20);
+      ctx.fillText(`${Math.round(shot.distanceYards)} yd`, Math.min(p.x - 28, canvas.clientWidth - 86), p.y - 20);
       ctx.restore();
     }
 
@@ -787,17 +807,19 @@
 
     function updateText(message) {
       const t = ballPosition.time || 0;
-      const velocity = velocityAt(t);
+      const hasLaunched = ballPosition.x > 0 || ballPosition.y > 0 || landed;
+      const velocity = hasLaunched ? velocityAt(t) : { vx: 0, vy: 0, speed: 0 };
       let phase = "待发射";
       if (landed) phase = "已落地";
-      else if (ballPosition.x > 0 || ballPosition.y > 0) {
+      else if (hasLaunched) {
         if (velocity.vy > 0.4) phase = "上升变慢";
         else if (velocity.vy < -0.4) phase = "下降加快";
         else phase = "最高点";
       }
 
       fields.angle.textContent = `${shot.angleDeg}°`;
-      fields.distance.textContent = `${shot.distanceYards} yd`;
+      fields.power.textContent = `${shot.powerPercent}%`;
+      fields.distance.textContent = `${Math.round(shot.distanceYards)} yd`;
       fields.liveDistance.textContent = `${Math.round(ballPosition.x)} yd`;
       fields.speed.textContent = `${shot.speed.toFixed(1)} m/s`;
       fields.currentSpeed.textContent = `${velocity.speed.toFixed(1)} m/s`;
@@ -864,7 +886,7 @@
           landed = true;
           launchBtn.disabled = false;
           launchBtn.innerHTML = '<span class="ball-dot" aria-hidden="true"></span>再发射';
-          updateText(`${shot.player} 使用 ${shot.club}，小球飞行了 ${shot.distanceYards} yd。`);
+          updateText(`${shot.player} 使用 ${shot.club}，${shot.powerPercent}% 力度让小球飞行了 ${Math.round(shot.distanceYards)} yd。`);
           drawScene();
           animation = null;
           return;
@@ -888,6 +910,9 @@
     });
     angleSlider.addEventListener("input", () => {
       resetShot("角度已更新，点击右下角发射查看新的轨迹。");
+    });
+    powerSlider.addEventListener("input", () => {
+      resetShot("力度已更新，点击右下角发射查看新的轨迹。");
     });
     launchBtn.addEventListener("click", launch);
     resetBtn.addEventListener("click", () => resetShot("已重置，点击右下角发射。"));
