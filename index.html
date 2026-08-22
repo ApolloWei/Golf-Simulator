@@ -714,6 +714,8 @@
     const METER_TO_YARD = 1 / YARD_TO_METER;
     const G = 9.81;
     const DEFAULT_POWER_RATIO = 0.8;
+    const DEFAULT_LAUNCH_ANGLE = 12;
+    const DEFAULT_POWER_PERCENT = 80;
 
     const players = {
       "Calvin": [
@@ -1062,6 +1064,13 @@
 
     function isClassicHardMode() {
       return mode === "classic" && classicDifficulty === "hard";
+    }
+
+    function resetSwingControlsToDefault() {
+      angleSlider.value = DEFAULT_LAUNCH_ANGLE;
+      powerSlider.value = DEFAULT_POWER_PERCENT;
+      fields.angle.textContent = `${DEFAULT_LAUNCH_ANGLE}°`;
+      fields.power.textContent = `${DEFAULT_POWER_PERCENT}%`;
     }
 
     function fillPlayers() {
@@ -1590,7 +1599,9 @@
       ctx.fill();
       ctx.fillStyle = "#1d2a22";
       ctx.font = "700 14px Arial";
-      ctx.fillText(`${Math.round(shot.distanceYards)} yd`, Math.min(p.x - 28, canvas.clientWidth - 86), p.y - 20);
+      if (!isClassicHardMode()) {
+        ctx.fillText(`${Math.round(shot.distanceYards)} yd`, Math.min(p.x - 28, canvas.clientWidth - 86), p.y - 20);
+      }
       ctx.restore();
     }
 
@@ -1810,6 +1821,7 @@
             } else if (gameFinished) {
               showHoleCompleteModal(gameShots);
             }
+            resetSwingControlsToDefault();
           } else {
             setLaunchButton("relaunch", false);
             updateText("landedMessage", {
@@ -1818,6 +1830,7 @@
               power: shot.powerPercent,
               distance: Math.round(shot.distanceYards)
             });
+            resetSwingControlsToDefault();
           }
           drawScene();
           animation = null;
