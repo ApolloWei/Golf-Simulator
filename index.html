@@ -1,11 +1,570 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Golf Simulator</title>
-  </head>
-  <body>
-    <h1>Golf Simulator</h1>
-    <p>Welcome to my golf simulator website.</p>
-  </body>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>二维高尔夫飞行模拟器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7f1;
+      --panel: #ffffff;
+      --ink: #1d2a22;
+      --muted: #65736a;
+      --line: #cbd8cf;
+      --fairway: #2f8f5b;
+      --green: #8ccf83;
+      --sand: #e9cf89;
+      --blue: #2777b8;
+      --orange: #d97435;
+      --shadow: 0 18px 45px rgba(31, 54, 40, 0.13);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(244, 247, 241, 0.92)),
+        radial-gradient(circle at 20% 10%, rgba(140, 207, 131, 0.28), transparent 34%),
+        var(--bg);
+    }
+
+    .app {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 34px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(25px, 3vw, 42px);
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      max-width: 700px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .panel,
+    .stage {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(203, 216, 207, 0.9);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .control {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    select,
+    input[type="range"] {
+      width: 100%;
+    }
+
+    select {
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 15px;
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: 1fr 56px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .value-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #f8faf7;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .stat {
+      min-height: 78px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8faf7;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 22px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .club-list {
+      margin-top: 18px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+    }
+
+    .club-list h2 {
+      margin: 0 0 9px;
+      font-size: 15px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 6px 9px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .chip.active {
+      border-color: var(--fairway);
+      color: #145c36;
+      background: #e8f6eb;
+      font-weight: 700;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 590px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 590px;
+    }
+
+    .legend {
+      position: absolute;
+      left: 18px;
+      bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      border: 1px solid rgba(203, 216, 207, 0.9);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .swatch {
+      width: 13px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .swatch.orange {
+      background: var(--orange);
+    }
+
+    @media (max-width: 850px) {
+      header {
+        display: block;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .stage,
+      canvas {
+        min-height: 470px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>二维高尔夫飞行模拟器</h1>
+        <p class="subtitle">选择人物和球杆后，程序根据截图中的距离反推初速度，在平面直角坐标系中画出球的抛物线轨迹，并计算飞行距离。</p>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="panel">
+        <div class="control">
+          <label for="player">人物力量</label>
+          <select id="player"></select>
+        </div>
+
+        <div class="control">
+          <label for="club">球杆</label>
+          <select id="club"></select>
+        </div>
+
+        <div class="control">
+          <label for="angle">发射角度</label>
+          <div class="range-row">
+            <input id="angle" type="range" min="7" max="55" step="1" />
+            <span class="value-pill" id="angleValue">12°</span>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span>飞行距离</span>
+            <strong id="distanceText">0 yd</strong>
+          </div>
+          <div class="stat">
+            <span>初速度</span>
+            <strong id="speedText">0 m/s</strong>
+          </div>
+          <div class="stat">
+            <span>最高点</span>
+            <strong id="heightText">0 yd</strong>
+          </div>
+          <div class="stat">
+            <span>飞行时间</span>
+            <strong id="timeText">0 s</strong>
+          </div>
+        </div>
+
+        <div class="club-list">
+          <h2>当前人物可用球杆</h2>
+          <div class="chips" id="clubChips"></div>
+        </div>
+      </aside>
+
+      <section class="stage" aria-label="球的二维飞行轨迹">
+        <canvas id="trajectoryCanvas"></canvas>
+        <div class="legend">
+          <span><i class="swatch"></i>球的轨迹</span>
+          <span><i class="swatch orange"></i>落地点</span>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const YARD_TO_METER = 0.9144;
+    const METER_TO_YARD = 1 / YARD_TO_METER;
+    const G = 9.81;
+
+    const players = {
+      "Calvin": [
+        ["60°", 70], ["56°", 80], ["52°", 90], ["48°", 110], ["PW", 120],
+        ["9 Iron", 130], ["8 Iron", 140], ["7 Iron", 150], ["6 Iron", 160],
+        ["5 Iron", 180], ["4 Hybrid", 190], ["3 Wood", 210], ["Driver", 240]
+      ],
+      "Youtube Golfer": [
+        ["60°", 101], ["56°", 125], ["52°", 148], ["PW", 165], ["9 Iron", 174],
+        ["8 Iron", 194], ["7 Iron", 207], ["6 Iron", 216], ["5 Iron", 223],
+        ["4 Iron", 242], ["3 Iron", 260], ["3 Wood", 312], ["Driver", 324]
+      ],
+      "Pro (Bryson DeChambeau)": [
+        ["60°", 119], ["56°", 144], ["50°", 163], ["45°", 178], ["PW", 186],
+        ["9 Iron", 211], ["8 Iron", 215], ["7 Iron", 235], ["6 Iron", 249],
+        ["5 Iron", 254], ["5 Wood", 317], ["3 Wood", 328], ["Driver", 352]
+      ],
+      "Pro (Nelly Korda)": [
+        ["58°", 80], ["54°", 98], ["50°", 113], ["PW", 122], ["9 Iron", 134],
+        ["8 Iron", 149], ["7 Iron", 159], ["6 Iron", 173], ["5 Iron", 185],
+        ["6 Wood", 200], ["3 Wood", 223], ["Driver", 258]
+      ]
+    };
+
+    const defaultAngles = {
+      "60°": 34, "58°": 33, "56°": 32, "54°": 31, "52°": 30, "50°": 28,
+      "48°": 27, "45°": 25, "PW": 24, "9 Iron": 22, "8 Iron": 20,
+      "7 Iron": 18, "6 Iron": 16, "5 Iron": 14, "4 Iron": 13,
+      "3 Iron": 12, "4 Hybrid": 13, "6 Wood": 12, "5 Wood": 11,
+      "3 Wood": 10, "Driver": 12
+    };
+
+    const playerSelect = document.querySelector("#player");
+    const clubSelect = document.querySelector("#club");
+    const angleSlider = document.querySelector("#angle");
+    const canvas = document.querySelector("#trajectoryCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const fields = {
+      angle: document.querySelector("#angleValue"),
+      distance: document.querySelector("#distanceText"),
+      speed: document.querySelector("#speedText"),
+      height: document.querySelector("#heightText"),
+      time: document.querySelector("#timeText"),
+      chips: document.querySelector("#clubChips")
+    };
+
+    function fillPlayers() {
+      Object.keys(players).forEach((name) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        playerSelect.appendChild(option);
+      });
+    }
+
+    function fillClubs() {
+      const clubs = players[playerSelect.value];
+      clubSelect.innerHTML = "";
+      clubs.forEach(([club, distance]) => {
+        const option = document.createElement("option");
+        option.value = club;
+        option.textContent = `${club} - ${distance} yd`;
+        clubSelect.appendChild(option);
+      });
+
+      const preferredClub = clubs.at(-1)[0];
+      clubSelect.value = preferredClub;
+      angleSlider.value = defaultAngles[preferredClub] || 18;
+      draw();
+    }
+
+    function currentShot() {
+      const player = playerSelect.value;
+      const club = clubSelect.value;
+      const distanceYards = players[player].find(([name]) => name === club)[1];
+      const angleDeg = Number(angleSlider.value);
+      const angleRad = angleDeg * Math.PI / 180;
+      const distanceMeters = distanceYards * YARD_TO_METER;
+      const speed = Math.sqrt(distanceMeters * G / Math.sin(2 * angleRad));
+      const time = distanceMeters / (speed * Math.cos(angleRad));
+      const heightMeters = Math.pow(speed * Math.sin(angleRad), 2) / (2 * G);
+
+      return {
+        player,
+        club,
+        distanceYards,
+        distanceMeters,
+        angleDeg,
+        angleRad,
+        speed,
+        time,
+        heightYards: heightMeters * METER_TO_YARD
+      };
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.round(rect.width * ratio);
+      canvas.height = Math.round(rect.height * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return rect;
+    }
+
+    function drawGrid(rect, origin, scale, maxX, maxY) {
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      const sky = ctx.createLinearGradient(0, 0, 0, rect.height);
+      sky.addColorStop(0, "#eaf5ff");
+      sky.addColorStop(0.58, "#f8fbf7");
+      sky.addColorStop(1, "#ddecda");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, rect.width, rect.height);
+
+      ctx.fillStyle = "rgba(47, 143, 91, 0.13)";
+      ctx.fillRect(origin.x, origin.y, rect.width - origin.x - 26, 18);
+
+      ctx.strokeStyle = "rgba(84, 111, 93, 0.19)";
+      ctx.lineWidth = 1;
+      ctx.font = "12px Arial";
+      ctx.fillStyle = "#5d6c63";
+
+      const xStep = maxX > 280 ? 50 : 25;
+      for (let x = 0; x <= maxX; x += xStep) {
+        const px = origin.x + x * scale;
+        ctx.beginPath();
+        ctx.moveTo(px, 24);
+        ctx.lineTo(px, origin.y);
+        ctx.stroke();
+        ctx.fillText(String(x), px - 8, origin.y + 22);
+      }
+
+      const yStep = maxY > 120 ? 25 : 10;
+      for (let y = 0; y <= maxY; y += yStep) {
+        const py = origin.y - y * scale;
+        ctx.beginPath();
+        ctx.moveTo(origin.x, py);
+        ctx.lineTo(rect.width - 24, py);
+        ctx.stroke();
+        if (y > 0) ctx.fillText(String(y), 12, py + 4);
+      }
+
+      ctx.strokeStyle = "#26362c";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(origin.x, 24);
+      ctx.lineTo(origin.x, origin.y);
+      ctx.lineTo(rect.width - 24, origin.y);
+      ctx.stroke();
+
+      ctx.fillStyle = "#26362c";
+      ctx.font = "700 13px Arial";
+      ctx.fillText("y 高度 (yd)", 12, 20);
+      ctx.fillText("x 距离 (yd)", rect.width - 102, origin.y + 42);
+    }
+
+    function drawTrajectory(rect, shot, origin, scale) {
+      const points = [];
+      for (let i = 0; i <= 160; i += 1) {
+        const t = i / 160;
+        const xYards = shot.distanceYards * t;
+        const xMeters = xYards * YARD_TO_METER;
+        const yMeters = xMeters * Math.tan(shot.angleRad)
+          - (G * xMeters * xMeters) / (2 * shot.speed * shot.speed * Math.pow(Math.cos(shot.angleRad), 2));
+        const yYards = Math.max(0, yMeters * METER_TO_YARD);
+        points.push({
+          x: origin.x + xYards * scale,
+          y: origin.y - yYards * scale
+        });
+      }
+
+      ctx.strokeStyle = "#2777b8";
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      points.forEach((point, index) => {
+        if (index === 0) ctx.moveTo(point.x, point.y);
+        else ctx.lineTo(point.x, point.y);
+      });
+      ctx.stroke();
+
+      const landing = points.at(-1);
+      ctx.fillStyle = "#d97435";
+      ctx.beginPath();
+      ctx.arc(landing.x, landing.y, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#1d2a22";
+      ctx.font = "700 14px Arial";
+      ctx.fillText(`${shot.distanceYards} yd`, Math.min(landing.x - 28, rect.width - 82), landing.y - 14);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = "#1d2a22";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(origin.x, origin.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function updateText(shot) {
+      fields.angle.textContent = `${shot.angleDeg}°`;
+      fields.distance.textContent = `${shot.distanceYards} yd`;
+      fields.speed.textContent = `${shot.speed.toFixed(1)} m/s`;
+      fields.height.textContent = `${shot.heightYards.toFixed(0)} yd`;
+      fields.time.textContent = `${shot.time.toFixed(1)} s`;
+
+      fields.chips.innerHTML = "";
+      players[shot.player].forEach(([club, distance]) => {
+        const chip = document.createElement("span");
+        chip.className = club === shot.club ? "chip active" : "chip";
+        chip.textContent = `${club} ${distance}`;
+        fields.chips.appendChild(chip);
+      });
+    }
+
+    function draw() {
+      const shot = currentShot();
+      const rect = resizeCanvas();
+      const origin = {
+        x: 52,
+        y: rect.height - 66
+      };
+      const maxX = Math.ceil((shot.distanceYards * 1.12) / 50) * 50;
+      const maxY = Math.max(60, Math.ceil((shot.heightYards * 1.45) / 25) * 25);
+      const xScale = (rect.width - origin.x - 38) / maxX;
+      const yScale = (origin.y - 30) / maxY;
+      const scale = Math.min(xScale, yScale);
+
+      drawGrid(rect, origin, scale, maxX, maxY);
+      drawTrajectory(rect, shot, origin, scale);
+      updateText(shot);
+    }
+
+    fillPlayers();
+    fillClubs();
+
+    playerSelect.addEventListener("change", fillClubs);
+    clubSelect.addEventListener("change", () => {
+      angleSlider.value = defaultAngles[clubSelect.value] || 18;
+      draw();
+    });
+    angleSlider.addEventListener("input", draw);
+    window.addEventListener("resize", draw);
+  </script>
+</body>
 </html>
