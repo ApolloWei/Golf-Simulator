@@ -82,6 +82,82 @@
       filter: brightness(1.04);
     }
 
+    .home-button {
+      position: absolute;
+      top: 2px;
+      right: 92px;
+      display: none;
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      font-size: 19px;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(30, 56, 39, 0.1);
+    }
+
+    .home-button.show {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lobby {
+      width: min(920px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    .lobby-card {
+      margin-top: 22px;
+      padding: 22px;
+      border: 1px solid rgba(205, 219, 209, 0.95);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: var(--shadow);
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .mode-button {
+      min-height: 128px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8faf7;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .mode-button strong {
+      display: block;
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+
+    .mode-button span {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .mode-button:hover {
+      border-color: var(--fairway);
+      background: #eef8ef;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
     .layout {
       display: grid;
       grid-template-columns: 328px minmax(0, 1fr);
@@ -207,6 +283,22 @@
       border-color: rgba(216, 115, 50, 0.32);
       background: rgba(216, 115, 50, 0.08);
       color: #9b4b17;
+    }
+
+    .game-info {
+      display: none;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid rgba(36, 120, 183, 0.22);
+      border-radius: 8px;
+      background: rgba(36, 120, 183, 0.07);
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .game-info.show {
+      display: block;
     }
 
     .club-list {
@@ -373,6 +465,16 @@
         margin-bottom: 12px;
       }
 
+      .home-button {
+        position: static;
+        margin-right: 8px;
+        margin-bottom: 12px;
+      }
+
+      .mode-grid {
+        grid-template-columns: 1fr;
+      }
+
       .layout {
         grid-template-columns: 1fr;
       }
@@ -391,8 +493,34 @@
   </style>
 </head>
 <body>
-  <main class="app">
+  <section class="lobby" id="lobby">
     <header>
+      <button class="language-button" id="lobbyLanguageBtn" type="button">English</button>
+      <h1 data-i18n="lobbyTitle">高尔夫模拟器</h1>
+      <p class="subtitle" data-i18n="lobbySubtitle">先选择球员，再进入自由练习或挑战模式。</p>
+    </header>
+
+    <div class="lobby-card">
+      <div class="control">
+        <label for="lobbyPlayer" data-i18n="choosePlayer">选择球员</label>
+        <select id="lobbyPlayer"></select>
+      </div>
+      <div class="mode-grid">
+        <button class="mode-button" id="startGameBtn" type="button">
+          <strong data-i18n="gameMode">游戏模式</strong>
+          <span data-i18n="gameModeDesc">随机生成 250-470 码的洞位，用尽量少的杆数把球打进洞。</span>
+        </button>
+        <button class="mode-button" id="startFreeBtn" type="button">
+          <strong data-i18n="freeMode">自由模式</strong>
+          <span data-i18n="freeModeDesc">自由选择球员、球杆、角度和力度，观察飞行轨迹。</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <main class="app hidden" id="app">
+    <header>
+      <button class="home-button" id="homeBtn" type="button" title="Home">⌂</button>
       <button class="language-button" id="languageBtn" type="button">English</button>
       <h1 data-i18n="title">二维高尔夫飞行模拟器</h1>
       <p class="subtitle" data-i18n="subtitle">选择球员和球杆，调整发射角度，然后点击右下角的发射按钮。小球会先被击出，再沿着飞行轨迹前进，轨迹会跟着飞行过程逐步画出来。</p>
@@ -403,6 +531,7 @@
         <div class="control">
           <label for="player" data-i18n="playerPower">球员力量</label>
           <select id="player"></select>
+          <div class="game-info" id="gameInfo"></div>
         </div>
 
         <div class="control">
@@ -482,7 +611,7 @@
     </section>
   </main>
 
-  <div class="launch-dock">
+  <div class="launch-dock hidden" id="launchDock">
     <button class="reset-button" id="resetBtn" title="重置">↺</button>
     <button class="launch-button" id="launchBtn">
       <span class="ball-dot" aria-hidden="true"></span>
@@ -526,6 +655,13 @@
       "3 Wood": 10, "Driver": 12
     };
 
+    const playerRatings = {
+      "Calvin": 1,
+      "Youtube Golfer": 3,
+      "Pro (Bryson DeChambeau)": 5,
+      "Pro (Nelly Korda)": 5
+    };
+
     const playerAxisMax = {
       "Calvin": 400,
       "Youtube Golfer": 450,
@@ -533,6 +669,14 @@
       "Pro (Nelly Korda)": 400
     };
 
+    const app = document.querySelector("#app");
+    const lobby = document.querySelector("#lobby");
+    const launchDock = document.querySelector("#launchDock");
+    const lobbyPlayerSelect = document.querySelector("#lobbyPlayer");
+    const startGameBtn = document.querySelector("#startGameBtn");
+    const startFreeBtn = document.querySelector("#startFreeBtn");
+    const lobbyLanguageBtn = document.querySelector("#lobbyLanguageBtn");
+    const homeBtn = document.querySelector("#homeBtn");
     const playerSelect = document.querySelector("#player");
     const clubSelect = document.querySelector("#club");
     const angleSlider = document.querySelector("#angle");
@@ -556,16 +700,23 @@
       time: document.querySelector("#timeText"),
       phase: document.querySelector("#phaseText"),
       message: document.querySelector("#message"),
-      chips: document.querySelector("#clubChips")
+      chips: document.querySelector("#clubChips"),
+      gameInfo: document.querySelector("#gameInfo")
     };
 
+    let mode = "lobby";
     let shot = null;
     let animation = null;
     let trail = [];
+    let previousTrails = [];
     let ballPosition = { x: 0, y: 0 };
     let landed = false;
     let flightProgress = 0;
     let audioContext = null;
+    let gameTargetYards = 0;
+    let gameRemainingYards = 0;
+    let gameShots = 0;
+    let gameFinished = false;
     let currentLang = detectInitialLanguage();
     let currentMessageKey = "ready";
     let currentMessageVars = {};
@@ -575,6 +726,14 @@
       zh: {
         docTitle: "二维高尔夫飞行模拟器",
         languageButton: "English",
+        lobbyTitle: "高尔夫模拟器",
+        lobbySubtitle: "先选择球员，再进入自由练习或挑战模式。",
+        choosePlayer: "选择球员",
+        gameMode: "游戏模式",
+        gameModeDesc: "随机生成 250-470 码的洞位，用尽量少的杆数把球打进洞。",
+        freeMode: "自由模式",
+        freeModeDesc: "自由选择球员、球杆、角度和力度，观察飞行轨迹。",
+        homeTitle: "返回大厅",
         stageLabel: "高尔夫小球二维飞行轨迹",
         title: "二维高尔夫飞行模拟器",
         subtitle: "选择球员和球杆，调整发射角度，然后点击右下角的发射按钮。小球会先被击出，再沿着飞行轨迹前进，轨迹会跟着飞行过程逐步画出来。",
@@ -592,6 +751,8 @@
         flightTime: "飞行时间",
         flightPhase: "飞行阶段",
         availableClubs: "当前球员可用球杆",
+        gameInfo: "洞距：{target} yd｜剩余：{remaining} yd｜杆数：{shots}",
+        rating: "评分：{stars}",
         ball: "小球",
         trace: "飞行中留下的轨迹",
         landingPoint: "落地点",
@@ -613,11 +774,23 @@
         reset: "已重置，点击右下角发射。",
         preparing: "准备发射小球。",
         inFlight: "小球正在飞行，轨迹会随着它向前延伸。",
-        landedMessage: "{player} 使用 {club}，{power}% 力度让小球飞行了 {distance} yd。"
+        landedMessage: "{player} 使用 {club}，{power}% 力度让小球飞行了 {distance} yd。",
+        gameLandedMessage: "第 {shots} 杆飞行 {distance} yd，距离洞口还剩 {remaining} yd。",
+        gameCompleteMessage: "进洞！总共用了 {shots} 杆。",
+        gameReady: "游戏开始。目标在 {target} yd 处，选择球杆、角度和力度后发射。",
+        gameShotReady: "当前位置已更新。继续选择球杆、角度和力度，争取进洞。"
       },
       en: {
         docTitle: "2D Golf Flight Simulator",
         languageButton: "中文",
+        lobbyTitle: "Golf Simulator",
+        lobbySubtitle: "Choose a player, then enter Free Mode or Game Mode.",
+        choosePlayer: "Choose Player",
+        gameMode: "Game Mode",
+        gameModeDesc: "A random hole appears 250-470 yd away. Reach it in as few shots as possible.",
+        freeMode: "Free Mode",
+        freeModeDesc: "Freely choose player, club, angle, and power to study the shot.",
+        homeTitle: "Back to Lobby",
         stageLabel: "2D golf ball flight trajectory",
         title: "2D Golf Flight Simulator",
         subtitle: "Choose a player and a club, adjust the launch angle, then press the launch button in the lower-right corner. The ball takes off first, and the trail is drawn as it flies.",
@@ -635,6 +808,8 @@
         flightTime: "Flight Time",
         flightPhase: "Flight Phase",
         availableClubs: "Available Clubs",
+        gameInfo: "Hole: {target} yd | Remaining: {remaining} yd | Shots: {shots}",
+        rating: "Rating: {stars}",
         ball: "Ball",
         trace: "Live Trail",
         landingPoint: "Landing Point",
@@ -656,7 +831,11 @@
         reset: "Reset complete. Press Launch when ready.",
         preparing: "Getting the ball ready to launch.",
         inFlight: "The ball is in flight, and the trail is being drawn behind it.",
-        landedMessage: "{player} used {club} at {power}% power. The ball flew {distance} yd."
+        landedMessage: "{player} used {club} at {power}% power. The ball flew {distance} yd.",
+        gameLandedMessage: "Shot {shots} flew {distance} yd. {remaining} yd left to the hole.",
+        gameCompleteMessage: "Holed out in {shots} shots.",
+        gameReady: "Game started. The flag is {target} yd away. Choose club, angle, and power, then launch.",
+        gameShotReady: "Ball position updated. Choose the next shot and try to hole out."
       }
     };
 
@@ -673,13 +852,93 @@
       return preferred.startsWith("zh") ? "zh" : "en";
     }
 
+    function ratingStars(player) {
+      return "⭐️".repeat(playerRatings[player] || 1);
+    }
+
+    function randomTarget() {
+      return Math.floor(250 + Math.random() * 221);
+    }
+
     function fillPlayers() {
+      playerSelect.innerHTML = "";
+      lobbyPlayerSelect.innerHTML = "";
       Object.keys(players).forEach((name) => {
         const option = document.createElement("option");
         option.value = name;
-        option.textContent = name;
+        option.textContent = `${name} ${ratingStars(name)}`;
         playerSelect.appendChild(option);
+
+        const lobbyOption = document.createElement("option");
+        lobbyOption.value = name;
+        lobbyOption.textContent = `${name} ${ratingStars(name)}`;
+        lobbyPlayerSelect.appendChild(lobbyOption);
       });
+    }
+
+    function showLobby() {
+      if (animation) cancelAnimationFrame(animation);
+      mode = "lobby";
+      app.classList.add("hidden");
+      launchDock.classList.add("hidden");
+      lobby.classList.remove("hidden");
+      homeBtn.classList.remove("show");
+      playerSelect.disabled = false;
+      fields.gameInfo.classList.remove("show");
+      previousTrails = [];
+      trail = [];
+      landed = false;
+      gameFinished = false;
+    }
+
+    function showSimulator(nextMode) {
+      mode = nextMode;
+      lobby.classList.add("hidden");
+      app.classList.remove("hidden");
+      launchDock.classList.remove("hidden");
+      homeBtn.classList.add("show");
+      playerSelect.value = lobbyPlayerSelect.value;
+      playerSelect.disabled = nextMode === "game";
+      fields.gameInfo.classList.toggle("show", nextMode === "game");
+      fillClubs();
+      if (nextMode === "game") startGame();
+      else {
+        previousTrails = [];
+        gameFinished = false;
+        resetShot("ready");
+      }
+    }
+
+    function startGame() {
+      gameTargetYards = randomTarget();
+      gameRemainingYards = gameTargetYards;
+      gameShots = 0;
+      gameFinished = false;
+      previousTrails = [];
+      trail = [];
+      resetShot("gameReady", { target: gameTargetYards });
+    }
+
+    function updateGameInfo() {
+      if (mode !== "game") return;
+      fields.gameInfo.textContent = [
+        tr("rating", { stars: ratingStars(playerSelect.value) }),
+        tr("gameInfo", {
+          target: gameTargetYards,
+          remaining: Math.round(gameRemainingYards),
+          shots: gameShots
+        })
+      ].join("  ");
+    }
+
+    function adjustShotSettings(messageKey, vars = {}) {
+      if (mode === "game" && landed && !gameFinished) {
+        shot = getShot();
+        updateText(messageKey, vars);
+        drawScene();
+      } else {
+        resetShot(messageKey, vars);
+      }
     }
 
     function fillClubs() {
@@ -854,7 +1113,8 @@
 
     function getScale(rect) {
       const baselineMaxX = Math.ceil((shot.scaleDistanceYards * 1.12) / 50) * 50;
-      const maxX = Math.max(playerAxisMax[shot.player] || 400, baselineMaxX);
+      const gameMaxX = mode === "game" ? Math.ceil((gameRemainingYards * 1.08) / 50) * 50 : 0;
+      const maxX = Math.max(playerAxisMax[shot.player] || 400, baselineMaxX, gameMaxX);
       const maxY = Math.max(60, Math.ceil((shot.scaleMaxHeightYards * 1.45) / 25) * 25);
       const origin = { x: 52, y: rect.height - 68 };
       const xScale = (rect.width - origin.x - 38) / maxX;
@@ -875,29 +1135,31 @@
       ctx.fillStyle = "rgba(45, 139, 87, 0.16)";
       ctx.fillRect(origin.x, origin.y, rect.width - origin.x - 26, 20);
 
-      ctx.strokeStyle = "rgba(87, 113, 96, 0.2)";
-      ctx.lineWidth = 1;
-      ctx.font = "12px Arial";
-      ctx.fillStyle = "#5d6c63";
+      if (mode !== "game") {
+        ctx.strokeStyle = "rgba(87, 113, 96, 0.2)";
+        ctx.lineWidth = 1;
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "#5d6c63";
 
-      const xStep = maxX > 280 ? 50 : 25;
-      for (let x = 0; x <= maxX; x += xStep) {
-        const px = origin.x + x * scale;
-        ctx.beginPath();
-        ctx.moveTo(px, 24);
-        ctx.lineTo(px, origin.y);
-        ctx.stroke();
-        ctx.fillText(String(x), px - 8, origin.y + 22);
-      }
+        const xStep = maxX > 280 ? 50 : 25;
+        for (let x = 0; x <= maxX; x += xStep) {
+          const px = origin.x + x * scale;
+          ctx.beginPath();
+          ctx.moveTo(px, 24);
+          ctx.lineTo(px, origin.y);
+          ctx.stroke();
+          ctx.fillText(String(x), px - 8, origin.y + 22);
+        }
 
-      const yStep = maxY > 120 ? 25 : 10;
-      for (let y = 0; y <= maxY; y += yStep) {
-        const py = origin.y - y * scale;
-        ctx.beginPath();
-        ctx.moveTo(origin.x, py);
-        ctx.lineTo(rect.width - 24, py);
-        ctx.stroke();
-        if (y > 0) ctx.fillText(String(y), 12, py + 4);
+        const yStep = maxY > 120 ? 25 : 10;
+        for (let y = 0; y <= maxY; y += yStep) {
+          const py = origin.y - y * scale;
+          ctx.beginPath();
+          ctx.moveTo(origin.x, py);
+          ctx.lineTo(rect.width - 24, py);
+          ctx.stroke();
+          if (y > 0) ctx.fillText(String(y), 12, py + 4);
+        }
       }
 
       ctx.strokeStyle = "#26362c";
@@ -908,10 +1170,12 @@
       ctx.lineTo(rect.width - 24, origin.y);
       ctx.stroke();
 
-      ctx.fillStyle = "#26362c";
-      ctx.font = "700 13px Arial";
-      ctx.fillText(tr("axisHeight"), 12, 20);
-      ctx.fillText(tr("axisDistance"), rect.width - 112, origin.y + 42);
+      if (mode !== "game") {
+        ctx.fillStyle = "#26362c";
+        ctx.font = "700 13px Arial";
+        ctx.fillText(tr("axisHeight"), 12, 20);
+        ctx.fillText(tr("axisDistance"), rect.width - 112, origin.y + 42);
+      }
     }
 
     function screenPoint(point, origin, scale) {
@@ -935,6 +1199,72 @@
         else ctx.lineTo(p.x, p.y);
       });
       ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPreviousTraces(origin, scale) {
+      if (previousTrails.length === 0) return;
+      ctx.save();
+      ctx.strokeStyle = "rgba(36, 120, 183, 0.5)";
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.setLineDash([9, 8]);
+      previousTrails.forEach((oldTrail) => {
+        if (oldTrail.length < 2) return;
+        ctx.beginPath();
+        oldTrail.forEach((point, index) => {
+          const p = screenPoint(point, origin, scale);
+          if (index === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawPrediction(origin, scale) {
+      if (mode !== "game" || animation || gameFinished) return;
+      const preview = getShot();
+      if (preview.distanceYards <= 0) return;
+      ctx.save();
+      ctx.strokeStyle = "rgba(36, 120, 183, 0.55)";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 7]);
+      ctx.beginPath();
+      for (let i = 0; i <= 40; i += 1) {
+        const u = (i / 40) * 0.2;
+        const x = preview.distanceYards * u;
+        const y = preview.distanceYards * Math.tan(preview.visualAngleRad) * u
+          * (1 - Math.pow(u, preview.descentShape));
+        const p = screenPoint({ x, y }, origin, scale);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawFlag(origin, scale) {
+      if (mode !== "game") return;
+      const p = screenPoint({ x: gameRemainingYards, y: 0 }, origin, scale);
+      ctx.save();
+      ctx.strokeStyle = "#26362c";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x, p.y - 44);
+      ctx.stroke();
+      ctx.fillStyle = "#d87332";
+      ctx.beginPath();
+      ctx.moveTo(p.x + 2, p.y - 44);
+      ctx.lineTo(p.x + 34, p.y - 34);
+      ctx.lineTo(p.x + 2, p.y - 24);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#26362c";
+      ctx.font = "700 13px Arial";
+      ctx.fillText(`${Math.round(gameRemainingYards)} yd`, Math.min(p.x - 20, canvas.clientWidth - 70), p.y - 54);
       ctx.restore();
     }
 
@@ -997,8 +1327,11 @@
       const { origin, maxX, maxY, scale } = getScale(rect);
 
       drawGrid(rect, origin, scale, maxX, maxY);
+      drawPreviousTraces(origin, scale);
+      drawPrediction(origin, scale);
       drawTrace(origin, scale);
       drawLanding(origin, scale);
+      drawFlag(origin, scale);
 
       const ballScreen = screenPoint(ballPosition, origin, scale);
       drawGolfBall(ballScreen.x, ballScreen.y, 8, flightProgress * 18);
@@ -1046,7 +1379,7 @@
       });
     }
 
-    function resetShot(messageKey) {
+    function resetShot(messageKey, vars = {}) {
       if (animation) cancelAnimationFrame(animation);
       shot = getShot();
       trail = [];
@@ -1054,13 +1387,18 @@
       landed = false;
       flightProgress = 0;
       setLaunchButton("launch", false);
-      updateText(messageKey);
+      updateText(messageKey, vars);
+      updateGameInfo();
       drawScene();
     }
 
     function launch() {
       if (animation) cancelAnimationFrame(animation);
+      if (mode === "game" && gameFinished) return;
       playLaunchSound();
+      if (mode === "game" && landed && trail.length > 1) {
+        previousTrails.push([...trail]);
+      }
       shot = getShot();
       trail = [];
       ballPosition = { x: 0, y: 0, time: 0 };
@@ -1089,13 +1427,26 @@
           ballPosition = { x: shot.distanceYards, y: 0, time: shot.duration };
           trail.push(ballPosition);
           landed = true;
-          setLaunchButton("relaunch", false);
-          updateText("landedMessage", {
-            player: shot.player,
-            club: shot.club,
-            power: shot.powerPercent,
-            distance: Math.round(shot.distanceYards)
-          });
+          if (mode === "game") {
+            gameShots += 1;
+            gameRemainingYards = Math.abs(gameRemainingYards - shot.distanceYards);
+            gameFinished = gameRemainingYards <= 5;
+            setLaunchButton(gameFinished ? "relaunch" : "launch", gameFinished);
+            updateText(gameFinished ? "gameCompleteMessage" : "gameLandedMessage", {
+              shots: gameShots,
+              distance: Math.round(shot.distanceYards),
+              remaining: Math.round(gameRemainingYards)
+            });
+            updateGameInfo();
+          } else {
+            setLaunchButton("relaunch", false);
+            updateText("landedMessage", {
+              player: shot.player,
+              club: shot.club,
+              power: shot.powerPercent,
+              distance: Math.round(shot.distanceYards)
+            });
+          }
           drawScene();
           animation = null;
           return;
@@ -1113,38 +1464,51 @@
       document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
       document.title = tr("docTitle");
       languageBtn.textContent = tr("languageButton");
+      lobbyLanguageBtn.textContent = tr("languageButton");
       resetBtn.title = tr("resetTitle");
+      homeBtn.title = tr("homeTitle");
       stage.setAttribute("aria-label", tr("stageLabel"));
       document.querySelectorAll("[data-i18n]").forEach((node) => {
         node.textContent = tr(node.dataset.i18n);
       });
-      setLaunchButton(launchButtonKey, launchBtn.disabled);
+      if (mode !== "lobby") setLaunchButton(launchButtonKey, launchBtn.disabled);
       if (shot) updateText();
-      drawScene();
+      updateGameInfo();
+      if (mode !== "lobby") drawScene();
     }
 
     fillPlayers();
-    fillClubs();
     applyLanguage();
+    showLobby();
 
-    playerSelect.addEventListener("change", fillClubs);
+    playerSelect.addEventListener("change", () => {
+      if (mode === "free") fillClubs();
+    });
     clubSelect.addEventListener("change", () => {
       angleSlider.value = defaultAngles[clubSelect.value] || 18;
-      resetShot("clubChanged");
+      adjustShotSettings("clubChanged");
     });
     angleSlider.addEventListener("input", () => {
-      resetShot("angleChanged");
+      adjustShotSettings("angleChanged");
     });
     powerSlider.addEventListener("input", () => {
-      resetShot("powerChanged");
+      adjustShotSettings("powerChanged");
     });
     launchBtn.addEventListener("click", launch);
-    resetBtn.addEventListener("click", () => resetShot("reset"));
-    languageBtn.addEventListener("click", () => {
+    resetBtn.addEventListener("click", () => {
+      if (mode === "game") startGame();
+      else resetShot("reset");
+    });
+    startGameBtn.addEventListener("click", () => showSimulator("game"));
+    startFreeBtn.addEventListener("click", () => showSimulator("free"));
+    homeBtn.addEventListener("click", showLobby);
+    [languageBtn, lobbyLanguageBtn].forEach((button) => button.addEventListener("click", () => {
       currentLang = currentLang === "zh" ? "en" : "zh";
       applyLanguage();
+    }));
+    window.addEventListener("resize", () => {
+      if (mode !== "lobby") drawScene();
     });
-    window.addEventListener("resize", drawScene);
   </script>
 </body>
 </html>
