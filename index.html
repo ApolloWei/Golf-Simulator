@@ -44,7 +44,9 @@
     }
 
     header {
+      position: relative;
       margin-bottom: 18px;
+      padding-right: 118px;
     }
 
     h1 {
@@ -59,6 +61,25 @@
       color: var(--muted);
       font-size: 15px;
       line-height: 1.7;
+    }
+
+    .language-button {
+      position: absolute;
+      top: 2px;
+      right: 0;
+      height: 38px;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(30, 56, 39, 0.1);
+    }
+
+    .language-button:hover {
+      filter: brightness(1.04);
     }
 
     .layout {
@@ -338,6 +359,15 @@
         padding-bottom: 104px;
       }
 
+      header {
+        padding-right: 0;
+      }
+
+      .language-button {
+        position: static;
+        margin-bottom: 12px;
+      }
+
       .layout {
         grid-template-columns: 1fr;
       }
@@ -358,24 +388,25 @@
 <body>
   <main class="app">
     <header>
-      <h1>二维高尔夫飞行模拟器</h1>
-      <p class="subtitle">选择球员和球杆，调整发射角度，然后点击右下角的发射按钮。小球会先被击出，再沿着飞行轨迹前进，轨迹会跟着飞行过程逐步画出来。</p>
+      <button class="language-button" id="languageBtn" type="button">English</button>
+      <h1 data-i18n="title">二维高尔夫飞行模拟器</h1>
+      <p class="subtitle" data-i18n="subtitle">选择球员和球杆，调整发射角度，然后点击右下角的发射按钮。小球会先被击出，再沿着飞行轨迹前进，轨迹会跟着飞行过程逐步画出来。</p>
     </header>
 
     <section class="layout">
       <aside class="panel">
         <div class="control">
-          <label for="player">球员力量</label>
+          <label for="player" data-i18n="playerPower">球员力量</label>
           <select id="player"></select>
         </div>
 
         <div class="control">
-          <label for="club">球杆</label>
+          <label for="club" data-i18n="club">球杆</label>
           <select id="club"></select>
         </div>
 
         <div class="control">
-          <label for="angle">发射角度</label>
+          <label for="angle" data-i18n="launchAngle">发射角度</label>
           <div class="range-row">
             <input id="angle" type="range" min="7" max="55" step="1" />
             <span class="value-pill" id="angleValue">12°</span>
@@ -383,46 +414,46 @@
         </div>
 
         <div class="control">
-          <label for="power">力度</label>
+          <label for="power" data-i18n="power">力度</label>
           <div class="range-row">
             <input id="power" type="range" min="0" max="100" step="1" value="100" />
             <span class="value-pill" id="powerValue">100%</span>
           </div>
         </div>
 
-        <p class="hint">距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。</p>
+        <p class="hint" data-i18n="hint">距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。</p>
 
         <div class="stats">
           <div class="stat">
-            <span>目标飞行距离</span>
+            <span data-i18n="targetDistance">目标飞行距离</span>
             <strong id="distanceText">0 yd</strong>
           </div>
           <div class="stat">
-            <span>当前飞行距离</span>
+            <span data-i18n="currentDistance">当前飞行距离</span>
             <strong id="liveDistanceText">0 yd</strong>
           </div>
           <div class="stat">
-            <span>初速度</span>
+            <span data-i18n="initialSpeed">初速度</span>
             <strong id="speedText">0 m/s</strong>
           </div>
           <div class="stat">
-            <span>当前速度</span>
+            <span data-i18n="currentSpeed">当前速度</span>
             <strong id="currentSpeedText">0 m/s</strong>
           </div>
           <div class="stat">
-            <span>水平速度</span>
+            <span data-i18n="horizontalSpeed">水平速度</span>
             <strong id="horizontalSpeedText">0 m/s</strong>
           </div>
           <div class="stat">
-            <span>垂直速度</span>
+            <span data-i18n="verticalSpeed">垂直速度</span>
             <strong id="verticalSpeedText">0 m/s</strong>
           </div>
           <div class="stat">
-            <span>飞行时间</span>
+            <span data-i18n="flightTime">飞行时间</span>
             <strong id="timeText">0.0 s</strong>
           </div>
           <div class="stat">
-            <span>飞行阶段</span>
+            <span data-i18n="flightPhase">飞行阶段</span>
             <strong id="phaseText">待发射</strong>
           </div>
         </div>
@@ -430,17 +461,17 @@
         <div class="message" id="message">选好球员和球杆后，点击右下角发射。</div>
 
         <div class="club-list">
-          <h2>当前球员可用球杆</h2>
+          <h2 data-i18n="availableClubs">当前球员可用球杆</h2>
           <div class="chips" id="clubChips"></div>
         </div>
       </aside>
 
-      <section class="stage" aria-label="高尔夫小球二维飞行轨迹">
+      <section class="stage" id="stage" aria-label="高尔夫小球二维飞行轨迹">
         <canvas id="trajectoryCanvas"></canvas>
         <div class="legend">
-          <span><i class="ball-dot"></i>小球</span>
-          <span><i class="swatch"></i>飞行中留下的轨迹</span>
-          <span><i class="swatch orange"></i>落地点</span>
+          <span><i class="ball-dot"></i><span data-i18n="ball">小球</span></span>
+          <span><i class="swatch"></i><span data-i18n="trace">飞行中留下的轨迹</span></span>
+          <span><i class="swatch orange"></i><span data-i18n="landingPoint">落地点</span></span>
         </div>
       </section>
     </section>
@@ -494,6 +525,8 @@
     const clubSelect = document.querySelector("#club");
     const angleSlider = document.querySelector("#angle");
     const powerSlider = document.querySelector("#power");
+    const languageBtn = document.querySelector("#languageBtn");
+    const stage = document.querySelector("#stage");
     const canvas = document.querySelector("#trajectoryCanvas");
     const ctx = canvas.getContext("2d");
     const launchBtn = document.querySelector("#launchBtn");
@@ -521,6 +554,104 @@
     let landed = false;
     let flightProgress = 0;
     let audioContext = null;
+    let currentLang = "zh";
+    let currentMessageKey = "ready";
+    let currentMessageVars = {};
+    let launchButtonKey = "launch";
+
+    const translations = {
+      zh: {
+        docTitle: "二维高尔夫飞行模拟器",
+        languageButton: "English",
+        stageLabel: "高尔夫小球二维飞行轨迹",
+        title: "二维高尔夫飞行模拟器",
+        subtitle: "选择球员和球杆，调整发射角度，然后点击右下角的发射按钮。小球会先被击出，再沿着飞行轨迹前进，轨迹会跟着飞行过程逐步画出来。",
+        playerPower: "球员力量",
+        club: "球杆",
+        launchAngle: "发射角度",
+        power: "力度",
+        hint: "距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。",
+        targetDistance: "目标飞行距离",
+        currentDistance: "当前飞行距离",
+        initialSpeed: "初速度",
+        currentSpeed: "当前速度",
+        horizontalSpeed: "水平速度",
+        verticalSpeed: "垂直速度",
+        flightTime: "飞行时间",
+        flightPhase: "飞行阶段",
+        availableClubs: "当前球员可用球杆",
+        ball: "小球",
+        trace: "飞行中留下的轨迹",
+        landingPoint: "落地点",
+        resetTitle: "重置",
+        launch: "发射",
+        flying: "飞行中",
+        relaunch: "再发射",
+        axisHeight: "y 高度 (yd)",
+        axisDistance: "x 距离 (yd)",
+        phaseReady: "待发射",
+        phaseLanded: "已落地",
+        phaseRising: "上升变慢",
+        phaseFalling: "下降加快",
+        phaseApex: "最高点",
+        ready: "选好球员和球杆后，点击右下角发射。",
+        clubChanged: "球杆已更换，点击右下角发射查看新的轨迹。",
+        angleChanged: "角度已更新，点击右下角发射查看新的轨迹。",
+        powerChanged: "力度已更新，点击右下角发射查看新的轨迹。",
+        reset: "已重置，点击右下角发射。",
+        preparing: "准备发射小球。",
+        inFlight: "小球正在飞行，轨迹会随着它向前延伸。",
+        landedMessage: "{player} 使用 {club}，{power}% 力度让小球飞行了 {distance} yd。"
+      },
+      en: {
+        docTitle: "2D Golf Flight Simulator",
+        languageButton: "中文",
+        stageLabel: "2D golf ball flight trajectory",
+        title: "2D Golf Flight Simulator",
+        subtitle: "Choose a player and a club, adjust the launch angle, then press the launch button in the lower-right corner. The ball takes off first, and the trail is drawn as it flies.",
+        playerPower: "Player Power",
+        club: "Club",
+        launchAngle: "Launch Angle",
+        power: "Power",
+        hint: "Distances come from your table. The simulator uses the selected distance and angle to estimate launch speed, then plays the shot with projectile motion.",
+        targetDistance: "Target Carry",
+        currentDistance: "Current Distance",
+        initialSpeed: "Initial Speed",
+        currentSpeed: "Current Speed",
+        horizontalSpeed: "Horizontal Speed",
+        verticalSpeed: "Vertical Speed",
+        flightTime: "Flight Time",
+        flightPhase: "Flight Phase",
+        availableClubs: "Available Clubs",
+        ball: "Ball",
+        trace: "Live Trail",
+        landingPoint: "Landing Point",
+        resetTitle: "Reset",
+        launch: "Launch",
+        flying: "Flying",
+        relaunch: "Launch Again",
+        axisHeight: "y height (yd)",
+        axisDistance: "x distance (yd)",
+        phaseReady: "Ready",
+        phaseLanded: "Landed",
+        phaseRising: "Rising, slowing",
+        phaseFalling: "Falling, speeding up",
+        phaseApex: "Apex",
+        ready: "Choose a player and club, then press Launch in the lower-right corner.",
+        clubChanged: "Club changed. Press Launch to see the new flight.",
+        angleChanged: "Angle updated. Press Launch to see the new flight.",
+        powerChanged: "Power updated. Press Launch to see the new flight.",
+        reset: "Reset complete. Press Launch when ready.",
+        preparing: "Getting the ball ready to launch.",
+        inFlight: "The ball is in flight, and the trail is being drawn behind it.",
+        landedMessage: "{player} used {club} at {power}% power. The ball flew {distance} yd."
+      }
+    };
+
+    function tr(key, vars = {}) {
+      const template = translations[currentLang][key] || translations.zh[key] || key;
+      return template.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
+    }
 
     function fillPlayers() {
       Object.keys(players).forEach((name) => {
@@ -542,7 +673,7 @@
       });
       clubSelect.value = clubs.at(-1)[0];
       angleSlider.value = defaultAngles[clubSelect.value] || 18;
-      resetShot("选好球员和球杆后，点击右下角发射。");
+      resetShot("ready");
     }
 
     function getShot() {
@@ -711,8 +842,8 @@
 
       ctx.fillStyle = "#26362c";
       ctx.font = "700 13px Arial";
-      ctx.fillText("y 高度 (yd)", 12, 20);
-      ctx.fillText("x 距离 (yd)", rect.width - 102, origin.y + 42);
+      ctx.fillText(tr("axisHeight"), 12, 20);
+      ctx.fillText(tr("axisDistance"), rect.width - 112, origin.y + 42);
     }
 
     function screenPoint(point, origin, scale) {
@@ -805,16 +936,24 @@
       drawGolfBall(ballScreen.x, ballScreen.y, 8, flightProgress * 18);
     }
 
-    function updateText(message) {
+    function setLaunchButton(key, disabled = false) {
+      launchButtonKey = key;
+      launchBtn.disabled = disabled;
+      launchBtn.innerHTML = `<span class="ball-dot" aria-hidden="true"></span>${tr(key)}`;
+    }
+
+    function updateText(messageKey = currentMessageKey, vars = currentMessageVars) {
+      currentMessageKey = messageKey;
+      currentMessageVars = vars;
       const t = ballPosition.time || 0;
       const hasLaunched = ballPosition.x > 0 || ballPosition.y > 0 || landed;
       const velocity = hasLaunched ? velocityAt(t) : { vx: 0, vy: 0, speed: 0 };
-      let phase = "待发射";
-      if (landed) phase = "已落地";
+      let phaseKey = "phaseReady";
+      if (landed) phaseKey = "phaseLanded";
       else if (hasLaunched) {
-        if (velocity.vy > 0.4) phase = "上升变慢";
-        else if (velocity.vy < -0.4) phase = "下降加快";
-        else phase = "最高点";
+        if (velocity.vy > 0.4) phaseKey = "phaseRising";
+        else if (velocity.vy < -0.4) phaseKey = "phaseFalling";
+        else phaseKey = "phaseApex";
       }
 
       fields.angle.textContent = `${shot.angleDeg}°`;
@@ -826,8 +965,8 @@
       fields.horizontalSpeed.textContent = `${velocity.vx.toFixed(1)} m/s`;
       fields.verticalSpeed.textContent = `${velocity.vy.toFixed(1)} m/s`;
       fields.time.textContent = `${t.toFixed(1)} s`;
-      fields.phase.textContent = phase;
-      fields.message.textContent = message;
+      fields.phase.textContent = tr(phaseKey);
+      fields.message.textContent = tr(messageKey, vars);
       fields.message.classList.toggle("land", landed);
 
       fields.chips.innerHTML = "";
@@ -839,16 +978,15 @@
       });
     }
 
-    function resetShot(message) {
+    function resetShot(messageKey) {
       if (animation) cancelAnimationFrame(animation);
       shot = getShot();
       trail = [];
       ballPosition = { x: 0, y: 0, time: 0 };
       landed = false;
       flightProgress = 0;
-      launchBtn.disabled = false;
-      launchBtn.innerHTML = '<span class="ball-dot" aria-hidden="true"></span>发射';
-      updateText(message);
+      setLaunchButton("launch", false);
+      updateText(messageKey);
       drawScene();
     }
 
@@ -860,8 +998,7 @@
       ballPosition = { x: 0, y: 0, time: 0 };
       landed = false;
       flightProgress = 0;
-      launchBtn.disabled = true;
-      launchBtn.innerHTML = '<span class="ball-dot" aria-hidden="true"></span>飞行中';
+      setLaunchButton("flying", true);
 
       const swingMs = 520;
       const flightMs = Math.max(1600, Math.min(4300, shot.duration * 620));
@@ -870,7 +1007,7 @@
       function frame(now) {
         const elapsed = now - started;
         if (elapsed < swingMs) {
-          updateText("准备发射小球。");
+          updateText("preparing");
           drawScene();
           animation = requestAnimationFrame(frame);
           return;
@@ -884,15 +1021,19 @@
           ballPosition = { x: shot.distanceYards, y: 0, time: shot.duration };
           trail.push(ballPosition);
           landed = true;
-          launchBtn.disabled = false;
-          launchBtn.innerHTML = '<span class="ball-dot" aria-hidden="true"></span>再发射';
-          updateText(`${shot.player} 使用 ${shot.club}，${shot.powerPercent}% 力度让小球飞行了 ${Math.round(shot.distanceYards)} yd。`);
+          setLaunchButton("relaunch", false);
+          updateText("landedMessage", {
+            player: shot.player,
+            club: shot.club,
+            power: shot.powerPercent,
+            distance: Math.round(shot.distanceYards)
+          });
           drawScene();
           animation = null;
           return;
         }
 
-        updateText("小球正在飞行，轨迹会随着它向前延伸。");
+        updateText("inFlight");
         drawScene();
         animation = requestAnimationFrame(frame);
       }
@@ -900,22 +1041,41 @@
       animation = requestAnimationFrame(frame);
     }
 
+    function applyLanguage() {
+      document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
+      document.title = tr("docTitle");
+      languageBtn.textContent = tr("languageButton");
+      resetBtn.title = tr("resetTitle");
+      stage.setAttribute("aria-label", tr("stageLabel"));
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        node.textContent = tr(node.dataset.i18n);
+      });
+      setLaunchButton(launchButtonKey, launchBtn.disabled);
+      if (shot) updateText();
+      drawScene();
+    }
+
     fillPlayers();
     fillClubs();
+    applyLanguage();
 
     playerSelect.addEventListener("change", fillClubs);
     clubSelect.addEventListener("change", () => {
       angleSlider.value = defaultAngles[clubSelect.value] || 18;
-      resetShot("球杆已更换，点击右下角发射查看新的轨迹。");
+      resetShot("clubChanged");
     });
     angleSlider.addEventListener("input", () => {
-      resetShot("角度已更新，点击右下角发射查看新的轨迹。");
+      resetShot("angleChanged");
     });
     powerSlider.addEventListener("input", () => {
-      resetShot("力度已更新，点击右下角发射查看新的轨迹。");
+      resetShot("powerChanged");
     });
     launchBtn.addEventListener("click", launch);
-    resetBtn.addEventListener("click", () => resetShot("已重置，点击右下角发射。"));
+    resetBtn.addEventListener("click", () => resetShot("reset"));
+    languageBtn.addEventListener("click", () => {
+      currentLang = currentLang === "zh" ? "en" : "zh";
+      applyLanguage();
+    });
     window.addEventListener("resize", drawScene);
   </script>
 </body>
