@@ -121,7 +121,7 @@
 
     .mode-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 14px;
       margin-top: 18px;
     }
@@ -613,6 +613,10 @@
           <strong data-i18n="precisionMode">精准模式</strong>
           <span data-i18n="precisionModeDesc">只有一杆机会，纯凭感觉把球打到离旗杆越近越好。</span>
         </button>
+        <button class="mode-button" id="startPuttingBtn" type="button">
+          <strong data-i18n="puttingMode">果岭练习</strong>
+          <span data-i18n="puttingModeDesc">只练 5-10 码推杆。球会随机出现在果岭上，推进后自动换下一个位置。</span>
+        </button>
         <button class="mode-button" id="startFreeBtn" type="button">
           <strong data-i18n="freeMode">自由模式</strong>
           <span data-i18n="freeModeDesc">自由选择球员、球杆、角度和力度，观察飞行轨迹。</span>
@@ -805,6 +809,7 @@
     const lobbyPlayerSelect = document.querySelector("#lobbyPlayer");
     const startGameBtn = document.querySelector("#startGameBtn");
     const startPrecisionBtn = document.querySelector("#startPrecisionBtn");
+    const startPuttingBtn = document.querySelector("#startPuttingBtn");
     const startFreeBtn = document.querySelector("#startFreeBtn");
     const classicEasyBtn = document.querySelector("#classicEasyBtn");
     const classicHardBtn = document.querySelector("#classicHardBtn");
@@ -901,6 +906,8 @@
         classicModeDesc: "随机生成 250-470 码的洞位，用尽量少的杆数把球打进洞。",
         precisionMode: "精准模式",
         precisionModeDesc: "只有一杆机会，纯凭感觉把球打到离旗杆越近越好。",
+        puttingMode: "果岭练习",
+        puttingModeDesc: "只练 5-10 码推杆。球会随机出现在果岭上，推进后自动换下一个位置。",
         freeMode: "自由模式",
         freeModeDesc: "自由选择球员、球杆、角度和力度，观察飞行轨迹。",
         homeTitle: "返回大厅",
@@ -928,6 +935,7 @@
         gameInfo: "洞距：{target} yd｜剩余：{remaining} yd｜杆数：{shots}",
         hardGameInfo: "经典困难｜只显示粗略刻度｜杆数：{shots}",
         precisionInfo: "精准模式｜一杆机会｜已打：{shots}",
+        puttingInfo: "果岭练习｜剩余：{remaining} yd｜练习次数：{shots}",
         rating: "评分：{stars}",
         ball: "小球",
         trace: "飞行中留下的轨迹",
@@ -963,6 +971,9 @@
         hardGameReady: "经典困难模式开始。只显示粗略刻度，观察旗杆位置后发射。",
         precisionReady: "精准模式开始。只有一杆机会，观察旗杆位置后发射。",
         puttingReady: "球已经上果岭，已自动切换到推杆。把球推进银色洞杯才算进洞。",
+        puttingPracticeReady: "果岭练习开始。球在 {remaining} yd 外，调整力度后把它推进洞杯。",
+        puttingPracticeLanded: "这一推还剩 {remaining} yd。继续调整力度，把球推进洞杯。",
+        puttingPracticeComplete: "推进了！下一颗练习球马上随机生成。",
         gameShotReady: "当前位置已更新。继续选择球杆、角度和力度，争取进洞。"
       },
       en: {
@@ -981,6 +992,8 @@
         classicModeDesc: "A random hole appears 250-470 yd away. Reach it in as few shots as possible.",
         precisionMode: "Precision Mode",
         precisionModeDesc: "One shot only. Judge by feel and finish as close to the flag as possible.",
+        puttingMode: "Green Practice",
+        puttingModeDesc: "Practice only 5-10 yd putts. The ball starts at a random spot on the green and resets after you sink it.",
         freeMode: "Free Mode",
         freeModeDesc: "Freely choose player, club, angle, and power to study the shot.",
         homeTitle: "Back to Lobby",
@@ -1008,6 +1021,7 @@
         gameInfo: "Hole: {target} yd | Remaining: {remaining} yd | Shots: {shots}",
         hardGameInfo: "Classic Hard | Coarse marks only | Shots: {shots}",
         precisionInfo: "Precision Mode | One shot | Shots: {shots}",
+        puttingInfo: "Green Practice | Remaining: {remaining} yd | Putts: {shots}",
         rating: "Rating: {stars}",
         ball: "Ball",
         trace: "Live Trail",
@@ -1043,6 +1057,9 @@
         hardGameReady: "Classic Hard started. Only coarse marks are shown. Read the flag position and launch.",
         precisionReady: "Precision Mode started. You have one shot. Read the flag position and launch.",
         puttingReady: "The ball is on the green. Putter selected automatically. Sink it into the silver cup to hole out.",
+        puttingPracticeReady: "Green Practice started. The ball is {remaining} yd away. Adjust power and sink it.",
+        puttingPracticeLanded: "This putt stopped {remaining} yd away. Adjust power and try to sink it.",
+        puttingPracticeComplete: "Sunk. The next practice ball will appear in a moment.",
         gameShotReady: "Ball position updated. Choose the next shot and try to hole out."
       }
     };
@@ -1126,11 +1143,15 @@
     }
 
     function isChallengeMode() {
-      return mode === "classic" || mode === "precision";
+      return mode === "classic" || mode === "precision" || mode === "putting";
     }
 
     function isClassicMode() {
       return mode === "classic";
+    }
+
+    function isPuttingPracticeMode() {
+      return mode === "putting";
     }
 
     function isClassicHardMode() {
@@ -1234,7 +1255,7 @@
     }
 
     function showSimulator(nextMode) {
-      const challengeMode = nextMode === "classic" || nextMode === "precision";
+      const challengeMode = nextMode === "classic" || nextMode === "precision" || nextMode === "putting";
       gameOnGreen = false;
       greenZooming = false;
       mode = nextMode;
@@ -1247,7 +1268,8 @@
       playerControl.classList.toggle("hidden", challengeMode);
       fields.gameInfo.classList.toggle("show", challengeMode);
       fillClubs({ reset: !challengeMode, preserveSwing: nextMode === "free" });
-      if (challengeMode) startGame(nextMode);
+      if (nextMode === "putting") startPuttingPractice();
+      else if (challengeMode) startGame(nextMode);
       else {
         previousTrails = [];
         gameFinished = false;
@@ -1285,11 +1307,52 @@
       resetShot(readyKey, { target: gameTargetYards });
     }
 
+    function randomPuttingDistance() {
+      return Math.round((5 + Math.random() * 5) * 10) / 10;
+    }
+
+    function startPuttingPractice() {
+      clearHoleAdvanceTimer();
+      hideHoleModal();
+      mode = "putting";
+      gameTargetYards = 0;
+      gameGreenRadius = 10;
+      const distance = randomPuttingDistance();
+      gameShotDirection = Math.random() < 0.5 ? 1 : -1;
+      gameBallYards = gameShotDirection === 1 ? -distance : distance;
+      gameShotStartYards = gameBallYards;
+      gameRemainingYards = distance;
+      gameOnGreen = true;
+      greenZooming = false;
+      const span = 26;
+      gameViewMinX = -span / 2;
+      gameViewTargetMinX = gameViewMinX;
+      gameViewMaxX = span;
+      gameViewTargetMaxX = span;
+      gameViewMaxY = 10;
+      gameViewTargetMaxY = 10;
+      gameShots = 0;
+      gameFinished = false;
+      previousTrails = [];
+      trail = [];
+      clubSelect.innerHTML = "";
+      const option = document.createElement("option");
+      option.value = "Putter";
+      option.textContent = `Putter - ${PUTTER_DISTANCE_YARDS} yd`;
+      clubSelect.appendChild(option);
+      clubSelect.value = "Putter";
+      angleSlider.value = PUTTER_ANGLE;
+      powerSlider.value = DEFAULT_POWER_PERCENT;
+      shot = getShot();
+      resetShot("puttingPracticeReady", { remaining: Math.round(gameRemainingYards) });
+    }
+
     function updateGameInfo() {
       if (!isChallengeMode()) return;
       const infoKey = mode === "precision"
         ? "precisionInfo"
-        : (isClassicHardMode() ? "hardGameInfo" : "gameInfo");
+        : (mode === "putting" ? "puttingInfo"
+          : (isClassicHardMode() ? "hardGameInfo" : "gameInfo"));
       fields.gameInfo.textContent = [
         tr("rating", { stars: ratingStars(playerSelect.value) }),
         tr(infoKey, {
@@ -1600,7 +1663,7 @@
 
     function updateGameViewForPoint(point) {
       if (!isChallengeMode()) return;
-      if (gameOnGreen && hasClassicGreen()) {
+      if (gameOnGreen && (hasClassicGreen() || isPuttingPracticeMode())) {
         const span = Math.max(16, gameGreenRadius * 2.25);
         gameViewTargetMinX = gameTargetYards - span / 2;
         gameViewTargetMaxX = span;
@@ -1623,8 +1686,8 @@
         if (gameViewMaxX - gameViewTargetMaxX < 0.5) gameViewMaxX = gameViewTargetMaxX;
       }
       const neededY = (point.y || 0) * 1.35;
-      const nextY = gameOnGreen && hasClassicGreen() ? 24 : Math.max(160, Math.ceil(neededY / 25) * 25);
-      if (nextY > gameViewTargetMaxY || (gameOnGreen && hasClassicGreen())) gameViewTargetMaxY = nextY;
+      const nextY = gameOnGreen && (hasClassicGreen() || isPuttingPracticeMode()) ? 24 : Math.max(160, Math.ceil(neededY / 25) * 25);
+      if (nextY > gameViewTargetMaxY || (gameOnGreen && (hasClassicGreen() || isPuttingPracticeMode()))) gameViewTargetMaxY = nextY;
       if (gameViewMaxY < gameViewTargetMaxY) {
         gameViewMaxY += (gameViewTargetMaxY - gameViewMaxY) * 0.08;
         if (gameViewTargetMaxY - gameViewMaxY < 0.5) gameViewMaxY = gameViewTargetMaxY;
@@ -2131,6 +2194,20 @@
             gameBallYards = ballPosition.x;
             gameRemainingYards = Math.abs(gameTargetYards - gameBallYards);
             updateGameViewForPoint(ballPosition);
+            if (isPuttingPracticeMode()) {
+              gameFinished = gameRemainingYards <= HOLE_RADIUS_YARDS;
+              setLaunchButton("launch", gameFinished);
+              updateText(gameFinished ? "puttingPracticeComplete" : "puttingPracticeLanded", {
+                remaining: Math.round(gameRemainingYards)
+              });
+              updateGameInfo();
+              if (gameFinished) {
+                holeAdvanceTimer = setTimeout(() => startPuttingPractice(), 1200);
+              }
+              drawScene();
+              animation = null;
+              return;
+            }
             const holeRadius = hasClassicGreen() ? HOLE_RADIUS_YARDS : 5;
             gameFinished = mode === "precision" || gameRemainingYards <= holeRadius;
             const landedOnGreen = hasClassicGreen() && !gameFinished && gameRemainingYards <= gameGreenRadius;
@@ -2230,7 +2307,8 @@
     });
     launchBtn.addEventListener("click", launch);
     resetBtn.addEventListener("click", () => {
-      if (isChallengeMode()) startGame(mode);
+      if (isPuttingPracticeMode()) startPuttingPractice();
+      else if (isChallengeMode()) startGame(mode);
       else resetShot("reset");
     });
     function handleDifficultyChoice(event, value) {
@@ -2265,6 +2343,7 @@
     classicNoGreenBtn.addEventListener("keydown", (event) => handleGreenRuleKey(event, "none"));
     startGameBtn.addEventListener("click", () => showSimulator("classic"));
     startPrecisionBtn.addEventListener("click", () => showSimulator("precision"));
+    startPuttingBtn.addEventListener("click", () => showSimulator("putting"));
     startFreeBtn.addEventListener("click", () => showSimulator("free"));
     homeBtn.addEventListener("click", showLobby);
     [languageBtn, lobbyLanguageBtn].forEach((button) => button.addEventListener("click", () => {
