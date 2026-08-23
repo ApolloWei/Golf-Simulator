@@ -641,7 +641,7 @@
         <div class="control">
           <label for="angle" data-i18n="launchAngle">发射角度</label>
           <div class="range-row">
-            <input id="angle" type="range" min="7" max="55" step="1" />
+            <input id="angle" type="range" min="1" max="55" step="1" />
             <span class="value-pill" id="angleValue">12°</span>
           </div>
         </div>
@@ -750,6 +750,11 @@
     const MIN_TURF_RESTITUTION = 0.18;
     const MAX_TURF_RESTITUTION = 0.48;
     const TURF_HORIZONTAL_RETENTION = 0.55;
+    const GREEN_RADIUS_MIN = 5;
+    const GREEN_RADIUS_MAX = 10;
+    const HOLE_RADIUS_YARDS = 1;
+    const PUTTER_DISTANCE_YARDS = 12;
+    const PUTTER_ANGLE = 2;
 
     const players = {
       "Calvin": [
@@ -779,7 +784,7 @@
       "48°": 27, "45°": 25, "PW": 24, "9 Iron": 22, "8 Iron": 20,
       "7 Iron": 18, "6 Iron": 16, "5 Iron": 14, "4 Iron": 13,
       "3 Iron": 12, "4 Hybrid": 13, "6 Wood": 12, "5 Wood": 11,
-      "3 Wood": 10, "Driver": 12
+      "3 Wood": 10, "Driver": 12, "Putter": PUTTER_ANGLE
     };
 
     const playerRatings = {
@@ -849,6 +854,10 @@
     let gameBallYards = 0;
     let gameShotStartYards = 0;
     let gameShotDirection = 1;
+    let gameGreenRadius = 7;
+    let gameOnGreen = false;
+    let gameViewMinX = 0;
+    let gameViewTargetMinX = 0;
     let gameViewMaxX = 500;
     let gameViewTargetMaxX = 500;
     let gameViewMaxY = 160;
@@ -941,6 +950,7 @@
         gameReady: "游戏开始。目标在 {target} yd 处，选择球杆、角度和力度后发射。",
         hardGameReady: "经典困难模式开始。只显示粗略刻度，观察旗杆位置后发射。",
         precisionReady: "精准模式开始。只有一杆机会，观察旗杆位置后发射。",
+        puttingReady: "球已经上果岭，已自动切换到推杆。把球推进银色洞杯才算进洞。",
         gameShotReady: "当前位置已更新。继续选择球杆、角度和力度，争取进洞。"
       },
       en: {
@@ -1017,6 +1027,7 @@
         gameReady: "Game started. The flag is {target} yd away. Choose club, angle, and power, then launch.",
         hardGameReady: "Classic Hard started. Only coarse marks are shown. Read the flag position and launch.",
         precisionReady: "Precision Mode started. You have one shot. Read the flag position and launch.",
+        puttingReady: "The ball is on the green. Putter selected automatically. Sink it into the silver cup to hole out.",
         gameShotReady: "Ball position updated. Choose the next shot and try to hole out."
       }
     };
@@ -1144,8 +1155,32 @@
       if (mode === "classic" && !animation) drawScene();
     }
 
+    function cancelActiveAnimation() {
+      if (!animation) return;
+      if (typeof animation === "object") {
+        cancelAnimationFrame(animation.rafId);
+        clearTimeout(animation.timeoutId);
+      } else {
+        cancelAnimationFrame(animation);
+      }
+      animation = null;
+    }
+
+    function scheduleAnimationFrame(callback) {
+      const handle = { rafId: 0, timeoutId: 0, done: false };
+      const run = (timestamp) => {
+        if (handle.done) return;
+        handle.done = true;
+        clearTimeout(handle.timeoutId);
+        callback(timestamp);
+      };
+      handle.rafId = requestAnimationFrame(run);
+      handle.timeoutId = setTimeout(() => run(performance.now()), 80);
+      return handle;
+    }
+
     function showLobby() {
-      if (animation) cancelAnimationFrame(animation);
+      cancelActiveAnimation();
       clearHoleAdvanceTimer();
       hideHoleModal();
       mode = "lobby";
@@ -1160,11 +1195,13 @@
       trail = [];
       landed = false;
       showLandingMarker = false;
+      gameOnGreen = false;
       gameFinished = false;
     }
 
     function showSimulator(nextMode) {
       const challengeMode = nextMode === "classic" || nextMode === "precision";
+      gameOnGreen = false;
       mode = nextMode;
       lobby.classList.add("hidden");
       app.classList.remove("hidden");
@@ -1174,7 +1211,7 @@
       playerSelect.disabled = challengeMode;
       playerControl.classList.toggle("hidden", challengeMode);
       fields.gameInfo.classList.toggle("show", challengeMode);
-      fillClubs();
+      fillClubs({ reset: !challengeMode });
       if (challengeMode) startGame(nextMode);
       else {
         previousTrails = [];
@@ -1188,10 +1225,14 @@
       hideHoleModal();
       mode = nextMode;
       gameTargetYards = randomTarget();
+      gameGreenRadius = Math.round((GREEN_RADIUS_MIN + Math.random() * (GREEN_RADIUS_MAX - GREEN_RADIUS_MIN)) * 10) / 10;
       gameRemainingYards = gameTargetYards;
       gameBallYards = 0;
       gameShotStartYards = 0;
       gameShotDirection = 1;
+      gameOnGreen = false;
+      gameViewMinX = 0;
+      gameViewTargetMinX = 0;
       gameViewMaxX = Math.max(500, Math.ceil((gameTargetYards * 1.08) / 50) * 50);
       gameViewTargetMaxX = gameViewMaxX;
       gameViewMaxY = 160;
@@ -1200,6 +1241,8 @@
       gameFinished = false;
       previousTrails = [];
       trail = [];
+      powerSlider.value = DEFAULT_POWER_PERCENT;
+      fillClubs({ reset: false });
       const readyKey = mode === "precision"
         ? "precisionReady"
         : (isClassicHardMode() ? "hardGameReady" : "gameReady");
@@ -1226,6 +1269,24 @@
       fields.targetDistanceLabel.textContent = tr(key);
     }
 
+    function enterPuttingMode() {
+      if (gameOnGreen) return;
+      gameOnGreen = true;
+      showLandingMarker = false;
+      clubSelect.innerHTML = "";
+      const option = document.createElement("option");
+      option.value = "Putter";
+      option.textContent = `Putter - ${PUTTER_DISTANCE_YARDS} yd`;
+      clubSelect.appendChild(option);
+      clubSelect.value = "Putter";
+      angleSlider.value = PUTTER_ANGLE;
+      powerSlider.value = DEFAULT_POWER_PERCENT;
+      shot = getShot();
+      updateGameViewForPoint({ x: gameTargetYards, y: 0 });
+      updateText("puttingReady");
+      drawScene();
+    }
+
     function adjustShotSettings(messageKey, vars = {}) {
       if (isClassicMode() && landed && !gameFinished) {
         shot = getShot();
@@ -1237,8 +1298,8 @@
       }
     }
 
-    function fillClubs() {
-      const clubs = players[playerSelect.value];
+    function fillClubs({ reset = true } = {}) {
+      const clubs = gameOnGreen ? [["Putter", PUTTER_DISTANCE_YARDS]] : players[playerSelect.value];
       clubSelect.innerHTML = "";
       clubs.forEach(([club, distance]) => {
         const option = document.createElement("option");
@@ -1248,13 +1309,16 @@
       });
       clubSelect.value = clubs.at(-1)[0];
       angleSlider.value = defaultAngles[clubSelect.value] || 18;
-      resetShot("ready");
+      if (reset) resetShot("ready");
     }
 
     function getShot() {
       const player = playerSelect.value;
       const club = clubSelect.value;
-      const distanceYards = players[player].find(([name]) => name === club)[1];
+      const isPutter = club === "Putter";
+      const distanceYards = isPutter
+        ? PUTTER_DISTANCE_YARDS
+        : players[player].find(([name]) => name === club)[1];
       const angleDeg = Number(angleSlider.value);
       const angleRad = angleDeg * Math.PI / 180;
       const baselineAngleDeg = defaultAngles[club] || angleDeg;
@@ -1262,6 +1326,32 @@
       const powerPercent = Number(powerSlider.value);
       const powerRatio = powerPercent / 100;
       const swingRatio = powerRatio / DEFAULT_POWER_RATIO;
+      if (isPutter) {
+        const finalDistanceYards = distanceYards * Math.pow(swingRatio, 2);
+        const duration = Math.max(0.85, Math.min(2.2, 0.55 + finalDistanceYards * 0.09));
+        return {
+          player,
+          club,
+          distanceYards: finalDistanceYards,
+          finalDistanceYards,
+          fullDistanceYards: distanceYards,
+          distanceMeters: finalDistanceYards * YARD_TO_METER,
+          powerPercent,
+          powerRatio,
+          swingRatio,
+          angleDeg: PUTTER_ANGLE,
+          angleRad: PUTTER_ANGLE * Math.PI / 180,
+          baselineAngleDeg: PUTTER_ANGLE,
+          baselineAngleRad: PUTTER_ANGLE * Math.PI / 180,
+          visualAngleRad: PUTTER_ANGLE * Math.PI / 180,
+          descentShape: 1,
+          speed: finalDistanceYards * YARD_TO_METER / duration,
+          flightDuration: duration,
+          bounceSegments: [],
+          duration,
+          maxHeightYards: 0.35
+        };
+      }
       const baselineDistanceMeters = distanceYards * YARD_TO_METER;
       const baselineSpeed = Math.sqrt(baselineDistanceMeters * G / Math.sin(2 * baselineAngleRad));
       const speed = baselineSpeed * swingRatio;
@@ -1465,24 +1555,42 @@
       const origin = { x: 52, y: rect.height - 68 };
       const xScale = (rect.width - origin.x - 38) / maxX;
       const yScale = (origin.y - 30) / maxY;
-      return { origin, maxX, maxY, scale: Math.min(xScale, yScale) };
+      return { origin, maxX, maxY, minX: isChallengeMode() ? gameViewMinX : 0, scale: Math.min(xScale, yScale) };
     }
 
     function updateGameViewForPoint(point) {
       if (!isChallengeMode()) return;
-      const neededX = Math.max(gameTargetYards, Math.abs(point.x || 0)) * 1.08;
-      const nextX = Math.max(500, Math.ceil(neededX / 50) * 50);
-      if (nextX > gameViewTargetMaxX) gameViewTargetMaxX = nextX;
+      if (gameOnGreen) {
+        const span = Math.max(22, gameGreenRadius * 3.1);
+        gameViewTargetMinX = gameTargetYards - span / 2;
+        gameViewTargetMaxX = span;
+        gameViewTargetMaxY = 24;
+      } else {
+        const neededX = Math.max(gameTargetYards, Math.abs(point.x || 0)) * 1.08;
+        const nextX = Math.max(500, Math.ceil(neededX / 50) * 50);
+        if (nextX > gameViewTargetMaxX) gameViewTargetMaxX = nextX;
+        gameViewTargetMinX = 0;
+      }
+      if (Math.abs(gameViewTargetMinX - gameViewMinX) > 0.01) {
+        gameViewMinX += (gameViewTargetMinX - gameViewMinX) * 0.08;
+        if (Math.abs(gameViewTargetMinX - gameViewMinX) < 0.05) gameViewMinX = gameViewTargetMinX;
+      }
       if (gameViewMaxX < gameViewTargetMaxX) {
         gameViewMaxX += (gameViewTargetMaxX - gameViewMaxX) * 0.08;
         if (gameViewTargetMaxX - gameViewMaxX < 0.5) gameViewMaxX = gameViewTargetMaxX;
+      } else if (gameViewMaxX > gameViewTargetMaxX) {
+        gameViewMaxX += (gameViewTargetMaxX - gameViewMaxX) * 0.08;
+        if (gameViewMaxX - gameViewTargetMaxX < 0.5) gameViewMaxX = gameViewTargetMaxX;
       }
       const neededY = (point.y || 0) * 1.35;
-      const nextY = Math.max(160, Math.ceil(neededY / 25) * 25);
-      if (nextY > gameViewTargetMaxY) gameViewTargetMaxY = nextY;
+      const nextY = gameOnGreen ? 24 : Math.max(160, Math.ceil(neededY / 25) * 25);
+      if (nextY > gameViewTargetMaxY || gameOnGreen) gameViewTargetMaxY = nextY;
       if (gameViewMaxY < gameViewTargetMaxY) {
         gameViewMaxY += (gameViewTargetMaxY - gameViewMaxY) * 0.08;
         if (gameViewTargetMaxY - gameViewMaxY < 0.5) gameViewMaxY = gameViewTargetMaxY;
+      } else if (gameViewMaxY > gameViewTargetMaxY) {
+        gameViewMaxY += (gameViewTargetMaxY - gameViewMaxY) * 0.08;
+        if (gameViewMaxY - gameViewTargetMaxY < 0.5) gameViewMaxY = gameViewTargetMaxY;
       }
     }
 
@@ -1529,15 +1637,16 @@
       }
     }
 
-    function drawHardModeMarks(origin, scale, maxX) {
+    function drawHardModeMarks(origin, scale, maxX, minX) {
       if (!isClassicHardMode()) return;
       ctx.save();
       ctx.strokeStyle = "rgba(29, 42, 34, 0.48)";
       ctx.fillStyle = "rgba(29, 42, 34, 0.72)";
       ctx.lineWidth = 2;
       ctx.font = "700 12px Arial";
-      for (let yards = 100; yards <= maxX; yards += 100) {
-        const x = origin.x + yards * scale;
+      const firstMark = Math.ceil(minX / 100) * 100;
+      for (let yards = Math.max(100, firstMark); yards <= minX + maxX; yards += 100) {
+        const x = origin.x + (yards - minX) * scale;
         if (x > canvas.clientWidth - 26) break;
         ctx.beginPath();
         ctx.moveTo(x, origin.y - 6);
@@ -1548,7 +1657,22 @@
       ctx.restore();
     }
 
-    function drawGrid(rect, origin, scale, maxX, maxY) {
+    function drawGreen(origin, scale, minX) {
+      if (!isChallengeMode()) return;
+      const center = screenPoint({ x: gameTargetYards, y: 0 }, origin, scale, minX);
+      const radiusX = Math.max(18, gameGreenRadius * scale);
+      ctx.save();
+      ctx.fillStyle = "rgba(146, 221, 124, 0.78)";
+      ctx.strokeStyle = "rgba(58, 145, 68, 0.46)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(center.x, origin.y + 2, radiusX, Math.max(9, radiusX * 0.26), 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawGrid(rect, origin, scale, maxX, maxY, minX) {
       ctx.clearRect(0, 0, rect.width, rect.height);
 
       const sky = ctx.createLinearGradient(0, 0, 0, rect.height);
@@ -1560,7 +1684,8 @@
 
       if (isChallengeMode()) {
         drawGameScenery(rect, origin);
-        drawHardModeMarks(origin, scale, maxX);
+        drawGreen(origin, scale, minX);
+        drawHardModeMarks(origin, scale, maxX, minX);
       } else {
         ctx.fillStyle = "rgba(45, 139, 87, 0.16)";
         ctx.fillRect(origin.x, origin.y, rect.width - origin.x - 26, 20);
@@ -1607,14 +1732,14 @@
       }
     }
 
-    function screenPoint(point, origin, scale) {
+    function screenPoint(point, origin, scale, minX = 0) {
       return {
-        x: origin.x + Math.max(0, point.x) * scale,
+        x: origin.x + (point.x - minX) * scale,
         y: origin.y - point.y * scale
       };
     }
 
-    function drawTrace(origin, scale) {
+    function drawTrace(origin, scale, minX) {
       if (trail.length < 2) return;
       ctx.save();
       ctx.strokeStyle = "rgba(36, 120, 183, 0.78)";
@@ -1623,7 +1748,7 @@
       ctx.lineJoin = "round";
       ctx.beginPath();
       trail.forEach((point, index) => {
-        const p = screenPoint(point, origin, scale);
+        const p = screenPoint(point, origin, scale, minX);
         if (index === 0) ctx.moveTo(p.x, p.y);
         else ctx.lineTo(p.x, p.y);
       });
@@ -1631,7 +1756,7 @@
       ctx.restore();
     }
 
-    function drawPreviousTraces(origin, scale) {
+    function drawPreviousTraces(origin, scale, minX) {
       if (previousTrails.length === 0) return;
       ctx.save();
       ctx.strokeStyle = "rgba(36, 120, 183, 0.5)";
@@ -1643,7 +1768,7 @@
         if (oldTrail.length < 2) return;
         ctx.beginPath();
         oldTrail.forEach((point, index) => {
-          const p = screenPoint(point, origin, scale);
+          const p = screenPoint(point, origin, scale, minX);
           if (index === 0) ctx.moveTo(p.x, p.y);
           else ctx.lineTo(p.x, p.y);
         });
@@ -1652,7 +1777,7 @@
       ctx.restore();
     }
 
-    function drawPrediction(origin, scale) {
+    function drawPrediction(origin, scale, minX) {
       if (!isChallengeMode() || animation || gameFinished) return;
       const preview = getShot();
       if (preview.distanceYards <= 0) return;
@@ -1668,7 +1793,7 @@
         const x = gameBallYards + direction * localX;
         const y = preview.distanceYards * Math.tan(preview.visualAngleRad) * u
           * (1 - Math.pow(u, preview.descentShape));
-        const p = screenPoint({ x, y }, origin, scale);
+        const p = screenPoint({ x, y }, origin, scale, minX);
         if (i === 0) ctx.moveTo(p.x, p.y);
         else ctx.lineTo(p.x, p.y);
       }
@@ -1676,14 +1801,32 @@
       ctx.restore();
     }
 
-    function drawFlag(origin, scale) {
+    function drawFlag(origin, scale, minX) {
       if (!isChallengeMode()) return;
-      const p = screenPoint({ x: gameTargetYards, y: 0 }, origin, scale);
+      const p = screenPoint({ x: gameTargetYards, y: 0 }, origin, scale, minX);
       ctx.save();
+      const cupWidth = Math.max(14, Math.min(28, 1.4 * scale));
+      const cupHeight = Math.max(8, Math.min(16, 0.9 * scale));
+      const cup = ctx.createLinearGradient(p.x - cupWidth / 2, p.y - cupHeight, p.x + cupWidth / 2, p.y);
+      cup.addColorStop(0, "#f7f9fb");
+      cup.addColorStop(0.35, "#c9d0d5");
+      cup.addColorStop(0.7, "#8e989f");
+      cup.addColorStop(1, "#f5f7f8");
+      ctx.fillStyle = cup;
+      ctx.strokeStyle = "#6f7a82";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, cupWidth / 2, cupHeight / 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillRect(p.x - cupWidth / 2, p.y - cupHeight / 2, cupWidth, cupHeight / 2);
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y - cupHeight / 2, cupWidth / 2, cupHeight / 3, 0, 0, Math.PI);
+      ctx.stroke();
       ctx.strokeStyle = "#26362c";
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
+      ctx.moveTo(p.x, p.y - cupHeight);
       ctx.lineTo(p.x, p.y - 44);
       ctx.stroke();
       ctx.fillStyle = "#d87332";
@@ -1696,9 +1839,9 @@
       ctx.restore();
     }
 
-    function drawLanding(origin, scale) {
+    function drawLanding(origin, scale, minX) {
       if (!landed || !showLandingMarker) return;
-      const p = screenPoint({ x: isChallengeMode() ? gameBallYards : shot.finalDistanceYards, y: 0 }, origin, scale);
+      const p = screenPoint({ x: isChallengeMode() ? gameBallYards : shot.finalDistanceYards, y: 0 }, origin, scale, minX);
       ctx.save();
       ctx.strokeStyle = "rgba(216, 115, 50, 0.46)";
       ctx.fillStyle = "rgba(216, 115, 50, 0.14)";
@@ -1755,16 +1898,16 @@
       if (!shot) shot = getShot();
       const rect = resizeCanvas();
       updateGameViewForPoint(ballPosition);
-      const { origin, maxX, maxY, scale } = getScale(rect);
+      const { origin, maxX, maxY, minX, scale } = getScale(rect);
 
-      drawGrid(rect, origin, scale, maxX, maxY);
-      drawPreviousTraces(origin, scale);
-      drawPrediction(origin, scale);
-      drawTrace(origin, scale);
-      drawLanding(origin, scale);
-      drawFlag(origin, scale);
+      drawGrid(rect, origin, scale, maxX, maxY, minX);
+      drawPreviousTraces(origin, scale, minX);
+      drawPrediction(origin, scale, minX);
+      drawTrace(origin, scale, minX);
+      drawLanding(origin, scale, minX);
+      drawFlag(origin, scale, minX);
 
-      const ballScreen = screenPoint(ballPosition, origin, scale);
+      const ballScreen = screenPoint(ballPosition, origin, scale, minX);
       drawGolfBall(ballScreen.x, ballScreen.y, 8, flightProgress * 18);
     }
 
@@ -1804,7 +1947,8 @@
       fields.message.classList.toggle("land", landed);
 
       fields.chips.innerHTML = "";
-      players[shot.player].forEach(([club, distance]) => {
+      const chipClubs = gameOnGreen ? [["Putter", PUTTER_DISTANCE_YARDS]] : players[shot.player];
+      chipClubs.forEach(([club, distance]) => {
         const chip = document.createElement("span");
         chip.className = club === shot.club ? "chip active" : "chip";
         chip.textContent = `${club} ${distance}`;
@@ -1831,7 +1975,7 @@
     }
 
     function resetShot(messageKey, vars = {}) {
-      if (animation) cancelAnimationFrame(animation);
+      cancelActiveAnimation();
       clearHoleAdvanceTimer();
       hideHoleModal();
       shot = getShot();
@@ -1847,7 +1991,7 @@
     }
 
     function launch() {
-      if (animation) cancelAnimationFrame(animation);
+      cancelActiveAnimation();
       if (isChallengeMode() && gameFinished) return;
       clearHoleAdvanceTimer();
       hideHoleModal();
@@ -1879,7 +2023,7 @@
         if (elapsed < swingMs) {
           resetFlightStats("preparing");
           drawScene();
-          animation = requestAnimationFrame(frame);
+          animation = scheduleAnimationFrame(frame);
           return;
         }
 
@@ -1912,7 +2056,7 @@
             gameBallYards = ballPosition.x;
             gameRemainingYards = Math.abs(gameTargetYards - gameBallYards);
             updateGameViewForPoint(ballPosition);
-            gameFinished = mode === "precision" || gameRemainingYards <= 5;
+            gameFinished = mode === "precision" || gameRemainingYards <= HOLE_RADIUS_YARDS;
             const roundScore = mode === "precision"
               ? precisionScore(gameRemainingYards, gameTargetYards)
               : classicScore(gameShots);
@@ -1936,6 +2080,8 @@
               });
             } else if (gameFinished) {
               showHoleCompleteModal(gameShots);
+            } else if (isClassicMode() && gameRemainingYards <= gameGreenRadius) {
+              enterPuttingMode();
             }
             if (!isClassicMode()) resetSwingControlsToDefault();
           } else {
@@ -1955,10 +2101,10 @@
 
         updateText("inFlight");
         drawScene();
-        animation = requestAnimationFrame(frame);
+        animation = scheduleAnimationFrame(frame);
       }
 
-      animation = requestAnimationFrame(frame);
+      animation = scheduleAnimationFrame(frame);
     }
 
     function applyLanguage() {
