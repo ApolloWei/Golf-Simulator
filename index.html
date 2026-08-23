@@ -1664,15 +1664,6 @@
         ctx.clip();
         ctx.fillStyle = green;
         ctx.fillRect(greenLeft - greenBlend, origin.y - 22, greenWidth + greenBlend * 2, rect.height - origin.y + 28);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 6; i += 1) {
-          const y = origin.y + 8 + i * 13;
-          ctx.beginPath();
-          ctx.moveTo(greenLeft, y);
-          ctx.bezierCurveTo(greenLeft + greenWidth * 0.25, y - 5, greenLeft + greenWidth * 0.72, y + 4, greenLeft + greenWidth, y - 2);
-          ctx.stroke();
-        }
         ctx.restore();
       }
 
