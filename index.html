@@ -1437,14 +1437,18 @@
       trail = [];
 
       fillClubs({ reset: false });
-      const clubs = players[playerSelect.value].filter(([, distance]) => distance >= 120);
-      const [club] = clubs[Math.floor(Math.random() * clubs.length)];
-      clubSelect.value = club;
-      const baseAngle = defaultAngles[club] || 18;
-      angleSlider.value = Math.max(8, Math.min(45, Math.round(baseAngle + (Math.random() * 14 - 7))));
-      powerSlider.value = Math.round(70 + Math.random() * 30);
-      shot = getShot();
-      gameTargetYards = Math.round(shot.finalDistanceYards);
+      const candidateClubs = players[playerSelect.value].filter(([, distance]) => distance >= 120);
+      const [referenceClub] = candidateClubs[Math.floor(Math.random() * candidateClubs.length)];
+      const baseAngle = defaultAngles[referenceClub] || 18;
+      const referenceAngle = Math.max(8, Math.min(45, Math.round(baseAngle + (Math.random() * 14 - 7))));
+      const referencePower = Math.round(70 + Math.random() * 30);
+      const referenceShot = calculateShot({
+        player: playerSelect.value,
+        club: referenceClub,
+        angleDeg: referenceAngle,
+        powerPercent: referencePower
+      });
+      gameTargetYards = Math.round(referenceShot.finalDistanceYards);
       gameRemainingYards = gameTargetYards;
 
       const obstacleCount = obstacleDifficulty === "hard" ? 3 : (obstacleDifficulty === "medium" ? 2 : 1);
@@ -1453,22 +1457,27 @@
       for (let i = 0; i < obstacleCount; i += 1) {
         const baseU = (i + 1) / (obstacleCount + 1);
         const u = Math.min(0.82, Math.max(0.22, baseU + (Math.random() * 0.12 - 0.06)));
-        const x = Math.round(shot.distanceYards * u);
-        const y = Math.max(gateGapYards / 2 + 3, shotHeightAtDistance(shot, x));
+        const x = Math.round(referenceShot.distanceYards * u);
+        const y = Math.max(gateGapYards / 2 + 3, shotHeightAtDistance(referenceShot, x));
         gates.push({ x, y, gap: gateGapYards, passed: false });
       }
       obstacleCourse = {
         gates,
-        referenceClub: club,
-        referenceAngle: shot.angleDeg,
-        referencePower: shot.powerPercent
+        referenceClub,
+        referenceAngle,
+        referencePower
       };
+      clubSelect.value = players[playerSelect.value].some(([club]) => club === "Driver")
+        ? "Driver"
+        : players[playerSelect.value].at(-1)[0];
+      resetSwingControlsToDefault();
+      shot = getShot();
       const maxObstacleY = gates.reduce((max, gate) => Math.max(max, gate.y + gate.gap), 0);
       gameViewMinX = 0;
       gameViewTargetMinX = 0;
       gameViewMaxX = Math.max(160, Math.ceil((gameTargetYards * 1.08) / 50) * 50);
       gameViewTargetMaxX = gameViewMaxX;
-      gameViewMaxY = Math.max(90, Math.ceil((Math.max(shot.maxHeightYards, maxObstacleY) * 1.35) / 25) * 25);
+      gameViewMaxY = Math.max(90, Math.ceil((Math.max(referenceShot.maxHeightYards, maxObstacleY) * 1.35) / 25) * 25);
       gameViewTargetMaxY = gameViewMaxY;
       resetShot("obstacleReady");
     }
@@ -1543,18 +1552,14 @@
       if (reset) resetShot("ready");
     }
 
-    function getShot() {
-      const player = playerSelect.value;
-      const club = clubSelect.value;
+    function calculateShot({ player, club, angleDeg, powerPercent }) {
       const isPutter = club === "Putter";
       const distanceYards = isPutter
         ? PUTTER_DISTANCE_YARDS
         : players[player].find(([name]) => name === club)[1];
-      const angleDeg = Number(angleSlider.value);
       const angleRad = angleDeg * Math.PI / 180;
       const baselineAngleDeg = defaultAngles[club] || angleDeg;
       const baselineAngleRad = baselineAngleDeg * Math.PI / 180;
-      const powerPercent = Number(powerSlider.value);
       const powerRatio = powerPercent / 100;
       const swingRatio = powerRatio / DEFAULT_POWER_RATIO;
       if (isPutter) {
@@ -1639,6 +1644,15 @@
         duration,
         maxHeightYards
       };
+    }
+
+    function getShot() {
+      return calculateShot({
+        player: playerSelect.value,
+        club: clubSelect.value,
+        angleDeg: Number(angleSlider.value),
+        powerPercent: Number(powerSlider.value)
+      });
     }
 
     function turfRestitutionForImpact(verticalSpeedMps) {
@@ -2373,7 +2387,7 @@
             gameShots += 1;
             gameBallYards = ballPosition.x;
             gameRemainingYards = Math.abs(gameTargetYards - gameBallYards);
-            updateGameViewForPoint(ballPosition);
+            if (!isObstacleMode()) updateGameViewForPoint(ballPosition);
             if (isObstacleMode()) {
               gameFinished = evaluateObstacleShot(shot);
               setLaunchButton("launch", gameFinished);
