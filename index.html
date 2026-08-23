@@ -672,7 +672,7 @@
 
         <div class="stats">
           <div class="stat">
-            <span data-i18n="targetDistance">目标飞行距离</span>
+            <span id="targetDistanceLabel" data-i18n="targetDistance">目标飞行距离</span>
             <strong id="distanceText">0 yd</strong>
           </div>
           <div class="stat">
@@ -826,6 +826,7 @@
       verticalSpeed: document.querySelector("#verticalSpeedText"),
       time: document.querySelector("#timeText"),
       phase: document.querySelector("#phaseText"),
+      targetDistanceLabel: document.querySelector("#targetDistanceLabel"),
       message: document.querySelector("#message"),
       chips: document.querySelector("#clubChips"),
       gameInfo: document.querySelector("#gameInfo"),
@@ -893,6 +894,8 @@
         soundOption: "击球音效",
         hint: "距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。",
         targetDistance: "目标飞行距离",
+        targetDistanceWithBounce: "目标飞行距离（with bounce）",
+        targetDistanceWithoutBounce: "目标飞行距离（without bounce）",
         currentDistance: "当前飞行距离",
         initialSpeed: "初速度",
         currentSpeed: "当前速度",
@@ -967,6 +970,8 @@
         soundOption: "Launch sound",
         hint: "Distances come from your table. The simulator uses the selected distance and angle to estimate launch speed, then plays the shot with projectile motion.",
         targetDistance: "Target Carry",
+        targetDistanceWithBounce: "Target Carry (with bounce)",
+        targetDistanceWithoutBounce: "Target Carry (without bounce)",
         currentDistance: "Current Distance",
         initialSpeed: "Initial Speed",
         currentSpeed: "Current Speed",
@@ -1214,6 +1219,11 @@
           shots: gameShots
         })
       ].join("  ");
+    }
+
+    function updateTargetDistanceLabel() {
+      const key = isClassicHardMode() ? "targetDistanceWithoutBounce" : "targetDistanceWithBounce";
+      fields.targetDistanceLabel.textContent = tr(key);
     }
 
     function adjustShotSettings(messageKey, vars = {}) {
@@ -1781,6 +1791,7 @@
 
       fields.angle.textContent = `${shot.angleDeg}°`;
       fields.power.textContent = `${shot.powerPercent}%`;
+      updateTargetDistanceLabel();
       fields.distance.textContent = `${Math.round(shot.finalDistanceYards)} yd`;
       fields.liveDistance.textContent = `${Math.round(shotProgressX)} yd`;
       fields.speed.textContent = `${shot.speed.toFixed(1)} m/s`;
@@ -1806,6 +1817,7 @@
       currentMessageVars = vars;
       fields.angle.textContent = `${shot.angleDeg}°`;
       fields.power.textContent = `${shot.powerPercent}%`;
+      updateTargetDistanceLabel();
       fields.distance.textContent = "0 yd";
       fields.liveDistance.textContent = "0 yd";
       fields.speed.textContent = "0.0 m/s";
@@ -1960,6 +1972,7 @@
       document.querySelectorAll("[data-i18n]").forEach((node) => {
         node.textContent = tr(node.dataset.i18n);
       });
+      updateTargetDistanceLabel();
       setClassicDifficulty(classicDifficulty);
       if (mode !== "lobby") setLaunchButton(launchButtonKey, launchBtn.disabled);
       if (shot) updateText();
