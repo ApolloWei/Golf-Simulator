@@ -1283,6 +1283,7 @@
       powerSlider.value = DEFAULT_POWER_PERCENT;
       shot = getShot();
       snapToGreenView();
+      updateGameInfo();
       updateText("puttingReady");
       drawScene();
     }
@@ -1642,7 +1643,7 @@
 
       if (isChallengeMode()) {
         const center = screenPoint({ x: gameTargetYards, y: 0 }, origin, scale, minX);
-        const radiusX = Math.max(28, gameGreenRadius * scale);
+        const radiusX = gameGreenRadius * scale;
         const greenLeft = center.x - radiusX;
         const greenWidth = radiusX * 2;
         const green = ctx.createLinearGradient(0, origin.y - 14, 0, rect.height);
@@ -2081,6 +2082,7 @@
             gameRemainingYards = Math.abs(gameTargetYards - gameBallYards);
             updateGameViewForPoint(ballPosition);
             gameFinished = mode === "precision" || gameRemainingYards <= HOLE_RADIUS_YARDS;
+            const landedOnGreen = isClassicMode() && !gameFinished && gameRemainingYards <= gameGreenRadius;
             const roundScore = mode === "precision"
               ? precisionScore(gameRemainingYards, gameTargetYards)
               : classicScore(gameShots);
@@ -2088,15 +2090,20 @@
             let messageKey = "gameLandedMessage";
             if (mode === "precision") messageKey = "precisionCompleteMessage";
             else if (gameFinished) messageKey = "gameCompleteMessage";
+            else if (landedOnGreen) messageKey = "puttingReady";
             else if (isClassicHardMode()) messageKey = "hardGameLandedMessage";
             setLaunchButton(gameFinished ? "relaunch" : "launch", gameFinished);
-            updateText(messageKey, {
-              shots: gameShots,
-              distance: Math.round(shot.finalDistanceYards),
-              remaining: Math.round(gameRemainingYards),
-              score
-            });
-            updateGameInfo();
+            if (landedOnGreen) {
+              enterPuttingMode();
+            } else {
+              updateText(messageKey, {
+                shots: gameShots,
+                distance: Math.round(shot.finalDistanceYards),
+                remaining: Math.round(gameRemainingYards),
+                score
+              });
+              updateGameInfo();
+            }
             if (mode === "precision") {
               showRoundCompleteModal("precisionCompleteTitle", "precisionCompleteText", {
                 remaining: Math.round(gameRemainingYards),
@@ -2104,8 +2111,6 @@
               });
             } else if (gameFinished) {
               showHoleCompleteModal(gameShots);
-            } else if (isClassicMode() && gameRemainingYards <= gameGreenRadius) {
-              enterPuttingMode();
             }
             if (!isClassicMode()) resetSwingControlsToDefault();
           } else {
