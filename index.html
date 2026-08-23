@@ -603,6 +603,11 @@
             <span class="difficulty-button active" id="classicEasyBtn" role="button" tabindex="0" data-difficulty="easy" data-i18n="easyMode">简单</span>
             <span class="difficulty-button" id="classicHardBtn" role="button" tabindex="0" data-difficulty="hard" data-i18n="hardMode">困难</span>
           </span>
+          <span class="difficulty-label" data-i18n="classicGreenRule">经典模式果岭</span>
+          <span class="difficulty-toggle" role="group" aria-label="Classic green rule">
+            <span class="difficulty-button active" id="classicGreenBtn" role="button" tabindex="0" data-green-rule="green" data-i18n="withGreenMode">有果岭</span>
+            <span class="difficulty-button" id="classicNoGreenBtn" role="button" tabindex="0" data-green-rule="none" data-i18n="withoutGreenMode">没果岭</span>
+          </span>
         </button>
         <button class="mode-button" id="startPrecisionBtn" type="button">
           <strong data-i18n="precisionMode">精准模式</strong>
@@ -803,6 +808,8 @@
     const startFreeBtn = document.querySelector("#startFreeBtn");
     const classicEasyBtn = document.querySelector("#classicEasyBtn");
     const classicHardBtn = document.querySelector("#classicHardBtn");
+    const classicGreenBtn = document.querySelector("#classicGreenBtn");
+    const classicNoGreenBtn = document.querySelector("#classicNoGreenBtn");
     const lobbyLanguageBtn = document.querySelector("#lobbyLanguageBtn");
     const homeBtn = document.querySelector("#homeBtn");
     const playerControl = document.querySelector("#playerControl");
@@ -866,6 +873,7 @@
     let gameShots = 0;
     let gameFinished = false;
     let classicDifficulty = "easy";
+    let classicGreenRule = "green";
     let holeAdvanceTimer = null;
     let holeCompleteShots = 0;
     let modalTitleKey = "holeCompleteTitle";
@@ -884,8 +892,11 @@
         lobbySubtitle: "先选择球员，再进入自由练习或挑战模式。",
         choosePlayer: "选择球员",
         classicDifficulty: "经典模式难度",
+        classicGreenRule: "经典模式果岭",
         easyMode: "简单",
         hardMode: "困难",
+        withGreenMode: "有果岭",
+        withoutGreenMode: "没果岭",
         classicMode: "经典模式",
         classicModeDesc: "随机生成 250-470 码的洞位，用尽量少的杆数把球打进洞。",
         precisionMode: "精准模式",
@@ -961,8 +972,11 @@
         lobbySubtitle: "Choose a player, then enter Classic, Precision, or Free Mode.",
         choosePlayer: "Choose Player",
         classicDifficulty: "Classic Difficulty",
+        classicGreenRule: "Classic Green",
         easyMode: "Easy",
         hardMode: "Hard",
+        withGreenMode: "With Green",
+        withoutGreenMode: "No Green",
         classicMode: "Classic Mode",
         classicModeDesc: "A random hole appears 250-470 yd away. Reach it in as few shots as possible.",
         precisionMode: "Precision Mode",
@@ -1123,6 +1137,14 @@
       return mode === "classic" && classicDifficulty === "hard";
     }
 
+    function hasClassicGreen() {
+      return mode === "classic" && classicGreenRule === "green";
+    }
+
+    function usesGreenVisual() {
+      return isChallengeMode() && (mode !== "classic" || classicGreenRule === "green");
+    }
+
     function resetSwingControlsToDefault() {
       angleSlider.value = DEFAULT_LAUNCH_ANGLE;
       powerSlider.value = DEFAULT_POWER_PERCENT;
@@ -1152,6 +1174,16 @@
       classicHardBtn.classList.toggle("active", classicDifficulty === "hard");
       classicEasyBtn.setAttribute("aria-pressed", String(classicDifficulty === "easy"));
       classicHardBtn.setAttribute("aria-pressed", String(classicDifficulty === "hard"));
+      updateGameInfo();
+      if (mode === "classic" && !animation) drawScene();
+    }
+
+    function setClassicGreenRule(value) {
+      classicGreenRule = value === "none" ? "none" : "green";
+      classicGreenBtn.classList.toggle("active", classicGreenRule === "green");
+      classicNoGreenBtn.classList.toggle("active", classicGreenRule === "none");
+      classicGreenBtn.setAttribute("aria-pressed", String(classicGreenRule === "green"));
+      classicNoGreenBtn.setAttribute("aria-pressed", String(classicGreenRule === "none"));
       updateGameInfo();
       if (mode === "classic" && !animation) drawScene();
     }
@@ -1274,6 +1306,7 @@
     }
 
     function enterPuttingMode() {
+      if (!hasClassicGreen()) return;
       if (gameOnGreen) return;
       gameOnGreen = true;
       showLandingMarker = false;
@@ -1304,7 +1337,7 @@
     }
 
     function fillClubs({ reset = true } = {}) {
-      const clubs = gameOnGreen ? [["Putter", PUTTER_DISTANCE_YARDS]] : players[playerSelect.value];
+      const clubs = gameOnGreen && hasClassicGreen() ? [["Putter", PUTTER_DISTANCE_YARDS]] : players[playerSelect.value];
       clubSelect.innerHTML = "";
       clubs.forEach(([club, distance]) => {
         const option = document.createElement("option");
@@ -1565,7 +1598,7 @@
 
     function updateGameViewForPoint(point) {
       if (!isChallengeMode()) return;
-      if (gameOnGreen) {
+      if (gameOnGreen && hasClassicGreen()) {
         const span = Math.max(16, gameGreenRadius * 2.25);
         gameViewTargetMinX = gameTargetYards - span / 2;
         gameViewTargetMaxX = span;
@@ -1588,8 +1621,8 @@
         if (gameViewMaxX - gameViewTargetMaxX < 0.5) gameViewMaxX = gameViewTargetMaxX;
       }
       const neededY = (point.y || 0) * 1.35;
-      const nextY = gameOnGreen ? 24 : Math.max(160, Math.ceil(neededY / 25) * 25);
-      if (nextY > gameViewTargetMaxY || gameOnGreen) gameViewTargetMaxY = nextY;
+      const nextY = gameOnGreen && hasClassicGreen() ? 24 : Math.max(160, Math.ceil(neededY / 25) * 25);
+      if (nextY > gameViewTargetMaxY || (gameOnGreen && hasClassicGreen())) gameViewTargetMaxY = nextY;
       if (gameViewMaxY < gameViewTargetMaxY) {
         gameViewMaxY += (gameViewTargetMaxY - gameViewMaxY) * 0.08;
         if (gameViewTargetMaxY - gameViewMaxY < 0.5) gameViewMaxY = gameViewTargetMaxY;
@@ -1643,7 +1676,7 @@
       makeGroundPath(rect, origin);
       ctx.fill();
 
-      if (isChallengeMode()) {
+      if (usesGreenVisual()) {
         const center = screenPoint({ x: gameTargetYards, y: 0 }, origin, scale, minX);
         const radiusX = gameGreenRadius * scale;
         const greenLeft = center.x - radiusX;
@@ -1830,26 +1863,27 @@
       if (!isChallengeMode()) return;
       const p = screenPoint({ x: gameTargetYards, y: 0 }, origin, scale, minX);
       ctx.save();
-      const cupWidth = Math.max(14, Math.min(28, 1.4 * scale));
-      const cupHeight = Math.max(8, Math.min(16, 0.9 * scale));
-      const cup = ctx.createLinearGradient(p.x - cupWidth / 2, p.y, p.x + cupWidth / 2, p.y + cupHeight);
-      cup.addColorStop(0, "#f7f9fb");
-      cup.addColorStop(0.35, "#c9d0d5");
-      cup.addColorStop(0.7, "#8e989f");
-      cup.addColorStop(1, "#f5f7f8");
-      ctx.fillStyle = cup;
-      ctx.strokeStyle = "#6f7a82";
-      ctx.lineWidth = 1.5;
-      ctx.fillRect(p.x - cupWidth / 2, p.y, cupWidth, cupHeight);
-      ctx.beginPath();
-      ctx.ellipse(p.x, p.y, cupWidth / 2, cupHeight / 3, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = "rgba(36, 46, 52, 0.38)";
-      ctx.beginPath();
-      ctx.ellipse(p.x, p.y, cupWidth * 0.34, cupHeight * 0.17, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#6f7a82";
+      if (usesGreenVisual()) {
+        const cupWidth = Math.max(14, Math.min(28, 1.4 * scale));
+        const cupHeight = Math.max(8, Math.min(16, 0.9 * scale));
+        const cup = ctx.createLinearGradient(p.x - cupWidth / 2, p.y, p.x + cupWidth / 2, p.y + cupHeight);
+        cup.addColorStop(0, "#f7f9fb");
+        cup.addColorStop(0.35, "#c9d0d5");
+        cup.addColorStop(0.7, "#8e989f");
+        cup.addColorStop(1, "#f5f7f8");
+        ctx.fillStyle = cup;
+        ctx.strokeStyle = "#6f7a82";
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(p.x - cupWidth / 2, p.y, cupWidth, cupHeight);
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, cupWidth / 2, cupHeight / 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "rgba(36, 46, 52, 0.38)";
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, cupWidth * 0.34, cupHeight * 0.17, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.strokeStyle = "#26362c";
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -1985,7 +2019,7 @@
       fields.message.classList.toggle("land", landed);
 
       fields.chips.innerHTML = "";
-      const chipClubs = gameOnGreen ? [["Putter", PUTTER_DISTANCE_YARDS]] : players[shot.player];
+      const chipClubs = gameOnGreen && hasClassicGreen() ? [["Putter", PUTTER_DISTANCE_YARDS]] : players[shot.player];
       chipClubs.forEach(([club, distance]) => {
         const chip = document.createElement("span");
         chip.className = club === shot.club ? "chip active" : "chip";
@@ -2095,8 +2129,9 @@
             gameBallYards = ballPosition.x;
             gameRemainingYards = Math.abs(gameTargetYards - gameBallYards);
             updateGameViewForPoint(ballPosition);
-            gameFinished = mode === "precision" || gameRemainingYards <= HOLE_RADIUS_YARDS;
-            const landedOnGreen = isClassicMode() && !gameFinished && gameRemainingYards <= gameGreenRadius;
+            const holeRadius = hasClassicGreen() ? HOLE_RADIUS_YARDS : 5;
+            gameFinished = mode === "precision" || gameRemainingYards <= holeRadius;
+            const landedOnGreen = hasClassicGreen() && !gameFinished && gameRemainingYards <= gameGreenRadius;
             const roundScore = mode === "precision"
               ? precisionScore(gameRemainingYards, gameTargetYards)
               : classicScore(gameShots);
@@ -2164,6 +2199,7 @@
       });
       updateTargetDistanceLabel();
       setClassicDifficulty(classicDifficulty);
+      setClassicGreenRule(classicGreenRule);
       if (mode !== "lobby") setLaunchButton(launchButtonKey, launchBtn.disabled);
       if (shot) updateText();
       if (!holeModal.classList.contains("hidden")) updateHoleModalText();
@@ -2207,10 +2243,25 @@
       handleDifficultyChoice(event, value);
     }
 
+    function handleGreenRuleChoice(event, value) {
+      event.stopPropagation();
+      setClassicGreenRule(value);
+    }
+
+    function handleGreenRuleKey(event, value) {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      handleGreenRuleChoice(event, value);
+    }
+
     classicEasyBtn.addEventListener("click", (event) => handleDifficultyChoice(event, "easy"));
     classicHardBtn.addEventListener("click", (event) => handleDifficultyChoice(event, "hard"));
     classicEasyBtn.addEventListener("keydown", (event) => handleDifficultyKey(event, "easy"));
     classicHardBtn.addEventListener("keydown", (event) => handleDifficultyKey(event, "hard"));
+    classicGreenBtn.addEventListener("click", (event) => handleGreenRuleChoice(event, "green"));
+    classicNoGreenBtn.addEventListener("click", (event) => handleGreenRuleChoice(event, "none"));
+    classicGreenBtn.addEventListener("keydown", (event) => handleGreenRuleKey(event, "green"));
+    classicNoGreenBtn.addEventListener("keydown", (event) => handleGreenRuleKey(event, "none"));
     startGameBtn.addEventListener("click", () => showSimulator("classic"));
     startPrecisionBtn.addEventListener("click", () => showSimulator("precision"));
     startFreeBtn.addEventListener("click", () => showSimulator("free"));
