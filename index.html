@@ -836,6 +836,36 @@
       line-height: 1.45;
     }
 
+    .wind-hud {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 2;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 8px 12px;
+      border: 1px solid rgba(205, 219, 209, 0.9);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--ink);
+      box-shadow: 0 10px 26px rgba(30, 56, 39, 0.12);
+      backdrop-filter: blur(6px);
+      font-size: 13px;
+      font-weight: 800;
+      pointer-events: none;
+    }
+
+    .wind-hud.show {
+      display: inline-flex;
+    }
+
+    .wind-arrow {
+      font-size: 20px;
+      line-height: 1;
+    }
+
     @keyframes achievementToast {
       0% { opacity: 0; transform: translateY(-10px) scale(0.98); }
       12% { opacity: 1; transform: translateY(0) scale(1); }
@@ -1071,6 +1101,10 @@
 
       <section class="stage" id="stage" aria-label="高尔夫小球二维飞行轨迹">
         <canvas id="trajectoryCanvas"></canvas>
+        <div class="wind-hud" id="windHud">
+          <span id="windText">无风 0 yd</span>
+          <span class="wind-arrow" id="windArrow">➡️</span>
+        </div>
         <div class="legend">
           <span><i class="ball-dot"></i><span data-i18n="ball">小球</span></span>
           <span><i class="swatch"></i><span data-i18n="trace">飞行中留下的轨迹</span></span>
@@ -1221,6 +1255,9 @@
     const soundToggle = document.querySelector("#soundToggle");
     const languageBtn = document.querySelector("#languageBtn");
     const stage = document.querySelector("#stage");
+    const windHud = document.querySelector("#windHud");
+    const windText = document.querySelector("#windText");
+    const windArrow = document.querySelector("#windArrow");
     const canvas = document.querySelector("#trajectoryCanvas");
     const ctx = canvas.getContext("2d");
     const launchBtn = document.querySelector("#launchBtn");
@@ -1278,6 +1315,7 @@
     let gameFinished = false;
     let classicDifficulty = "easy";
     let classicGreenRule = "green";
+    let currentWind = { yards: 0, direction: 0, arrow: "➡️", labelKey: "windCalm" };
     let obstacleDifficulty = "easy";
     let obstacleCourse = null;
     let obstacleMaxLives = 5;
@@ -1331,6 +1369,9 @@
         achievementUnlockedOn: "解锁时间",
         achievementNever: "尚未解锁",
         achievementToastTitle: "🏆 成就解锁",
+        windCalm: "无风",
+        windLight: "小风",
+        windStrong: "大风",
         statTotalShots: "总杆数",
         statLongestShot: "最远一杆",
         statTotalDistance: "总距离",
@@ -1454,6 +1495,9 @@
         achievementUnlockedOn: "Unlocked",
         achievementNever: "Not yet",
         achievementToastTitle: "🏆 ACHIEVEMENT UNLOCKED",
+        windCalm: "No Wind",
+        windLight: "Light Wind",
+        windStrong: "Strong Wind",
         statTotalShots: "Total Shots",
         statLongestShot: "Longest Shot",
         statTotalDistance: "Total Distance",
@@ -1798,6 +1842,33 @@
       return obstacleCleared * 100 + obstacleLives * 25;
     }
 
+    function generateWind() {
+      const weightedYards = [0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 5];
+      const yards = weightedYards[Math.floor(Math.random() * weightedYards.length)];
+      const direction = yards === 0 ? 0 : (Math.random() < 0.5 ? -1 : 1);
+      const labelKey = yards <= 1 ? "windCalm" : (yards <= 3 ? "windLight" : "windStrong");
+      return {
+        yards,
+        direction,
+        labelKey,
+        arrow: direction < 0 ? "⬅️" : "➡️"
+      };
+    }
+
+    function windOffsetForProgress(progress) {
+      if (!isClassicHardMode()) return 0;
+      const eased = Math.pow(Math.min(1, Math.max(0, progress)), 1.7);
+      return currentWind.direction * currentWind.yards * eased;
+    }
+
+    function updateWindHud() {
+      const show = isClassicHardMode() && mode !== "lobby";
+      windHud.classList.toggle("show", show);
+      if (!show) return;
+      windText.textContent = `${tr(currentWind.labelKey)} ${currentWind.yards} yd`;
+      windArrow.textContent = currentWind.arrow;
+    }
+
     function randomTarget() {
       return Math.floor(250 + Math.random() * 221);
     }
@@ -1930,6 +2001,7 @@
       greenZooming = false;
       obstacleCourse = null;
       gameFinished = false;
+      updateWindHud();
     }
 
     function showSimulator(nextMode) {
@@ -1947,6 +2019,7 @@
       playerControl.classList.toggle("hidden", challengeMode);
       fields.gameInfo.classList.toggle("show", challengeMode);
       updateLifeHud();
+      updateWindHud();
       fillClubs({ reset: !challengeMode, preserveSwing: nextMode === "free" });
       if (nextMode === "putting") startPuttingPractice();
       else if (nextMode === "obstacle") startObstacleCourse();
@@ -1964,6 +2037,7 @@
       mode = nextMode;
       gameTargetYards = randomTarget();
       gameGreenRadius = Math.round((GREEN_RADIUS_MIN + Math.random() * (GREEN_RADIUS_MAX - GREEN_RADIUS_MIN)) * 10) / 10;
+      currentWind = isClassicHardMode() ? generateWind() : { yards: 0, direction: 0, arrow: "➡️", labelKey: "windCalm" };
       gameRemainingYards = gameTargetYards;
       gameBallYards = 0;
       gameShotStartYards = 0;
@@ -1983,6 +2057,7 @@
       trail = [];
       powerSlider.value = DEFAULT_POWER_PERCENT;
       fillClubs({ reset: false });
+      updateWindHud();
       const readyKey = mode === "precision"
         ? "precisionReady"
         : (isClassicHardMode() ? "hardGameReady" : "gameReady");
@@ -3010,23 +3085,25 @@
 
         flightProgress = Math.min(1, (elapsed - swingMs) / flightMs);
         const localPoint = pointAt(flightProgress);
+        const windOffset = windOffsetForProgress(flightProgress);
         ballPosition = isChallengeMode()
           ? {
-              x: gameShotStartYards + gameShotDirection * localPoint.x,
+              x: gameShotStartYards + gameShotDirection * localPoint.x + windOffset,
               y: localPoint.y,
               time: localPoint.time,
-              shotX: localPoint.x
+              shotX: Math.max(0, localPoint.x + gameShotDirection * windOffset)
             }
           : { ...localPoint, shotX: localPoint.x };
         trail.push({ x: ballPosition.x, y: ballPosition.y });
 
         if (flightProgress >= 1) {
+          const finalWindOffset = windOffsetForProgress(1);
           ballPosition = isChallengeMode()
             ? {
-                x: gameShotStartYards + gameShotDirection * shot.finalDistanceYards,
+                x: gameShotStartYards + gameShotDirection * shot.finalDistanceYards + finalWindOffset,
                 y: 0,
                 time: shot.duration,
-                shotX: shot.finalDistanceYards
+                shotX: Math.max(0, shot.finalDistanceYards + gameShotDirection * finalWindOffset)
               }
             : { x: shot.finalDistanceYards, y: 0, time: shot.duration, shotX: shot.finalDistanceYards };
           trail.push(ballPosition);
@@ -3036,6 +3113,7 @@
             gameShots += 1;
             gameBallYards = ballPosition.x;
             gameRemainingYards = Math.abs(gameTargetYards - gameBallYards);
+            const actualShotDistance = Math.abs(gameBallYards - gameShotStartYards);
             if (!isObstacleMode()) updateGameViewForPoint(ballPosition);
             if (isObstacleMode()) {
               const obstaclePassed = evaluateObstacleShot(shot);
@@ -3048,6 +3126,7 @@
                 obstacleLives = Math.max(0, obstacleLives - 1);
               }
               recordCompletedShot({
+                distance: actualShotDistance,
                 obstaclePassed,
                 obstacleGatesPassed,
                 obstacleDifficulty,
@@ -3077,6 +3156,7 @@
             if (isPuttingPracticeMode()) {
               gameFinished = gameRemainingYards <= HOLE_RADIUS_YARDS;
               recordCompletedShot({
+                distance: actualShotDistance,
                 remaining: gameRemainingYards,
                 puttSunk: gameFinished,
                 streakSuccess: gameFinished
@@ -3101,6 +3181,7 @@
               : classicScore(gameShots);
             const score = scoreStars(roundScore);
             recordCompletedShot({
+              distance: actualShotDistance,
               remaining: gameRemainingYards,
               classicComplete: isClassicMode() && gameFinished,
               puttSunk: isClassicMode() && gameFinished && shot.club === "Putter",
@@ -3253,6 +3334,7 @@
       if (mode !== "lobby") setLaunchButton(launchButtonKey, launchBtn.disabled);
       if (shot) updateText();
       if (!holeModal.classList.contains("hidden")) updateHoleModalText();
+      updateWindHud();
       renderAchievements();
       updateGameInfo();
       if (mode !== "lobby") drawScene();
