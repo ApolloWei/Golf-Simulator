@@ -1246,7 +1246,7 @@
       playerSelect.disabled = challengeMode;
       playerControl.classList.toggle("hidden", challengeMode);
       fields.gameInfo.classList.toggle("show", challengeMode);
-      fillClubs({ reset: !challengeMode });
+      fillClubs({ reset: !challengeMode, preserveSwing: nextMode === "free" });
       if (challengeMode) startGame(nextMode);
       else {
         previousTrails = [];
@@ -1336,8 +1336,9 @@
       }
     }
 
-    function fillClubs({ reset = true } = {}) {
+    function fillClubs({ reset = true, preserveSwing = false } = {}) {
       const clubs = gameOnGreen && hasClassicGreen() ? [["Putter", PUTTER_DISTANCE_YARDS]] : players[playerSelect.value];
+      const previousClub = clubSelect.value;
       clubSelect.innerHTML = "";
       clubs.forEach(([club, distance]) => {
         const option = document.createElement("option");
@@ -1345,8 +1346,9 @@
         option.textContent = `${club} - ${distance} yd`;
         clubSelect.appendChild(option);
       });
-      clubSelect.value = clubs.at(-1)[0];
-      angleSlider.value = defaultAngles[clubSelect.value] || 18;
+      const hasPreviousClub = clubs.some(([club]) => club === previousClub);
+      clubSelect.value = hasPreviousClub ? previousClub : clubs.at(-1)[0];
+      if (!preserveSwing) angleSlider.value = defaultAngles[clubSelect.value] || 18;
       if (reset) resetShot("ready");
     }
 
@@ -2170,7 +2172,6 @@
               power: shot.powerPercent,
               distance: Math.round(shot.finalDistanceYards)
             });
-            resetSwingControlsToDefault();
           }
           drawScene();
           animation = null;
@@ -2212,10 +2213,10 @@
     showLobby();
 
     playerSelect.addEventListener("change", () => {
-      if (mode === "free") fillClubs();
+      if (mode === "free") fillClubs({ preserveSwing: true });
     });
     clubSelect.addEventListener("change", () => {
-      angleSlider.value = defaultAngles[clubSelect.value] || 18;
+      if (mode !== "free") angleSlider.value = defaultAngles[clubSelect.value] || 18;
       adjustShotSettings("clubChanged");
     });
     angleSlider.addEventListener("input", () => {
