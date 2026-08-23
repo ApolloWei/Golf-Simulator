@@ -121,13 +121,14 @@
 
     .mode-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 14px;
       margin-top: 18px;
     }
 
     .mode-button {
       min-width: 0;
+      grid-column: span 2;
       min-height: 128px;
       padding: 18px;
       border: 1px solid var(--line);
@@ -153,6 +154,14 @@
     .mode-button:hover {
       border-color: var(--fairway);
       background: #eef8ef;
+    }
+
+    .mode-button.primary-row {
+      grid-column: span 3;
+    }
+
+    .difficulty-toggle.three {
+      grid-template-columns: repeat(3, 1fr);
     }
 
     .difficulty-toggle {
@@ -601,7 +610,7 @@
         <select id="lobbyPlayer"></select>
       </div>
       <div class="mode-grid">
-        <button class="mode-button" id="startGameBtn" type="button">
+        <button class="mode-button primary-row" id="startGameBtn" type="button">
           <strong data-i18n="classicMode">经典模式</strong>
           <span data-i18n="classicModeDesc">随机生成 250-470 码的洞位，用尽量少的杆数把球打进洞。</span>
           <span class="difficulty-label" data-i18n="classicDifficulty">经典模式难度</span>
@@ -613,6 +622,16 @@
           <span class="difficulty-toggle" role="group" aria-label="Classic green rule">
             <span class="difficulty-button active" id="classicGreenBtn" role="button" tabindex="0" data-green-rule="green" data-i18n="withGreenMode">有果岭</span>
             <span class="difficulty-button" id="classicNoGreenBtn" role="button" tabindex="0" data-green-rule="none" data-i18n="withoutGreenMode">没果岭</span>
+          </span>
+        </button>
+        <button class="mode-button primary-row" id="startObstacleBtn" type="button">
+          <strong data-i18n="obstacleMode">障碍物模式</strong>
+          <span data-i18n="obstacleModeDesc">系统生成一条标准弹道，并在弹道上放置带小孔的障碍门。调整击球，让小球从孔中穿过。</span>
+          <span class="difficulty-label" data-i18n="obstacleDifficulty">障碍物难度</span>
+          <span class="difficulty-toggle three" role="group" aria-label="Obstacle difficulty">
+            <span class="difficulty-button active" id="obstacleEasyBtn" role="button" tabindex="0" data-obstacle="easy" data-i18n="easyMode">简单</span>
+            <span class="difficulty-button" id="obstacleMediumBtn" role="button" tabindex="0" data-obstacle="medium" data-i18n="mediumMode">中等</span>
+            <span class="difficulty-button" id="obstacleHardBtn" role="button" tabindex="0" data-obstacle="hard" data-i18n="hardMode">困难</span>
           </span>
         </button>
         <button class="mode-button" id="startPrecisionBtn" type="button">
@@ -814,6 +833,7 @@
     const launchDock = document.querySelector("#launchDock");
     const lobbyPlayerSelect = document.querySelector("#lobbyPlayer");
     const startGameBtn = document.querySelector("#startGameBtn");
+    const startObstacleBtn = document.querySelector("#startObstacleBtn");
     const startPrecisionBtn = document.querySelector("#startPrecisionBtn");
     const startPuttingBtn = document.querySelector("#startPuttingBtn");
     const startFreeBtn = document.querySelector("#startFreeBtn");
@@ -821,6 +841,9 @@
     const classicHardBtn = document.querySelector("#classicHardBtn");
     const classicGreenBtn = document.querySelector("#classicGreenBtn");
     const classicNoGreenBtn = document.querySelector("#classicNoGreenBtn");
+    const obstacleEasyBtn = document.querySelector("#obstacleEasyBtn");
+    const obstacleMediumBtn = document.querySelector("#obstacleMediumBtn");
+    const obstacleHardBtn = document.querySelector("#obstacleHardBtn");
     const lobbyLanguageBtn = document.querySelector("#lobbyLanguageBtn");
     const homeBtn = document.querySelector("#homeBtn");
     const playerControl = document.querySelector("#playerControl");
@@ -885,6 +908,8 @@
     let gameFinished = false;
     let classicDifficulty = "easy";
     let classicGreenRule = "green";
+    let obstacleDifficulty = "easy";
+    let obstacleCourse = null;
     let holeAdvanceTimer = null;
     let holeCompleteShots = 0;
     let modalTitleKey = "holeCompleteTitle";
@@ -905,11 +930,15 @@
         classicDifficulty: "经典模式难度",
         classicGreenRule: "经典模式果岭",
         easyMode: "简单",
+        mediumMode: "中等",
         hardMode: "困难",
         withGreenMode: "有果岭",
         withoutGreenMode: "没果岭",
         classicMode: "经典模式",
         classicModeDesc: "随机生成 250-470 码的洞位，用尽量少的杆数把球打进洞。",
+        obstacleMode: "障碍物模式",
+        obstacleModeDesc: "系统生成一条标准弹道，并在弹道上放置带小孔的障碍门。调整击球，让小球从孔中穿过。",
+        obstacleDifficulty: "障碍物难度",
         precisionMode: "精准模式",
         precisionModeDesc: "只有一杆机会，纯凭感觉把球打到离旗杆越近越好。",
         puttingMode: "果岭练习",
@@ -942,6 +971,7 @@
         hardGameInfo: "经典困难｜只显示粗略刻度｜杆数：{shots}",
         precisionInfo: "精准模式｜一杆机会｜已打：{shots}",
         puttingInfo: "果岭练习｜剩余：{remaining} yd｜练习次数：{shots}",
+        obstacleInfo: "障碍物模式｜障碍：{obstacles} 个｜已打：{shots}",
         rating: "评分：{stars}",
         ball: "小球",
         trace: "飞行中留下的轨迹",
@@ -976,6 +1006,9 @@
         gameReady: "游戏开始。目标在 {target} yd 处，选择球杆、角度和力度后发射。",
         hardGameReady: "经典困难模式开始。只显示粗略刻度，观察旗杆位置后发射。",
         precisionReady: "精准模式开始。只有一杆机会，观察旗杆位置后发射。",
+        obstacleReady: "障碍物模式开始。系统已经生成标准弹道和障碍门，调整球杆、角度和力度后发射。",
+        obstacleSuccess: "成功穿过所有障碍门！下一组障碍马上生成。",
+        obstacleFail: "还没有全部穿过。调整球杆、角度和力度，再试一次。",
         puttingReady: "球已经上果岭，已自动切换到推杆。把球推进银色洞杯才算进洞。",
         puttingPracticeReady: "果岭练习开始。球在 {remaining} yd 外，调整力度后把它推进洞杯。",
         puttingPracticeLanded: "这一推还剩 {remaining} yd。继续调整力度，把球推进洞杯。",
@@ -991,11 +1024,15 @@
         classicDifficulty: "Classic Difficulty",
         classicGreenRule: "Classic Green",
         easyMode: "Easy",
+        mediumMode: "Medium",
         hardMode: "Hard",
         withGreenMode: "With Green",
         withoutGreenMode: "No Green",
         classicMode: "Classic Mode",
         classicModeDesc: "A random hole appears 250-470 yd away. Reach it in as few shots as possible.",
+        obstacleMode: "Obstacle Mode",
+        obstacleModeDesc: "The system creates a reference shot and places gates along that path. Adjust club, angle, and power to fly through the openings.",
+        obstacleDifficulty: "Obstacle Difficulty",
         precisionMode: "Precision Mode",
         precisionModeDesc: "One shot only. Judge by feel and finish as close to the flag as possible.",
         puttingMode: "Green Practice",
@@ -1028,6 +1065,7 @@
         hardGameInfo: "Classic Hard | Coarse marks only | Shots: {shots}",
         precisionInfo: "Precision Mode | One shot | Shots: {shots}",
         puttingInfo: "Green Practice | Remaining: {remaining} yd | Putts: {shots}",
+        obstacleInfo: "Obstacle Mode | Gates: {obstacles} | Shots: {shots}",
         rating: "Rating: {stars}",
         ball: "Ball",
         trace: "Live Trail",
@@ -1062,6 +1100,9 @@
         gameReady: "Game started. The flag is {target} yd away. Choose club, angle, and power, then launch.",
         hardGameReady: "Classic Hard started. Only coarse marks are shown. Read the flag position and launch.",
         precisionReady: "Precision Mode started. You have one shot. Read the flag position and launch.",
+        obstacleReady: "Obstacle Mode started. A reference trajectory and gates are ready. Adjust club, angle, and power, then launch.",
+        obstacleSuccess: "You passed every gate. The next obstacle course will appear soon.",
+        obstacleFail: "Not all gates were cleared. Adjust club, angle, and power, then try again.",
         puttingReady: "The ball is on the green. Putter selected automatically. Sink it into the silver cup to hole out.",
         puttingPracticeReady: "Green Practice started. The ball is {remaining} yd away. Adjust power and sink it.",
         puttingPracticeLanded: "This putt stopped {remaining} yd away. Adjust power and try to sink it.",
@@ -1149,7 +1190,7 @@
     }
 
     function isChallengeMode() {
-      return mode === "classic" || mode === "precision" || mode === "putting";
+      return mode === "classic" || mode === "obstacle" || mode === "precision" || mode === "putting";
     }
 
     function isClassicMode() {
@@ -1158,6 +1199,10 @@
 
     function isPuttingPracticeMode() {
       return mode === "putting";
+    }
+
+    function isObstacleMode() {
+      return mode === "obstacle";
     }
 
     function isClassicHardMode() {
@@ -1169,7 +1214,7 @@
     }
 
     function usesGreenVisual() {
-      return isChallengeMode() && (mode !== "classic" || classicGreenRule === "green");
+      return (mode === "classic" && classicGreenRule === "green") || mode === "precision" || mode === "putting";
     }
 
     function resetSwingControlsToDefault() {
@@ -1215,6 +1260,18 @@
       if (mode === "classic" && !animation) drawScene();
     }
 
+    function setObstacleDifficulty(value) {
+      obstacleDifficulty = value === "hard" ? "hard" : (value === "medium" ? "medium" : "easy");
+      obstacleEasyBtn.classList.toggle("active", obstacleDifficulty === "easy");
+      obstacleMediumBtn.classList.toggle("active", obstacleDifficulty === "medium");
+      obstacleHardBtn.classList.toggle("active", obstacleDifficulty === "hard");
+      obstacleEasyBtn.setAttribute("aria-pressed", String(obstacleDifficulty === "easy"));
+      obstacleMediumBtn.setAttribute("aria-pressed", String(obstacleDifficulty === "medium"));
+      obstacleHardBtn.setAttribute("aria-pressed", String(obstacleDifficulty === "hard"));
+      updateGameInfo();
+      if (isObstacleMode() && !animation) drawScene();
+    }
+
     function cancelActiveAnimation() {
       if (!animation) return;
       if (typeof animation === "object") {
@@ -1257,13 +1314,15 @@
       showLandingMarker = false;
       gameOnGreen = false;
       greenZooming = false;
+      obstacleCourse = null;
       gameFinished = false;
     }
 
     function showSimulator(nextMode) {
-      const challengeMode = nextMode === "classic" || nextMode === "precision" || nextMode === "putting";
+      const challengeMode = nextMode === "classic" || nextMode === "obstacle" || nextMode === "precision" || nextMode === "putting";
       gameOnGreen = false;
       greenZooming = false;
+      obstacleCourse = null;
       mode = nextMode;
       lobby.classList.add("hidden");
       app.classList.remove("hidden");
@@ -1275,6 +1334,7 @@
       fields.gameInfo.classList.toggle("show", challengeMode);
       fillClubs({ reset: !challengeMode, preserveSwing: nextMode === "free" });
       if (nextMode === "putting") startPuttingPractice();
+      else if (nextMode === "obstacle") startObstacleCourse();
       else if (challengeMode) startGame(nextMode);
       else {
         previousTrails = [];
@@ -1295,6 +1355,7 @@
       gameShotDirection = 1;
       gameOnGreen = false;
       greenZooming = false;
+      obstacleCourse = null;
       gameViewMinX = 0;
       gameViewTargetMinX = 0;
       gameViewMaxX = Math.max(500, Math.ceil((gameTargetYards * 1.08) / 50) * 50);
@@ -1330,6 +1391,7 @@
       gameRemainingYards = distance;
       gameOnGreen = true;
       greenZooming = false;
+      obstacleCourse = null;
       const span = 26;
       gameViewMinX = -span / 2;
       gameViewTargetMinX = gameViewMinX;
@@ -1353,17 +1415,77 @@
       resetShot("puttingPracticeReady", { remaining: Math.round(gameRemainingYards) });
     }
 
+    function shotHeightAtDistance(baseShot, yards) {
+      if (baseShot.distanceYards <= 0) return 0;
+      const u = Math.min(1, Math.max(0, yards / baseShot.distanceYards));
+      return baseShot.distanceYards * Math.tan(baseShot.visualAngleRad) * u
+        * (1 - Math.pow(u, baseShot.descentShape));
+    }
+
+    function startObstacleCourse() {
+      clearHoleAdvanceTimer();
+      hideHoleModal();
+      mode = "obstacle";
+      gameOnGreen = false;
+      greenZooming = false;
+      gameBallYards = 0;
+      gameShotStartYards = 0;
+      gameShotDirection = 1;
+      gameShots = 0;
+      gameFinished = false;
+      previousTrails = [];
+      trail = [];
+
+      fillClubs({ reset: false });
+      const clubs = players[playerSelect.value].filter(([, distance]) => distance >= 120);
+      const [club] = clubs[Math.floor(Math.random() * clubs.length)];
+      clubSelect.value = club;
+      const baseAngle = defaultAngles[club] || 18;
+      angleSlider.value = Math.max(8, Math.min(45, Math.round(baseAngle + (Math.random() * 14 - 7))));
+      powerSlider.value = Math.round(70 + Math.random() * 30);
+      shot = getShot();
+      gameTargetYards = Math.round(shot.finalDistanceYards);
+      gameRemainingYards = gameTargetYards;
+
+      const obstacleCount = obstacleDifficulty === "hard" ? 3 : (obstacleDifficulty === "medium" ? 2 : 1);
+      const gateGapYards = obstacleDifficulty === "hard" ? 12 : (obstacleDifficulty === "medium" ? 15 : 18);
+      const gates = [];
+      for (let i = 0; i < obstacleCount; i += 1) {
+        const baseU = (i + 1) / (obstacleCount + 1);
+        const u = Math.min(0.82, Math.max(0.22, baseU + (Math.random() * 0.12 - 0.06)));
+        const x = Math.round(shot.distanceYards * u);
+        const y = Math.max(gateGapYards / 2 + 3, shotHeightAtDistance(shot, x));
+        gates.push({ x, y, gap: gateGapYards, passed: false });
+      }
+      obstacleCourse = {
+        gates,
+        referenceClub: club,
+        referenceAngle: shot.angleDeg,
+        referencePower: shot.powerPercent
+      };
+      const maxObstacleY = gates.reduce((max, gate) => Math.max(max, gate.y + gate.gap), 0);
+      gameViewMinX = 0;
+      gameViewTargetMinX = 0;
+      gameViewMaxX = Math.max(160, Math.ceil((gameTargetYards * 1.08) / 50) * 50);
+      gameViewTargetMaxX = gameViewMaxX;
+      gameViewMaxY = Math.max(90, Math.ceil((Math.max(shot.maxHeightYards, maxObstacleY) * 1.35) / 25) * 25);
+      gameViewTargetMaxY = gameViewMaxY;
+      resetShot("obstacleReady");
+    }
+
     function updateGameInfo() {
       if (!isChallengeMode()) return;
-      const infoKey = mode === "precision"
-        ? "precisionInfo"
-        : (mode === "putting" ? "puttingInfo"
-          : (isClassicHardMode() ? "hardGameInfo" : "gameInfo"));
+      let infoKey = "gameInfo";
+      if (mode === "precision") infoKey = "precisionInfo";
+      else if (mode === "putting") infoKey = "puttingInfo";
+      else if (mode === "obstacle") infoKey = "obstacleInfo";
+      else if (isClassicHardMode()) infoKey = "hardGameInfo";
       fields.gameInfo.textContent = [
         tr("rating", { stars: ratingStars(playerSelect.value) }),
         tr(infoKey, {
           target: gameTargetYards,
           remaining: Math.round(gameRemainingYards),
+          obstacles: obstacleCourse ? obstacleCourse.gates.length : 0,
           shots: gameShots
         })
       ].join("  ");
@@ -1930,8 +2052,59 @@
       ctx.restore();
     }
 
+    function drawObstacles(origin, scale, minX) {
+      if (!isObstacleMode() || !obstacleCourse) return;
+      ctx.save();
+      obstacleCourse.gates.forEach((gate) => {
+        const center = screenPoint({ x: gate.x, y: gate.y }, origin, scale, minX);
+        const gapPx = Math.max(18, gate.gap * scale);
+        const wallWidth = Math.max(10, Math.min(20, 1.4 * scale));
+        const gapTop = center.y - gapPx / 2;
+        const gapBottom = center.y + gapPx / 2;
+        const top = 28;
+        const ground = origin.y;
+        const statusColor = gate.passed ? "#3f9f63" : "#33443a";
+        const wall = ctx.createLinearGradient(center.x - wallWidth / 2, top, center.x + wallWidth / 2, ground);
+        wall.addColorStop(0, "#607066");
+        wall.addColorStop(0.48, statusColor);
+        wall.addColorStop(1, "#1f2f27");
+        ctx.fillStyle = wall;
+        ctx.strokeStyle = "rgba(18, 35, 26, 0.45)";
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(center.x - wallWidth / 2, top, wallWidth, Math.max(0, gapTop - top));
+        ctx.strokeRect(center.x - wallWidth / 2, top, wallWidth, Math.max(0, gapTop - top));
+        ctx.fillRect(center.x - wallWidth / 2, gapBottom, wallWidth, Math.max(0, ground - gapBottom));
+        ctx.strokeRect(center.x - wallWidth / 2, gapBottom, wallWidth, Math.max(0, ground - gapBottom));
+        ctx.strokeStyle = gate.passed ? "rgba(63, 159, 99, 0.65)" : "rgba(216, 115, 50, 0.72)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(center.x - wallWidth * 1.15, gapTop);
+        ctx.lineTo(center.x + wallWidth * 1.15, gapTop);
+        ctx.moveTo(center.x - wallWidth * 1.15, gapBottom);
+        ctx.lineTo(center.x + wallWidth * 1.15, gapBottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      });
+      ctx.restore();
+    }
+
+    function evaluateObstacleShot(currentShot) {
+      if (!obstacleCourse) return false;
+      return obstacleCourse.gates.every((gate) => {
+        const localX = (gate.x - gameShotStartYards) * gameShotDirection;
+        const y = localX < 0 || localX > currentShot.distanceYards
+          ? 0
+          : shotHeightAtDistance(currentShot, localX);
+        const passed = Math.abs(y - gate.y) <= gate.gap / 2;
+        gate.passed = passed;
+        return passed;
+      });
+    }
+
     function drawFlag(origin, scale, minX) {
       if (!isChallengeMode()) return;
+      if (isObstacleMode()) return;
       const p = screenPoint({ x: gameTargetYards, y: 0 }, origin, scale, minX);
       ctx.save();
       if (usesGreenVisual()) {
@@ -2035,6 +2208,7 @@
       drawGrid(rect, origin, scale, maxX, maxY, minX);
       drawPreviousTraces(origin, scale, minX);
       drawPrediction(origin, scale, minX);
+      drawObstacles(origin, scale, minX);
       drawTrace(origin, scale, minX);
       drawLanding(origin, scale, minX);
       drawFlag(origin, scale, minX);
@@ -2200,6 +2374,18 @@
             gameBallYards = ballPosition.x;
             gameRemainingYards = Math.abs(gameTargetYards - gameBallYards);
             updateGameViewForPoint(ballPosition);
+            if (isObstacleMode()) {
+              gameFinished = evaluateObstacleShot(shot);
+              setLaunchButton("launch", gameFinished);
+              updateText(gameFinished ? "obstacleSuccess" : "obstacleFail");
+              updateGameInfo();
+              if (gameFinished) {
+                holeAdvanceTimer = setTimeout(() => startObstacleCourse(), 1600);
+              }
+              drawScene();
+              animation = null;
+              return;
+            }
             if (isPuttingPracticeMode()) {
               gameFinished = gameRemainingYards <= HOLE_RADIUS_YARDS;
               setLaunchButton("launch", gameFinished);
@@ -2284,6 +2470,7 @@
       updateTargetDistanceLabel();
       setClassicDifficulty(classicDifficulty);
       setClassicGreenRule(classicGreenRule);
+      setObstacleDifficulty(obstacleDifficulty);
       if (mode !== "lobby") setLaunchButton(launchButtonKey, launchBtn.disabled);
       if (shot) updateText();
       if (!holeModal.classList.contains("hidden")) updateHoleModalText();
@@ -2314,6 +2501,7 @@
     launchBtn.addEventListener("click", launch);
     resetBtn.addEventListener("click", () => {
       if (isPuttingPracticeMode()) startPuttingPractice();
+      else if (isObstacleMode()) startObstacleCourse();
       else if (isChallengeMode()) startGame(mode);
       else resetShot("reset");
     });
@@ -2339,6 +2527,17 @@
       handleGreenRuleChoice(event, value);
     }
 
+    function handleObstacleChoice(event, value) {
+      event.stopPropagation();
+      setObstacleDifficulty(value);
+    }
+
+    function handleObstacleKey(event, value) {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      handleObstacleChoice(event, value);
+    }
+
     classicEasyBtn.addEventListener("click", (event) => handleDifficultyChoice(event, "easy"));
     classicHardBtn.addEventListener("click", (event) => handleDifficultyChoice(event, "hard"));
     classicEasyBtn.addEventListener("keydown", (event) => handleDifficultyKey(event, "easy"));
@@ -2347,7 +2546,14 @@
     classicNoGreenBtn.addEventListener("click", (event) => handleGreenRuleChoice(event, "none"));
     classicGreenBtn.addEventListener("keydown", (event) => handleGreenRuleKey(event, "green"));
     classicNoGreenBtn.addEventListener("keydown", (event) => handleGreenRuleKey(event, "none"));
+    obstacleEasyBtn.addEventListener("click", (event) => handleObstacleChoice(event, "easy"));
+    obstacleMediumBtn.addEventListener("click", (event) => handleObstacleChoice(event, "medium"));
+    obstacleHardBtn.addEventListener("click", (event) => handleObstacleChoice(event, "hard"));
+    obstacleEasyBtn.addEventListener("keydown", (event) => handleObstacleKey(event, "easy"));
+    obstacleMediumBtn.addEventListener("keydown", (event) => handleObstacleKey(event, "medium"));
+    obstacleHardBtn.addEventListener("keydown", (event) => handleObstacleKey(event, "hard"));
     startGameBtn.addEventListener("click", () => showSimulator("classic"));
+    startObstacleBtn.addEventListener("click", () => showSimulator("obstacle"));
     startPrecisionBtn.addEventListener("click", () => showSimulator("precision"));
     startPuttingBtn.addEventListener("click", () => showSimulator("putting"));
     startFreeBtn.addEventListener("click", () => showSimulator("free"));
