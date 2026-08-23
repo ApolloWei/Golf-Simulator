@@ -219,6 +219,22 @@
       margin-bottom: 16px;
     }
 
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 36px;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .check-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--fairway);
+    }
+
     label {
       display: block;
       margin-bottom: 7px;
@@ -638,6 +654,13 @@
           </div>
         </div>
 
+        <div class="control">
+          <label class="check-row" for="bounceToggle">
+            <input id="bounceToggle" type="checkbox" />
+            <span data-i18n="bounceOption">落地后弹跳</span>
+          </label>
+        </div>
+
         <p class="hint" data-i18n="hint">距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。</p>
 
         <div class="stats">
@@ -717,6 +740,9 @@
     const DEFAULT_LAUNCH_ANGLE = 12;
     const DEFAULT_POWER_PERCENT = 80;
     const FLIGHT_TIME_SCALE = 1.55;
+    const MIN_TURF_RESTITUTION = 0.18;
+    const MAX_TURF_RESTITUTION = 0.48;
+    const TURF_HORIZONTAL_RETENTION = 0.55;
 
     const players = {
       "Calvin": [
@@ -772,6 +798,7 @@
     const clubSelect = document.querySelector("#club");
     const angleSlider = document.querySelector("#angle");
     const powerSlider = document.querySelector("#power");
+    const bounceToggle = document.querySelector("#bounceToggle");
     const languageBtn = document.querySelector("#languageBtn");
     const stage = document.querySelector("#stage");
     const canvas = document.querySelector("#trajectoryCanvas");
@@ -854,6 +881,7 @@
         club: "球杆",
         launchAngle: "发射角度",
         power: "力度",
+        bounceOption: "落地后弹跳",
         hint: "距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。",
         targetDistance: "目标飞行距离",
         currentDistance: "当前飞行距离",
@@ -926,6 +954,7 @@
         club: "Club",
         launchAngle: "Launch Angle",
         power: "Power",
+        bounceOption: "Bounce after landing",
         hint: "Distances come from your table. The simulator uses the selected distance and angle to estimate launch speed, then plays the shot with projectile motion.",
         targetDistance: "Target Carry",
         currentDistance: "Current Distance",
@@ -1231,7 +1260,7 @@
       const horizontalDuration = horizontalSpeed === 0 ? 0 : distanceMeters / horizontalSpeed;
       const verticalHangTime = speed === 0 ? 0 : (2 * speed * Math.sin(angleRad)) / G;
       const verticalDuration = verticalHangTime * Math.sqrt(Math.min(1, angleEfficiency));
-      const duration = speed === 0 ? 0 : Math.max(horizontalDuration, verticalDuration) * FLIGHT_TIME_SCALE;
+      const flightDuration = speed === 0 ? 0 : Math.max(horizontalDuration, verticalDuration) * FLIGHT_TIME_SCALE;
       const normalizedAngle = Math.min(1, Math.max(0, angleDeg / 55));
       const descentShape = 1.12 + powerRatio * 0.52 + (1 - normalizedAngle) * 0.34;
       const visualAngleRad = angleRad * (1.04 + powerRatio * 0.08);
@@ -1240,11 +1269,18 @@
         : Math.pow(1 / (1 + descentShape), 1 / descentShape);
       const maxHeightYards = adjustedDistanceYards * Math.tan(visualAngleRad) * apexProgress
         * (1 - Math.pow(apexProgress, descentShape));
+      const impactVerticalSpeed = Math.abs(speed * Math.sin(angleRad));
+      const bounceSegments = makeBounceSegments(adjustedDistanceYards, maxHeightYards, flightDuration, impactVerticalSpeed);
+      const bounceDistanceYards = bounceSegments.reduce((sum, segment) => sum + segment.lengthYards, 0);
+      const bounceDuration = bounceSegments.reduce((sum, segment) => sum + segment.duration, 0);
+      const finalDistanceYards = adjustedDistanceYards + bounceDistanceYards;
+      const duration = flightDuration + bounceDuration;
 
       return {
         player,
         club,
         distanceYards: adjustedDistanceYards,
+        finalDistanceYards,
         fullDistanceYards: distanceYards,
         distanceMeters,
         powerPercent,
@@ -1257,14 +1293,39 @@
         visualAngleRad,
         descentShape,
         speed,
+        flightDuration,
+        bounceSegments,
         duration,
         maxHeightYards
       };
     }
 
-    function pointAt(progress) {
-      const t = shot.duration * progress;
-      const u = Math.min(1, Math.max(0, progress));
+    function turfRestitutionForImpact(verticalSpeedMps) {
+      const measured = verticalSpeedMps <= 20
+        ? 0.510 - 0.0375 * verticalSpeedMps + 0.000903 * verticalSpeedMps * verticalSpeedMps
+        : 0.120;
+      return Math.min(MAX_TURF_RESTITUTION, Math.max(MIN_TURF_RESTITUTION, measured));
+    }
+
+    function makeBounceSegments(distanceYards, maxHeightYards, flightDuration, impactVerticalSpeed) {
+      if (!bounceToggle.checked || distanceYards <= 0 || maxHeightYards <= 0) return [];
+      const restitution = turfRestitutionForImpact(impactVerticalSpeed);
+      const segments = [];
+      let lengthYards = Math.min(42, Math.max(7, distanceYards * 0.08));
+      let heightYards = Math.min(18, Math.max(1.2, maxHeightYards * restitution * restitution * 0.85));
+      let duration = Math.min(0.55, Math.max(0.24, flightDuration * 0.08));
+
+      for (let i = 0; i < 3; i += 1) {
+        segments.push({ lengthYards, heightYards, duration });
+        lengthYards *= TURF_HORIZONTAL_RETENTION;
+        heightYards *= restitution * restitution;
+        duration *= 0.56;
+      }
+      return segments.filter((segment) => segment.lengthYards > 0.7 && segment.heightYards > 0.12);
+    }
+
+    function flightPointAtTime(t) {
+      const u = shot.flightDuration === 0 ? 1 : Math.min(1, Math.max(0, t / shot.flightDuration));
       const xYards = shot.distanceYards * u;
       const yYards = shot.distanceYards === 0
         ? 0
@@ -1277,10 +1338,41 @@
       };
     }
 
+    function bouncePointAtTime(t) {
+      let elapsed = Math.max(0, t - shot.flightDuration);
+      let xBase = shot.distanceYards;
+      for (const segment of shot.bounceSegments) {
+        if (elapsed <= segment.duration) {
+          const u = Math.min(1, Math.max(0, elapsed / segment.duration));
+          return {
+            x: xBase + segment.lengthYards * u,
+            y: Math.max(0, 4 * segment.heightYards * u * (1 - u)),
+            time: t
+          };
+        }
+        elapsed -= segment.duration;
+        xBase += segment.lengthYards;
+      }
+      return { x: shot.finalDistanceYards, y: 0, time: t };
+    }
+
+    function pointAt(progress) {
+      const t = shot.duration * progress;
+      return t <= shot.flightDuration ? flightPointAtTime(t) : bouncePointAtTime(t);
+    }
+
     function velocityAt(time) {
       if (shot.duration === 0) return { vx: 0, vy: 0, speed: 0 };
-      const u = Math.min(1, Math.max(0, time / shot.duration));
-      const vx = (shot.distanceYards * YARD_TO_METER) / shot.duration;
+      if (time > shot.flightDuration && shot.bounceSegments.length > 0) {
+        const point = bouncePointAtTime(time);
+        const prev = bouncePointAtTime(Math.max(shot.flightDuration, time - 0.04));
+        const dt = Math.max(0.04, time - prev.time || 0.04);
+        const vx = ((point.x - prev.x) * YARD_TO_METER) / dt;
+        const vy = ((point.y - prev.y) * YARD_TO_METER) / dt;
+        return { vx, vy, speed: Math.sqrt(vx * vx + vy * vy) };
+      }
+      const u = Math.min(1, Math.max(0, time / shot.flightDuration));
+      const vx = (shot.distanceYards * YARD_TO_METER) / shot.flightDuration;
       const slope = Math.tan(shot.visualAngleRad)
         * (1 - (1 + shot.descentShape) * Math.pow(u, shot.descentShape));
       const vy = vx * slope;
@@ -1346,7 +1438,7 @@
     }
 
     function getScale(rect) {
-      const baselineMaxX = Math.ceil((shot.distanceYards * 1.12) / 50) * 50;
+      const baselineMaxX = Math.ceil((shot.finalDistanceYards * 1.12) / 50) * 50;
       const maxX = isChallengeMode() ? gameViewMaxX : Math.max(50, baselineMaxX);
       const maxY = isChallengeMode() ? gameViewMaxY : Math.max(30, Math.ceil((shot.maxHeightYards * 1.45) / 25) * 25);
       const origin = { x: 52, y: rect.height - 68 };
@@ -1585,7 +1677,7 @@
 
     function drawLanding(origin, scale) {
       if (!landed || !showLandingMarker) return;
-      const p = screenPoint({ x: isChallengeMode() ? gameBallYards : shot.distanceYards, y: 0 }, origin, scale);
+      const p = screenPoint({ x: isChallengeMode() ? gameBallYards : shot.finalDistanceYards, y: 0 }, origin, scale);
       ctx.save();
       ctx.strokeStyle = "rgba(216, 115, 50, 0.46)";
       ctx.fillStyle = "rgba(216, 115, 50, 0.14)";
@@ -1601,7 +1693,7 @@
       ctx.fillStyle = "#1d2a22";
       ctx.font = "700 14px Arial";
       if (!isClassicHardMode()) {
-        ctx.fillText(`${Math.round(shot.distanceYards)} yd`, Math.min(p.x - 28, canvas.clientWidth - 86), p.y - 20);
+        ctx.fillText(`${Math.round(shot.finalDistanceYards)} yd`, Math.min(p.x - 28, canvas.clientWidth - 86), p.y - 20);
       }
       ctx.restore();
     }
@@ -1678,7 +1770,7 @@
 
       fields.angle.textContent = `${shot.angleDeg}°`;
       fields.power.textContent = `${shot.powerPercent}%`;
-      fields.distance.textContent = `${Math.round(shot.distanceYards)} yd`;
+      fields.distance.textContent = `${Math.round(shot.finalDistanceYards)} yd`;
       fields.liveDistance.textContent = `${Math.round(shotProgressX)} yd`;
       fields.speed.textContent = `${shot.speed.toFixed(1)} m/s`;
       fields.currentSpeed.textContent = `${velocity.speed.toFixed(1)} m/s`;
@@ -1783,12 +1875,12 @@
         if (flightProgress >= 1) {
           ballPosition = isChallengeMode()
             ? {
-                x: gameShotStartYards + gameShotDirection * shot.distanceYards,
+                x: gameShotStartYards + gameShotDirection * shot.finalDistanceYards,
                 y: 0,
                 time: shot.duration,
-                shotX: shot.distanceYards
+                shotX: shot.finalDistanceYards
               }
-            : { x: shot.distanceYards, y: 0, time: shot.duration, shotX: shot.distanceYards };
+            : { x: shot.finalDistanceYards, y: 0, time: shot.duration, shotX: shot.finalDistanceYards };
           trail.push(ballPosition);
           landed = true;
           showLandingMarker = true;
@@ -1809,7 +1901,7 @@
             setLaunchButton(gameFinished ? "relaunch" : "launch", gameFinished);
             updateText(messageKey, {
               shots: gameShots,
-              distance: Math.round(shot.distanceYards),
+              distance: Math.round(shot.finalDistanceYards),
               remaining: Math.round(gameRemainingYards),
               score
             });
@@ -1829,7 +1921,7 @@
               player: shot.player,
               club: shot.club,
               power: shot.powerPercent,
-              distance: Math.round(shot.distanceYards)
+              distance: Math.round(shot.finalDistanceYards)
             });
             resetSwingControlsToDefault();
           }
@@ -1880,6 +1972,9 @@
       adjustShotSettings("angleChanged");
     });
     powerSlider.addEventListener("input", () => {
+      adjustShotSettings("powerChanged");
+    });
+    bounceToggle.addEventListener("change", () => {
       adjustShotSettings("powerChanged");
     });
     launchBtn.addEventListener("click", launch);
