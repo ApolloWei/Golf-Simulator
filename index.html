@@ -1282,7 +1282,7 @@
       angleSlider.value = PUTTER_ANGLE;
       powerSlider.value = DEFAULT_POWER_PERCENT;
       shot = getShot();
-      updateGameViewForPoint({ x: gameTargetYards, y: 0 });
+      snapToGreenView();
       updateText("puttingReady");
       drawScene();
     }
@@ -1561,10 +1561,10 @@
     function updateGameViewForPoint(point) {
       if (!isChallengeMode()) return;
       if (gameOnGreen) {
-        const span = Math.max(22, gameGreenRadius * 3.1);
+        const span = Math.max(16, gameGreenRadius * 2.25);
         gameViewTargetMinX = gameTargetYards - span / 2;
         gameViewTargetMaxX = span;
-        gameViewTargetMaxY = 24;
+        gameViewTargetMaxY = 10;
       } else {
         const neededX = Math.max(gameTargetYards, Math.abs(point.x || 0)) * 1.08;
         const nextX = Math.max(500, Math.ceil(neededX / 50) * 50);
@@ -1594,6 +1594,16 @@
       }
     }
 
+    function snapToGreenView() {
+      const span = Math.max(16, gameGreenRadius * 2.25);
+      gameViewTargetMinX = gameTargetYards - span / 2;
+      gameViewTargetMaxX = span;
+      gameViewTargetMaxY = 10;
+      gameViewMinX = gameViewTargetMinX;
+      gameViewMaxX = gameViewTargetMaxX;
+      gameViewMaxY = gameViewTargetMaxY;
+    }
+
     function drawCloud(x, y, size, alpha = 0.72) {
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -1607,7 +1617,17 @@
       ctx.restore();
     }
 
-    function drawGameScenery(rect, origin) {
+    function makeGroundPath(rect, origin) {
+      ctx.beginPath();
+      ctx.moveTo(0, origin.y + 4);
+      ctx.bezierCurveTo(rect.width * 0.22, origin.y - 8, rect.width * 0.42, origin.y + 14, rect.width * 0.66, origin.y + 2);
+      ctx.bezierCurveTo(rect.width * 0.82, origin.y - 6, rect.width * 0.95, origin.y + 8, rect.width, origin.y);
+      ctx.lineTo(rect.width, rect.height);
+      ctx.lineTo(0, rect.height);
+      ctx.closePath();
+    }
+
+    function drawGameScenery(rect, origin, scale, minX) {
       drawCloud(rect.width * 0.12, 70, 54, 0.68);
       drawCloud(rect.width * 0.5, 52, 44, 0.54);
       drawCloud(rect.width * 0.78, 92, 62, 0.62);
@@ -1617,14 +1637,34 @@
       ground.addColorStop(0.46, "#4aaa55");
       ground.addColorStop(1, "#2e7c43");
       ctx.fillStyle = ground;
-      ctx.beginPath();
-      ctx.moveTo(0, origin.y + 4);
-      ctx.bezierCurveTo(rect.width * 0.22, origin.y - 8, rect.width * 0.42, origin.y + 14, rect.width * 0.66, origin.y + 2);
-      ctx.bezierCurveTo(rect.width * 0.82, origin.y - 6, rect.width * 0.95, origin.y + 8, rect.width, origin.y);
-      ctx.lineTo(rect.width, rect.height);
-      ctx.lineTo(0, rect.height);
-      ctx.closePath();
+      makeGroundPath(rect, origin);
       ctx.fill();
+
+      if (isChallengeMode()) {
+        const center = screenPoint({ x: gameTargetYards, y: 0 }, origin, scale, minX);
+        const radiusX = Math.max(28, gameGreenRadius * scale);
+        const greenLeft = center.x - radiusX;
+        const greenWidth = radiusX * 2;
+        const green = ctx.createLinearGradient(0, origin.y - 14, 0, rect.height);
+        green.addColorStop(0, "#a6e98e");
+        green.addColorStop(0.5, "#86db76");
+        green.addColorStop(1, "#5fbd62");
+        ctx.save();
+        makeGroundPath(rect, origin);
+        ctx.clip();
+        ctx.fillStyle = green;
+        ctx.fillRect(greenLeft, origin.y - 22, greenWidth, rect.height - origin.y + 28);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 6; i += 1) {
+          const y = origin.y + 8 + i * 13;
+          ctx.beginPath();
+          ctx.moveTo(greenLeft, y);
+          ctx.bezierCurveTo(greenLeft + greenWidth * 0.25, y - 5, greenLeft + greenWidth * 0.72, y + 4, greenLeft + greenWidth, y - 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
 
       ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
       ctx.lineWidth = 1;
@@ -1657,21 +1697,6 @@
       ctx.restore();
     }
 
-    function drawGreen(origin, scale, minX) {
-      if (!isChallengeMode()) return;
-      const center = screenPoint({ x: gameTargetYards, y: 0 }, origin, scale, minX);
-      const radiusX = Math.max(18, gameGreenRadius * scale);
-      ctx.save();
-      ctx.fillStyle = "rgba(146, 221, 124, 0.78)";
-      ctx.strokeStyle = "rgba(58, 145, 68, 0.46)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.ellipse(center.x, origin.y + 2, radiusX, Math.max(9, radiusX * 0.26), 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-    }
-
     function drawGrid(rect, origin, scale, maxX, maxY, minX) {
       ctx.clearRect(0, 0, rect.width, rect.height);
 
@@ -1683,8 +1708,7 @@
       ctx.fillRect(0, 0, rect.width, rect.height);
 
       if (isChallengeMode()) {
-        drawGameScenery(rect, origin);
-        drawGreen(origin, scale, minX);
+        drawGameScenery(rect, origin, scale, minX);
         drawHardModeMarks(origin, scale, maxX, minX);
       } else {
         ctx.fillStyle = "rgba(45, 139, 87, 0.16)";
