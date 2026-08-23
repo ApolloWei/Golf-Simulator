@@ -862,6 +862,7 @@
     let gameViewTargetMaxX = 500;
     let gameViewMaxY = 160;
     let gameViewTargetMaxY = 160;
+    let greenZooming = false;
     let gameShots = 0;
     let gameFinished = false;
     let classicDifficulty = "easy";
@@ -1196,12 +1197,14 @@
       landed = false;
       showLandingMarker = false;
       gameOnGreen = false;
+      greenZooming = false;
       gameFinished = false;
     }
 
     function showSimulator(nextMode) {
       const challengeMode = nextMode === "classic" || nextMode === "precision";
       gameOnGreen = false;
+      greenZooming = false;
       mode = nextMode;
       lobby.classList.add("hidden");
       app.classList.remove("hidden");
@@ -1231,6 +1234,7 @@
       gameShotStartYards = 0;
       gameShotDirection = 1;
       gameOnGreen = false;
+      greenZooming = false;
       gameViewMinX = 0;
       gameViewTargetMinX = 0;
       gameViewMaxX = Math.max(500, Math.ceil((gameTargetYards * 1.08) / 50) * 50);
@@ -1282,7 +1286,7 @@
       angleSlider.value = PUTTER_ANGLE;
       powerSlider.value = DEFAULT_POWER_PERCENT;
       shot = getShot();
-      snapToGreenView();
+      startGreenZoom();
       updateGameInfo();
       updateText("puttingReady");
       drawScene();
@@ -1595,14 +1599,12 @@
       }
     }
 
-    function snapToGreenView() {
+    function startGreenZoom() {
       const span = Math.max(16, gameGreenRadius * 2.25);
       gameViewTargetMinX = gameTargetYards - span / 2;
       gameViewTargetMaxX = span;
       gameViewTargetMaxY = 10;
-      gameViewMinX = gameViewTargetMinX;
-      gameViewMaxX = gameViewTargetMaxX;
-      gameViewMaxY = gameViewTargetMaxY;
+      greenZooming = true;
     }
 
     function drawCloud(x, y, size, alpha = 0.72) {
@@ -1832,7 +1834,7 @@
       ctx.save();
       const cupWidth = Math.max(14, Math.min(28, 1.4 * scale));
       const cupHeight = Math.max(8, Math.min(16, 0.9 * scale));
-      const cup = ctx.createLinearGradient(p.x - cupWidth / 2, p.y - cupHeight, p.x + cupWidth / 2, p.y);
+      const cup = ctx.createLinearGradient(p.x - cupWidth / 2, p.y, p.x + cupWidth / 2, p.y + cupHeight);
       cup.addColorStop(0, "#f7f9fb");
       cup.addColorStop(0.35, "#c9d0d5");
       cup.addColorStop(0.7, "#8e989f");
@@ -1840,18 +1842,23 @@
       ctx.fillStyle = cup;
       ctx.strokeStyle = "#6f7a82";
       ctx.lineWidth = 1.5;
+      ctx.fillRect(p.x - cupWidth / 2, p.y, cupWidth, cupHeight);
       ctx.beginPath();
       ctx.ellipse(p.x, p.y, cupWidth / 2, cupHeight / 3, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.fillRect(p.x - cupWidth / 2, p.y - cupHeight / 2, cupWidth, cupHeight / 2);
+      ctx.fillStyle = "rgba(36, 46, 52, 0.38)";
       ctx.beginPath();
-      ctx.ellipse(p.x, p.y - cupHeight / 2, cupWidth / 2, cupHeight / 3, 0, 0, Math.PI);
+      ctx.ellipse(p.x, p.y, cupWidth * 0.34, cupHeight * 0.17, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#6f7a82";
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y + cupHeight, cupWidth / 2, cupHeight / 3, 0, 0, Math.PI);
       ctx.stroke();
       ctx.strokeStyle = "#26362c";
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(p.x, p.y - cupHeight);
+      ctx.moveTo(p.x, p.y);
       ctx.lineTo(p.x, p.y - 44);
       ctx.stroke();
       ctx.fillStyle = "#d87332";
@@ -1934,6 +1941,17 @@
 
       const ballScreen = screenPoint(ballPosition, origin, scale, minX);
       drawGolfBall(ballScreen.x, ballScreen.y, 8, flightProgress * 18);
+
+      if (greenZooming && !animation) {
+        const closeEnough = Math.abs(gameViewMinX - gameViewTargetMinX) < 0.08
+          && Math.abs(gameViewMaxX - gameViewTargetMaxX) < 0.08
+          && Math.abs(gameViewMaxY - gameViewTargetMaxY) < 0.08;
+        if (closeEnough) {
+          greenZooming = false;
+        } else {
+          requestAnimationFrame(drawScene);
+        }
+      }
     }
 
     function setLaunchButton(key, disabled = false) {
@@ -2008,6 +2026,7 @@
       ballPosition = { x: isChallengeMode() ? gameBallYards : 0, y: 0, time: 0, shotX: 0 };
       landed = false;
       showLandingMarker = false;
+      greenZooming = false;
       flightProgress = 0;
       setLaunchButton("launch", false);
       updateText(messageKey, vars);
@@ -2125,6 +2144,7 @@
           }
           drawScene();
           animation = null;
+          if (greenZooming) requestAnimationFrame(drawScene);
           return;
         }
 
