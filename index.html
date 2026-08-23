@@ -46,7 +46,7 @@
     header {
       position: relative;
       margin-bottom: 18px;
-      padding-right: 118px;
+      padding-right: 232px;
     }
 
     h1 {
@@ -102,6 +102,31 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
+    }
+
+    .life-hud {
+      position: absolute;
+      top: 2px;
+      right: 128px;
+      display: none;
+      min-width: 96px;
+      height: 38px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      border: 1px solid rgba(205, 219, 209, 0.95);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 8px 22px rgba(30, 56, 39, 0.1);
+      color: #d8334a;
+      font-size: 18px;
+      letter-spacing: 0;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    .life-hud.show {
+      display: inline-flex;
     }
 
     .lobby {
@@ -575,6 +600,18 @@
         margin-bottom: 12px;
       }
 
+      .life-hud {
+        position: static;
+        display: none;
+        width: fit-content;
+        margin: 0 8px 12px 0;
+        vertical-align: top;
+      }
+
+      .life-hud.show {
+        display: inline-flex;
+      }
+
       .mode-grid {
         grid-template-columns: 1fr;
       }
@@ -653,6 +690,7 @@
   <main class="app hidden" id="app">
     <header>
       <button class="home-button" id="homeBtn" type="button" title="Home">⌂</button>
+      <div class="life-hud" id="lifeHud" aria-live="polite"></div>
       <button class="language-button" id="languageBtn" type="button">English</button>
       <h1 data-i18n="title">二维高尔夫飞行模拟器</h1>
       <p class="subtitle" data-i18n="subtitle">选择球员和球杆，调整发射角度，然后点击右下角的发射按钮。小球会先被击出，再沿着飞行轨迹前进，轨迹会跟着飞行过程逐步画出来。</p>
@@ -846,6 +884,7 @@
     const obstacleHardBtn = document.querySelector("#obstacleHardBtn");
     const lobbyLanguageBtn = document.querySelector("#lobbyLanguageBtn");
     const homeBtn = document.querySelector("#homeBtn");
+    const lifeHud = document.querySelector("#lifeHud");
     const playerControl = document.querySelector("#playerControl");
     const playerSelect = document.querySelector("#player");
     const clubSelect = document.querySelector("#club");
@@ -974,7 +1013,7 @@
         hardGameInfo: "经典困难｜只显示粗略刻度｜杆数：{shots}",
         precisionInfo: "精准模式｜一杆机会｜已打：{shots}",
         puttingInfo: "果岭练习｜剩余：{remaining} yd｜练习次数：{shots}",
-        obstacleInfo: "障碍物模式｜障碍：{obstacles} 个｜生命：{lives}/{maxLives}｜通过：{cleared}｜已打：{shots}",
+        obstacleInfo: "障碍物模式｜障碍：{obstacles} 个｜通过：{cleared}｜已打：{shots}",
         rating: "评分：{stars}",
         ball: "小球",
         trace: "飞行中留下的轨迹",
@@ -1070,7 +1109,7 @@
         hardGameInfo: "Classic Hard | Coarse marks only | Shots: {shots}",
         precisionInfo: "Precision Mode | One shot | Shots: {shots}",
         puttingInfo: "Green Practice | Remaining: {remaining} yd | Putts: {shots}",
-        obstacleInfo: "Obstacle Mode | Gates: {obstacles} | Lives: {lives}/{maxLives} | Cleared: {cleared} | Shots: {shots}",
+        obstacleInfo: "Obstacle Mode | Gates: {obstacles} | Cleared: {cleared} | Shots: {shots}",
         rating: "Rating: {stars}",
         ball: "Ball",
         trace: "Live Trail",
@@ -1326,6 +1365,7 @@
       playerControl.classList.remove("hidden");
       playerSelect.disabled = false;
       fields.gameInfo.classList.remove("show");
+      updateLifeHud();
       previousTrails = [];
       trail = [];
       landed = false;
@@ -1350,6 +1390,7 @@
       playerSelect.disabled = challengeMode;
       playerControl.classList.toggle("hidden", challengeMode);
       fields.gameInfo.classList.toggle("show", challengeMode);
+      updateLifeHud();
       fillClubs({ reset: !challengeMode, preserveSwing: nextMode === "free" });
       if (nextMode === "putting") startPuttingPractice();
       else if (nextMode === "obstacle") startObstacleCourse();
@@ -1524,6 +1565,20 @@
           shots: gameShots
         })
       ].join("  ");
+      updateLifeHud();
+    }
+
+    function updateLifeHud() {
+      if (!lifeHud) return;
+      const show = isObstacleMode() && mode !== "lobby";
+      lifeHud.classList.toggle("show", show);
+      if (!show) {
+        lifeHud.textContent = "";
+        lifeHud.removeAttribute("aria-label");
+        return;
+      }
+      lifeHud.textContent = "❤️".repeat(Math.max(0, obstacleLives));
+      lifeHud.setAttribute("aria-label", `${obstacleLives}/${obstacleMaxLives}`);
     }
 
     function updateTargetDistanceLabel() {
