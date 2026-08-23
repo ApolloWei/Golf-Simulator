@@ -661,6 +661,13 @@
           </label>
         </div>
 
+        <div class="control">
+          <label class="check-row" for="soundToggle">
+            <input id="soundToggle" type="checkbox" checked />
+            <span data-i18n="soundOption">击球音效</span>
+          </label>
+        </div>
+
         <p class="hint" data-i18n="hint">距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。</p>
 
         <div class="stats">
@@ -799,6 +806,7 @@
     const angleSlider = document.querySelector("#angle");
     const powerSlider = document.querySelector("#power");
     const bounceToggle = document.querySelector("#bounceToggle");
+    const soundToggle = document.querySelector("#soundToggle");
     const languageBtn = document.querySelector("#languageBtn");
     const stage = document.querySelector("#stage");
     const canvas = document.querySelector("#trajectoryCanvas");
@@ -882,6 +890,7 @@
         launchAngle: "发射角度",
         power: "力度",
         bounceOption: "落地后弹跳",
+        soundOption: "击球音效",
         hint: "距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。",
         targetDistance: "目标飞行距离",
         currentDistance: "当前飞行距离",
@@ -955,6 +964,7 @@
         launchAngle: "Launch Angle",
         power: "Power",
         bounceOption: "Bounce after landing",
+        soundOption: "Launch sound",
         hint: "Distances come from your table. The simulator uses the selected distance and angle to estimate launch speed, then plays the shot with projectile motion.",
         targetDistance: "Target Carry",
         currentDistance: "Current Distance",
@@ -1384,6 +1394,7 @@
     }
 
     function playLaunchSound() {
+      if (!soundToggle.checked) return;
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
 
