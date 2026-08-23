@@ -1648,6 +1648,7 @@
         const radiusX = gameGreenRadius * scale;
         const greenLeft = center.x - radiusX;
         const greenWidth = radiusX * 2;
+        const greenBlend = Math.min(Math.max(6, scale * 0.8), greenWidth * 0.28);
         const green = ctx.createLinearGradient(0, origin.y - 14, 0, rect.height);
         green.addColorStop(0, "#a6e98e");
         green.addColorStop(0.5, "#86db76");
@@ -1655,8 +1656,18 @@
         ctx.save();
         makeGroundPath(rect, origin);
         ctx.clip();
+        const leftBlend = ctx.createLinearGradient(greenLeft - greenBlend, 0, greenLeft + greenBlend, 0);
+        leftBlend.addColorStop(0, "rgba(134, 219, 118, 0)");
+        leftBlend.addColorStop(1, "rgba(134, 219, 118, 0.82)");
+        ctx.fillStyle = leftBlend;
+        ctx.fillRect(greenLeft - greenBlend, origin.y - 22, greenBlend * 2, rect.height - origin.y + 28);
         ctx.fillStyle = green;
         ctx.fillRect(greenLeft, origin.y - 22, greenWidth, rect.height - origin.y + 28);
+        const rightBlend = ctx.createLinearGradient(greenLeft + greenWidth - greenBlend, 0, greenLeft + greenWidth + greenBlend, 0);
+        rightBlend.addColorStop(0, "rgba(134, 219, 118, 0.82)");
+        rightBlend.addColorStop(1, "rgba(134, 219, 118, 0)");
+        ctx.fillStyle = rightBlend;
+        ctx.fillRect(greenLeft + greenWidth - greenBlend, origin.y - 22, greenBlend * 2, rect.height - origin.y + 28);
         ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
         ctx.lineWidth = 1;
         for (let i = 0; i < 6; i += 1) {
