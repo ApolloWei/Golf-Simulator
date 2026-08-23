@@ -910,6 +910,9 @@
     let classicGreenRule = "green";
     let obstacleDifficulty = "easy";
     let obstacleCourse = null;
+    let obstacleMaxLives = 5;
+    let obstacleLives = 5;
+    let obstacleCleared = 0;
     let holeAdvanceTimer = null;
     let holeCompleteShots = 0;
     let modalTitleKey = "holeCompleteTitle";
@@ -971,7 +974,7 @@
         hardGameInfo: "经典困难｜只显示粗略刻度｜杆数：{shots}",
         precisionInfo: "精准模式｜一杆机会｜已打：{shots}",
         puttingInfo: "果岭练习｜剩余：{remaining} yd｜练习次数：{shots}",
-        obstacleInfo: "障碍物模式｜障碍：{obstacles} 个｜已打：{shots}",
+        obstacleInfo: "障碍物模式｜障碍：{obstacles} 个｜生命：{lives}/{maxLives}｜通过：{cleared}｜已打：{shots}",
         rating: "评分：{stars}",
         ball: "小球",
         trace: "飞行中留下的轨迹",
@@ -1007,8 +1010,10 @@
         hardGameReady: "经典困难模式开始。只显示粗略刻度，观察旗杆位置后发射。",
         precisionReady: "精准模式开始。只有一杆机会，观察旗杆位置后发射。",
         obstacleReady: "障碍物模式开始。系统已经生成标准弹道和障碍门，调整球杆、角度和力度后发射。",
-        obstacleSuccess: "成功穿过所有障碍门！下一组障碍马上生成。",
-        obstacleFail: "还没有全部穿过。调整球杆、角度和力度，再试一次。",
+        obstacleSuccess: "成功穿过这一组障碍！不扣生命，下一组马上出现。当前总分：{score}。",
+        obstacleFail: "没有全部穿过，扣 1 条命。剩余生命：{lives}。下一组马上出现。",
+        obstacleCompleteTitle: "障碍物模式结束",
+        obstacleCompleteText: "生命用完了。你通过了 {cleared} 组障碍，总共发射 {shots} 次，总分：{score}。3 秒后重新开始。",
         puttingReady: "球已经上果岭，已自动切换到推杆。把球推进银色洞杯才算进洞。",
         puttingPracticeReady: "果岭练习开始。球在 {remaining} yd 外，调整力度后把它推进洞杯。",
         puttingPracticeLanded: "这一推还剩 {remaining} yd。继续调整力度，把球推进洞杯。",
@@ -1065,7 +1070,7 @@
         hardGameInfo: "Classic Hard | Coarse marks only | Shots: {shots}",
         precisionInfo: "Precision Mode | One shot | Shots: {shots}",
         puttingInfo: "Green Practice | Remaining: {remaining} yd | Putts: {shots}",
-        obstacleInfo: "Obstacle Mode | Gates: {obstacles} | Shots: {shots}",
+        obstacleInfo: "Obstacle Mode | Gates: {obstacles} | Lives: {lives}/{maxLives} | Cleared: {cleared} | Shots: {shots}",
         rating: "Rating: {stars}",
         ball: "Ball",
         trace: "Live Trail",
@@ -1101,8 +1106,10 @@
         hardGameReady: "Classic Hard started. Only coarse marks are shown. Read the flag position and launch.",
         precisionReady: "Precision Mode started. You have one shot. Read the flag position and launch.",
         obstacleReady: "Obstacle Mode started. A reference trajectory and gates are ready. Adjust club, angle, and power, then launch.",
-        obstacleSuccess: "You passed every gate. The next obstacle course will appear soon.",
-        obstacleFail: "Not all gates were cleared. Adjust club, angle, and power, then try again.",
+        obstacleSuccess: "You cleared this gate set. No life lost. Next set coming up. Total score: {score}.",
+        obstacleFail: "Not every gate was cleared. 1 life lost. Lives left: {lives}. Next set coming up.",
+        obstacleCompleteTitle: "Obstacle Mode Over",
+        obstacleCompleteText: "You ran out of lives. Cleared sets: {cleared}. Launches: {shots}. Total score: {score}. Restarting in 3 seconds.",
         puttingReady: "The ball is on the green. Putter selected automatically. Sink it into the silver cup to hole out.",
         puttingPracticeReady: "Green Practice started. The ball is {remaining} yd away. Adjust power and sink it.",
         puttingPracticeLanded: "This putt stopped {remaining} yd away. Adjust power and try to sink it.",
@@ -1144,7 +1151,8 @@
       holeModal.classList.remove("hidden");
       holeAdvanceTimer = setTimeout(() => {
         holeAdvanceTimer = null;
-        if (isChallengeMode()) startGame(mode);
+        if (isObstacleMode()) startObstacleCourse();
+        else if (isChallengeMode()) startGame(mode);
       }, 3000);
     }
 
@@ -1183,6 +1191,16 @@
       if (ratio <= 0.2) return 3;
       if (ratio <= 0.4) return 2;
       return 1;
+    }
+
+    function obstacleLivesForDifficulty() {
+      if (obstacleDifficulty === "hard") return 3;
+      if (obstacleDifficulty === "medium") return 4;
+      return 5;
+    }
+
+    function obstacleScore() {
+      return obstacleCleared * 100 + obstacleLives * 25;
     }
 
     function randomTarget() {
@@ -1422,7 +1440,7 @@
         * (1 - Math.pow(u, baseShot.descentShape));
     }
 
-    function startObstacleCourse() {
+    function startObstacleCourse({ newRound = true } = {}) {
       clearHoleAdvanceTimer();
       hideHoleModal();
       mode = "obstacle";
@@ -1431,7 +1449,12 @@
       gameBallYards = 0;
       gameShotStartYards = 0;
       gameShotDirection = 1;
-      gameShots = 0;
+      if (newRound) {
+        obstacleMaxLives = obstacleLivesForDifficulty();
+        obstacleLives = obstacleMaxLives;
+        obstacleCleared = 0;
+        gameShots = 0;
+      }
       gameFinished = false;
       previousTrails = [];
       trail = [];
@@ -1495,6 +1518,9 @@
           target: gameTargetYards,
           remaining: Math.round(gameRemainingYards),
           obstacles: obstacleCourse ? obstacleCourse.gates.length : 0,
+          lives: obstacleLives,
+          maxLives: obstacleMaxLives,
+          cleared: obstacleCleared,
           shots: gameShots
         })
       ].join("  ");
@@ -2390,12 +2416,28 @@
             gameRemainingYards = Math.abs(gameTargetYards - gameBallYards);
             if (!isObstacleMode()) updateGameViewForPoint(ballPosition);
             if (isObstacleMode()) {
-              gameFinished = evaluateObstacleShot(shot);
+              const obstaclePassed = evaluateObstacleShot(shot);
+              if (obstaclePassed) {
+                obstacleCleared += 1;
+              } else {
+                obstacleLives = Math.max(0, obstacleLives - 1);
+              }
+              gameFinished = obstacleLives <= 0;
               setLaunchButton("launch", gameFinished);
-              updateText(gameFinished ? "obstacleSuccess" : "obstacleFail");
+              updateText(obstaclePassed ? "obstacleSuccess" : "obstacleFail", {
+                lives: obstacleLives,
+                cleared: obstacleCleared,
+                score: obstacleScore()
+              });
               updateGameInfo();
               if (gameFinished) {
-                holeAdvanceTimer = setTimeout(() => startObstacleCourse(), 1600);
+                showRoundCompleteModal("obstacleCompleteTitle", "obstacleCompleteText", {
+                  cleared: obstacleCleared,
+                  shots: gameShots,
+                  score: obstacleScore()
+                });
+              } else {
+                holeAdvanceTimer = setTimeout(() => startObstacleCourse({ newRound: false }), 1200);
               }
               drawScene();
               animation = null;
