@@ -46,7 +46,7 @@
     header {
       position: relative;
       margin-bottom: 18px;
-      padding-right: 232px;
+      padding-right: 286px;
     }
 
     h1 {
@@ -85,7 +85,7 @@
     .home-button {
       position: absolute;
       top: 2px;
-      right: 82px;
+      right: 126px;
       display: none;
       width: 38px;
       height: 38px;
@@ -107,7 +107,7 @@
     .life-hud {
       position: absolute;
       top: 2px;
-      right: 128px;
+      right: 172px;
       display: none;
       min-width: 96px;
       height: 38px;
@@ -127,6 +127,28 @@
 
     .life-hud.show {
       display: inline-flex;
+    }
+
+    .achievements-button {
+      position: absolute;
+      top: 2px;
+      right: 82px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      font-size: 17px;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(30, 56, 39, 0.1);
+    }
+
+    .achievements-button:hover {
+      filter: brightness(1.04);
     }
 
     .lobby {
@@ -579,6 +601,248 @@
       line-height: 1.6;
     }
 
+    .achievement-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 35;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(23, 36, 29, 0.42);
+      backdrop-filter: blur(8px);
+    }
+
+    .achievement-card {
+      width: min(980px, 100%);
+      max-height: min(86vh, 760px);
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      border: 1px solid rgba(205, 219, 209, 0.95);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 24px 70px rgba(30, 56, 39, 0.28);
+      overflow: hidden;
+    }
+
+    .achievement-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .achievement-head h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .achievement-close {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8faf7;
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .achievement-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 14px 20px;
+      background: #f6faf6;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .summary-tile {
+      min-height: 68px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .summary-tile span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .summary-tile strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 18px;
+      overflow-wrap: anywhere;
+    }
+
+    .achievement-content {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      min-height: 0;
+    }
+
+    .achievement-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 16px;
+      overflow: auto;
+      align-content: start;
+    }
+
+    .achievement-item {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      min-height: 118px;
+    }
+
+    .achievement-item.locked {
+      background: #f5f7f4;
+      color: #6c766f;
+    }
+
+    .achievement-icon {
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: #e8f6eb;
+      font-size: 22px;
+    }
+
+    .achievement-item.locked .achievement-icon {
+      background: #e7ece8;
+      filter: grayscale(1);
+      opacity: 0.62;
+    }
+
+    .achievement-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 800;
+    }
+
+    .achievement-category {
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .achievement-desc,
+    .achievement-meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .progress-bar {
+      height: 7px;
+      margin-top: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e4ebe5;
+    }
+
+    .progress-bar span {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--fairway), var(--blue));
+    }
+
+    .statistics-panel {
+      padding: 16px;
+      border-left: 1px solid var(--line);
+      background: #fbfdfb;
+      overflow: auto;
+    }
+
+    .statistics-panel h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+    }
+
+    .stat-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(205, 219, 209, 0.75);
+      font-size: 13px;
+    }
+
+    .stat-line span {
+      color: var(--muted);
+    }
+
+    .stat-line strong {
+      text-align: right;
+    }
+
+    .achievement-toasts {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 45;
+      display: grid;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .achievement-toast {
+      width: min(340px, calc(100vw - 36px));
+      padding: 14px 16px;
+      border: 1px solid rgba(240, 184, 74, 0.68);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 18px 48px rgba(30, 56, 39, 0.22);
+      animation: achievementToast 3.6s ease forwards;
+    }
+
+    .achievement-toast .toast-kicker {
+      color: #b07100;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .achievement-toast strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 17px;
+    }
+
+    .achievement-toast p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    @keyframes achievementToast {
+      0% { opacity: 0; transform: translateY(-10px) scale(0.98); }
+      12% { opacity: 1; transform: translateY(0) scale(1); }
+      86% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    }
+
     @media (max-width: 850px) {
       .app {
         width: min(100vw - 20px, 680px);
@@ -598,6 +862,13 @@
         position: static;
         margin-right: 8px;
         margin-bottom: 12px;
+      }
+
+      .achievements-button {
+        position: static;
+        margin-right: 8px;
+        margin-bottom: 12px;
+        vertical-align: top;
       }
 
       .life-hud {
@@ -620,6 +891,17 @@
         grid-template-columns: 1fr;
       }
 
+      .achievement-summary,
+      .achievement-content,
+      .achievement-list {
+        grid-template-columns: 1fr;
+      }
+
+      .statistics-panel {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+
       .stage,
       canvas {
         min-height: 470px;
@@ -636,6 +918,7 @@
 <body>
   <section class="lobby" id="lobby">
     <header>
+      <button class="achievements-button" id="lobbyAchievementsBtn" type="button" title="Achievements">🏆</button>
       <button class="language-button" id="lobbyLanguageBtn" type="button">English</button>
       <h1 data-i18n="lobbyTitle">高尔夫模拟器</h1>
       <p class="subtitle" data-i18n="lobbySubtitle">先选择球员，再进入自由练习或挑战模式。</p>
@@ -691,6 +974,7 @@
     <header>
       <button class="home-button" id="homeBtn" type="button" title="Home">⌂</button>
       <div class="life-hud" id="lifeHud" aria-live="polite"></div>
+      <button class="achievements-button" id="achievementsBtn" type="button" title="Achievements">🏆</button>
       <button class="language-button" id="languageBtn" type="button">English</button>
       <h1 data-i18n="title">二维高尔夫飞行模拟器</h1>
       <p class="subtitle" data-i18n="subtitle">选择球员和球杆，调整发射角度，然后点击右下角的发射按钮。小球会先被击出，再沿着飞行轨迹前进，轨迹会跟着飞行过程逐步画出来。</p>
@@ -811,6 +1095,42 @@
     </div>
   </div>
 
+  <div class="achievement-panel hidden" id="achievementPanel" role="dialog" aria-modal="true" aria-labelledby="achievementPanelTitle">
+    <div class="achievement-card">
+      <div class="achievement-head">
+        <h2 id="achievementPanelTitle" data-i18n="achievementsTitle">成就与统计</h2>
+        <button class="achievement-close" id="achievementCloseBtn" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="achievement-summary">
+        <div class="summary-tile">
+          <span data-i18n="achievementUnlocked">已解锁</span>
+          <strong id="achievementUnlockedText">0 / 0</strong>
+        </div>
+        <div class="summary-tile">
+          <span data-i18n="achievementCompletion">完成度</span>
+          <strong id="achievementCompletionText">0%</strong>
+        </div>
+        <div class="summary-tile">
+          <span data-i18n="achievementBestShot">最远一杆</span>
+          <strong id="achievementLongestText">0 yd</strong>
+        </div>
+        <div class="summary-tile">
+          <span data-i18n="achievementBestStreak">最佳连续</span>
+          <strong id="achievementStreakText">0</strong>
+        </div>
+      </div>
+      <div class="achievement-content">
+        <div class="achievement-list" id="achievementList"></div>
+        <aside class="statistics-panel">
+          <h3 data-i18n="statisticsTitle">玩家统计</h3>
+          <div id="statisticsList"></div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <div class="achievement-toasts" id="achievementToasts" aria-live="polite"></div>
+
   <script>
     const YARD_TO_METER = 0.9144;
     const METER_TO_YARD = 1 / YARD_TO_METER;
@@ -883,8 +1203,15 @@
     const obstacleMediumBtn = document.querySelector("#obstacleMediumBtn");
     const obstacleHardBtn = document.querySelector("#obstacleHardBtn");
     const lobbyLanguageBtn = document.querySelector("#lobbyLanguageBtn");
+    const lobbyAchievementsBtn = document.querySelector("#lobbyAchievementsBtn");
     const homeBtn = document.querySelector("#homeBtn");
     const lifeHud = document.querySelector("#lifeHud");
+    const achievementsBtn = document.querySelector("#achievementsBtn");
+    const achievementPanel = document.querySelector("#achievementPanel");
+    const achievementCloseBtn = document.querySelector("#achievementCloseBtn");
+    const achievementList = document.querySelector("#achievementList");
+    const statisticsList = document.querySelector("#statisticsList");
+    const achievementToasts = document.querySelector("#achievementToasts");
     const playerControl = document.querySelector("#playerControl");
     const playerSelect = document.querySelector("#player");
     const clubSelect = document.querySelector("#club");
@@ -915,6 +1242,10 @@
       message: document.querySelector("#message"),
       chips: document.querySelector("#clubChips"),
       gameInfo: document.querySelector("#gameInfo"),
+      achievementUnlocked: document.querySelector("#achievementUnlockedText"),
+      achievementCompletion: document.querySelector("#achievementCompletionText"),
+      achievementLongest: document.querySelector("#achievementLongestText"),
+      achievementStreak: document.querySelector("#achievementStreakText"),
       holeModalTitle: document.querySelector("#holeModalTitle"),
       holeModalText: document.querySelector("#holeModalText")
     };
@@ -988,6 +1319,33 @@
         freeMode: "自由模式",
         freeModeDesc: "自由选择球员、球杆、角度和力度，观察飞行轨迹。",
         homeTitle: "返回大厅",
+        achievementsTitle: "成就与统计",
+        achievementsButtonTitle: "成就",
+        achievementUnlocked: "已解锁",
+        achievementCompletion: "完成度",
+        achievementBestShot: "最远一杆",
+        achievementBestStreak: "最佳连续",
+        statisticsTitle: "玩家统计",
+        achievementLocked: "未解锁",
+        achievementProgress: "进度",
+        achievementUnlockedOn: "解锁时间",
+        achievementNever: "尚未解锁",
+        achievementToastTitle: "🏆 成就解锁",
+        statTotalShots: "总杆数",
+        statLongestShot: "最远一杆",
+        statTotalDistance: "总距离",
+        statHighestSpeed: "最高初速",
+        statHighestApex: "最高弹道",
+        statClosestTarget: "最接近目标",
+        statSuccessfulPutts: "成功推杆",
+        statLongestPutt: "最长推进",
+        statHolesCompleted: "完成洞数",
+        statBestScore: "最佳评分",
+        statObstacleCompletions: "障碍完成",
+        statClubsUsed: "已用球杆",
+        statModesPlayed: "已玩模式",
+        statCurrentStreak: "当前连续",
+        statBestStreak: "最佳连续",
         stageLabel: "高尔夫小球二维飞行轨迹",
         title: "二维高尔夫飞行模拟器",
         subtitle: "选择球员和球杆，调整发射角度，然后点击右下角的发射按钮。小球会先被击出，再沿着飞行轨迹前进，轨迹会跟着飞行过程逐步画出来。",
@@ -1084,6 +1442,33 @@
         freeMode: "Free Mode",
         freeModeDesc: "Freely choose player, club, angle, and power to study the shot.",
         homeTitle: "Back to Lobby",
+        achievementsTitle: "Achievements & Stats",
+        achievementsButtonTitle: "Achievements",
+        achievementUnlocked: "Unlocked",
+        achievementCompletion: "Completion",
+        achievementBestShot: "Longest Shot",
+        achievementBestStreak: "Best Streak",
+        statisticsTitle: "Player Statistics",
+        achievementLocked: "Locked",
+        achievementProgress: "Progress",
+        achievementUnlockedOn: "Unlocked",
+        achievementNever: "Not yet",
+        achievementToastTitle: "🏆 ACHIEVEMENT UNLOCKED",
+        statTotalShots: "Total Shots",
+        statLongestShot: "Longest Shot",
+        statTotalDistance: "Total Distance",
+        statHighestSpeed: "Highest Speed",
+        statHighestApex: "Highest Apex",
+        statClosestTarget: "Closest to Target",
+        statSuccessfulPutts: "Successful Putts",
+        statLongestPutt: "Longest Putt",
+        statHolesCompleted: "Holes Completed",
+        statBestScore: "Best Score",
+        statObstacleCompletions: "Obstacle Completions",
+        statClubsUsed: "Clubs Used",
+        statModesPlayed: "Modes Played",
+        statCurrentStreak: "Current Streak",
+        statBestStreak: "Best Streak",
         stageLabel: "2D golf ball flight trajectory",
         title: "2D Golf Flight Simulator",
         subtitle: "Choose a player and a club, adjust the launch angle, then press the launch button in the lower-right corner. The ball takes off first, and the trail is drawn as it flies.",
@@ -1154,6 +1539,177 @@
         puttingPracticeLanded: "This putt stopped {remaining} yd away. Adjust power and try to sink it.",
         puttingPracticeComplete: "Sunk. The next practice ball will appear in a moment.",
         gameShotReady: "Ball position updated. Choose the next shot and try to hole out."
+      }
+    };
+
+    const STORAGE_KEYS = {
+      achievements: "golfSimulatorAchievements.v1",
+      stats: "golfSimulatorStats.v1"
+    };
+
+    const ALL_CLUBS = Array.from(new Set([
+      ...Object.values(players).flat().map(([club]) => club),
+      "Putter"
+    ])).sort();
+    const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
+
+    const achievementDefinitions = [
+      { id: "first_shot", icon: "🏌️", category: "General", target: 1, name: { en: "First Shot", zh: "第一杆" }, desc: { en: "Hit your first shot.", zh: "打出你的第一杆。" }, progress: (s) => s.totalShots },
+      { id: "club_200", icon: "💥", category: "Distance", target: 200, name: { en: "200 Club", zh: "200 码俱乐部" }, desc: { en: "Hit 200+ yards.", zh: "打出 200 码以上。" }, progress: (s) => s.longestShot },
+      { id: "long_drive", icon: "🚀", category: "Distance", target: 300, name: { en: "Long Drive", zh: "远距离开球" }, desc: { en: "Hit 300+ yards.", zh: "打出 300 码以上。" }, progress: (s) => s.longestShot },
+      { id: "bombs_away", icon: "🔥", category: "Distance", target: 350, name: { en: "Bombs Away", zh: "超级重炮" }, desc: { en: "Hit 350+ yards.", zh: "打出 350 码以上。" }, progress: (s) => s.longestShot },
+      { id: "dialed_in", icon: "🎯", category: "Accuracy", target: 1, name: { en: "Dialed In", zh: "手感在线" }, desc: { en: "Finish within 10 yards of target.", zh: "停在目标 10 码以内。" }, progress: (s) => s.closestToTarget != null && s.closestToTarget <= 10 ? 1 : 0 },
+      { id: "pin_seeker", icon: "📍", category: "Accuracy", target: 1, name: { en: "Pin Seeker", zh: "追旗手" }, desc: { en: "Finish within 5 yards.", zh: "停在目标 5 码以内。" }, progress: (s) => s.closestToTarget != null && s.closestToTarget <= 5 ? 1 : 0 },
+      { id: "almost_perfect", icon: "✨", category: "Accuracy", target: 1, name: { en: "Almost Perfect", zh: "几乎完美" }, desc: { en: "Finish within 1 yard.", zh: "停在目标 1 码以内。" }, progress: (s) => s.closestToTarget != null && s.closestToTarget <= 1 ? 1 : 0 },
+      { id: "bullseye", icon: "🏹", category: "Accuracy", target: 1, name: { en: "Bullseye", zh: "正中靶心" }, desc: { en: "Finish within 0.25 yards.", zh: "停在目标 0.25 码以内。" }, progress: (s) => s.closestToTarget != null && s.closestToTarget <= 0.25 ? 1 : 0 },
+      { id: "first_putt", icon: "⛳", category: "Putting", target: 1, name: { en: "First Putt", zh: "第一记推杆" }, desc: { en: "Sink your first putt.", zh: "推进你的第一颗球。" }, progress: (s) => s.successfulPutts },
+      { id: "long_putt", icon: "🟢", category: "Putting", target: 5, name: { en: "Long Putt", zh: "长距离推杆" }, desc: { en: "Sink a 5+ yard putt.", zh: "推进 5 码以上的推杆。" }, progress: (s) => s.longestPutt },
+      { id: "sniper_putt", icon: "🔭", category: "Putting", target: 10, name: { en: "Sniper Putt", zh: "狙击推杆" }, desc: { en: "Sink a 10+ yard putt.", zh: "推进 10 码以上的推杆。" }, progress: (s) => s.longestPutt },
+      { id: "putting_master", icon: "👑", category: "Putting", target: 10, name: { en: "Putting Master", zh: "推杆大师" }, desc: { en: "Sink 10 putts.", zh: "累计推进 10 次。" }, progress: (s) => s.successfulPutts },
+      { id: "gate_crasher", icon: "🚪", category: "Obstacle", target: 1, name: { en: "Gate Crasher", zh: "破门而入" }, desc: { en: "Pass your first obstacle gate.", zh: "第一次穿过障碍门。" }, progress: (s) => s.obstacleGatesPassed },
+      { id: "clean_run", icon: "🧼", category: "Obstacle", target: 1, name: { en: "Clean Run", zh: "完美穿越" }, desc: { en: "Complete an obstacle course without missing a gate.", zh: "一次不漏地通过一组障碍。" }, progress: (s) => s.cleanObstacleRuns },
+      { id: "obstacle_master", icon: "🏆", category: "Obstacle", target: 1, name: { en: "Obstacle Master", zh: "障碍大师" }, desc: { en: "Complete Hard Obstacle Mode.", zh: "在困难障碍模式中通过一组障碍。" }, progress: (s) => s.hardObstacleCompletions },
+      { id: "first_hole", icon: "🏁", category: "Classic", target: 1, name: { en: "First Hole", zh: "第一洞" }, desc: { en: "Complete your first Classic hole.", zh: "完成第一个经典模式球洞。" }, progress: (s) => s.holesCompleted },
+      { id: "par", icon: "⭐", category: "Classic", target: 1, name: { en: "Par", zh: "标准杆" }, desc: { en: "Finish a hole at par or better.", zh: "用标准杆或更少杆数完成一洞。" }, progress: (s) => s.bestClassicShots != null && s.bestClassicShots <= 4 ? 1 : 0 },
+      { id: "birdie", icon: "🌟", category: "Classic", target: 1, name: { en: "Birdie", zh: "小鸟球" }, desc: { en: "Finish one under par.", zh: "低于标准杆一杆完成。" }, progress: (s) => s.bestClassicShots != null && s.bestClassicShots <= 3 ? 1 : 0 },
+      { id: "eagle", icon: "💫", category: "Classic", target: 1, name: { en: "Eagle", zh: "老鹰球" }, desc: { en: "Finish two under par.", zh: "低于标准杆两杆完成。" }, progress: (s) => s.bestClassicShots != null && s.bestClassicShots <= 2 ? 1 : 0 },
+      { id: "getting_started", icon: "🔰", category: "General", target: 10, name: { en: "Getting Started", zh: "渐入佳境" }, desc: { en: "Play 10 shots.", zh: "累计打出 10 杆。" }, progress: (s) => s.totalShots },
+      { id: "practice_makes_perfect", icon: "📈", category: "General", target: 50, name: { en: "Practice Makes Perfect", zh: "熟能生巧" }, desc: { en: "Play 50 shots.", zh: "累计打出 50 杆。" }, progress: (s) => s.totalShots },
+      { id: "golf_fanatic", icon: "🏌️", category: "General", target: 100, name: { en: "Golf Fanatic", zh: "高尔夫狂热者" }, desc: { en: "Play 100 shots.", zh: "累计打出 100 杆。" }, progress: (s) => s.totalShots },
+      { id: "club_collector", icon: "🧰", category: "General", target: ALL_CLUBS.length, name: { en: "Club Collector", zh: "球杆收藏家" }, desc: { en: "Use every club.", zh: "使用过所有球杆。" }, progress: (s) => s.clubsUsed.length },
+      { id: "experimenter", icon: "🧪", category: "General", target: ALL_MODES.length, name: { en: "Experimenter", zh: "实验玩家" }, desc: { en: "Play every mode.", zh: "玩过每一种模式。" }, progress: (s) => s.modesPlayed.length }
+    ];
+
+    const defaultStats = {
+      totalShots: 0,
+      longestShot: 0,
+      totalDistance: 0,
+      highestSpeed: 0,
+      highestApex: 0,
+      closestToTarget: null,
+      successfulPutts: 0,
+      longestPutt: 0,
+      holesCompleted: 0,
+      bestScore: 0,
+      bestClassicShots: null,
+      obstacleCompletions: 0,
+      obstacleGatesPassed: 0,
+      cleanObstacleRuns: 0,
+      hardObstacleCompletions: 0,
+      clubsUsed: [],
+      modesPlayed: [],
+      currentStreak: 0,
+      bestStreak: 0
+    };
+
+    function safeLoad(key, fallback) {
+      try {
+        return { ...fallback, ...(JSON.parse(localStorage.getItem(key)) || {}) };
+      } catch {
+        return { ...fallback };
+      }
+    }
+
+    function saveJson(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function formatDate(value) {
+      if (!value) return tr("achievementNever");
+      return new Date(value).toLocaleDateString(currentLang === "zh" ? "zh-CN" : "en-US");
+    }
+
+    const StatsManager = {
+      data: safeLoad(STORAGE_KEYS.stats, defaultStats),
+      save() {
+        saveJson(STORAGE_KEYS.stats, this.data);
+      },
+      addUnique(key, value) {
+        if (!value || this.data[key].includes(value)) return;
+        this.data[key].push(value);
+      },
+      recordShot(result) {
+        const distance = Math.max(0, result.distance || 0);
+        this.data.totalShots += 1;
+        this.data.longestShot = Math.max(this.data.longestShot, distance);
+        this.data.totalDistance += distance;
+        this.data.highestSpeed = Math.max(this.data.highestSpeed, result.speed || 0);
+        this.data.highestApex = Math.max(this.data.highestApex, result.apex || 0);
+        if (result.remaining != null) {
+          this.data.closestToTarget = this.data.closestToTarget == null
+            ? result.remaining
+            : Math.min(this.data.closestToTarget, result.remaining);
+        }
+        this.addUnique("clubsUsed", result.club);
+        this.addUnique("modesPlayed", result.mode);
+        if (result.puttSunk) {
+          this.data.successfulPutts += 1;
+          this.data.longestPutt = Math.max(this.data.longestPutt, distance);
+        }
+        if (result.classicComplete) {
+          this.data.holesCompleted += 1;
+          this.data.bestScore = Math.max(this.data.bestScore, result.score || 0);
+          this.data.bestClassicShots = this.data.bestClassicShots == null
+            ? result.shots
+            : Math.min(this.data.bestClassicShots, result.shots);
+        }
+        if (result.obstaclePassed) {
+          this.data.obstacleCompletions += 1;
+          this.data.cleanObstacleRuns += 1;
+          if (result.obstacleDifficulty === "hard") this.data.hardObstacleCompletions += 1;
+        }
+        if (result.obstacleGatesPassed) {
+          this.data.obstacleGatesPassed += result.obstacleGatesPassed;
+        }
+        if (result.streakSuccess) this.data.currentStreak += 1;
+        else if (result.streakSuccess === false) this.data.currentStreak = 0;
+        this.data.bestStreak = Math.max(this.data.bestStreak, this.data.currentStreak);
+        this.save();
+        AchievementManager.evaluate();
+        renderAchievements();
+      }
+    };
+
+    const AchievementManager = {
+      data: safeLoad(STORAGE_KEYS.achievements, { unlocked: {} }),
+      queue: [],
+      showing: false,
+      save() {
+        saveJson(STORAGE_KEYS.achievements, this.data);
+      },
+      isUnlocked(id) {
+        return Boolean(this.data.unlocked[id]);
+      },
+      evaluate() {
+        achievementDefinitions.forEach((achievement) => {
+          if (this.isUnlocked(achievement.id)) return;
+          const progress = Math.min(achievement.target, achievement.progress(StatsManager.data));
+          if (progress >= achievement.target) this.unlock(achievement);
+        });
+      },
+      unlock(achievement) {
+        this.data.unlocked[achievement.id] = new Date().toISOString();
+        this.save();
+        this.queue.push(achievement);
+        this.showNext();
+      },
+      showNext() {
+        if (this.showing || this.queue.length === 0) return;
+        this.showing = true;
+        const achievement = this.queue.shift();
+        const toast = document.createElement("div");
+        toast.className = "achievement-toast";
+        toast.innerHTML = `
+          <div class="toast-kicker">${tr("achievementToastTitle")}</div>
+          <strong>${achievement.name[currentLang]}</strong>
+          <p>${achievement.desc[currentLang]}</p>
+        `;
+        achievementToasts.appendChild(toast);
+        setTimeout(() => {
+          toast.remove();
+          this.showing = false;
+          this.showNext();
+        }, 3600);
       }
     };
 
@@ -2404,6 +2960,17 @@
       drawScene();
     }
 
+    function recordCompletedShot(extra = {}) {
+      StatsManager.recordShot({
+        mode,
+        club: shot.club,
+        distance: shot.finalDistanceYards,
+        speed: shot.speed,
+        apex: shot.maxHeightYards,
+        ...extra
+      });
+    }
+
     function launch() {
       cancelActiveAnimation();
       if (isChallengeMode() && gameFinished) return;
@@ -2472,11 +3039,20 @@
             if (!isObstacleMode()) updateGameViewForPoint(ballPosition);
             if (isObstacleMode()) {
               const obstaclePassed = evaluateObstacleShot(shot);
+              const obstacleGatesPassed = obstacleCourse
+                ? obstacleCourse.gates.filter((gate) => gate.passed).length
+                : 0;
               if (obstaclePassed) {
                 obstacleCleared += 1;
               } else {
                 obstacleLives = Math.max(0, obstacleLives - 1);
               }
+              recordCompletedShot({
+                obstaclePassed,
+                obstacleGatesPassed,
+                obstacleDifficulty,
+                streakSuccess: obstaclePassed
+              });
               gameFinished = obstacleLives <= 0;
               setLaunchButton("launch", gameFinished);
               updateText(obstaclePassed ? "obstacleSuccess" : "obstacleFail", {
@@ -2500,6 +3076,11 @@
             }
             if (isPuttingPracticeMode()) {
               gameFinished = gameRemainingYards <= HOLE_RADIUS_YARDS;
+              recordCompletedShot({
+                remaining: gameRemainingYards,
+                puttSunk: gameFinished,
+                streakSuccess: gameFinished
+              });
               setLaunchButton("launch", gameFinished);
               updateText(gameFinished ? "puttingPracticeComplete" : "puttingPracticeLanded", {
                 remaining: Math.round(gameRemainingYards)
@@ -2519,6 +3100,14 @@
               ? precisionScore(gameRemainingYards, gameTargetYards)
               : classicScore(gameShots);
             const score = scoreStars(roundScore);
+            recordCompletedShot({
+              remaining: gameRemainingYards,
+              classicComplete: isClassicMode() && gameFinished,
+              puttSunk: isClassicMode() && gameFinished && shot.club === "Putter",
+              score: roundScore,
+              shots: gameShots,
+              streakSuccess: mode === "precision" ? gameRemainingYards <= 10 : (isClassicMode() ? gameFinished : undefined)
+            });
             let messageKey = "gameLandedMessage";
             if (mode === "precision") messageKey = "precisionCompleteMessage";
             else if (gameFinished) messageKey = "gameCompleteMessage";
@@ -2546,6 +3135,7 @@
             }
             if (!isClassicMode()) resetSwingControlsToDefault();
           } else {
+            recordCompletedShot();
             setLaunchButton("relaunch", false);
             updateText("landedMessage", {
               player: shot.player,
@@ -2568,6 +3158,81 @@
       animation = scheduleAnimationFrame(frame);
     }
 
+    function achievementText(achievement, key) {
+      return achievement[key][currentLang] || achievement[key].en;
+    }
+
+    function formatYards(value, digits = 0) {
+      return value == null ? "-" : `${Number(value).toFixed(digits)} yd`;
+    }
+
+    function renderAchievements() {
+      if (!achievementList || !statisticsList) return;
+      const unlockedCount = Object.keys(AchievementManager.data.unlocked).length;
+      const total = achievementDefinitions.length;
+      fields.achievementUnlocked.textContent = `${unlockedCount} / ${total}`;
+      fields.achievementCompletion.textContent = `${Math.round((unlockedCount / total) * 100)}%`;
+      fields.achievementLongest.textContent = formatYards(StatsManager.data.longestShot);
+      fields.achievementStreak.textContent = String(StatsManager.data.bestStreak);
+
+      achievementList.innerHTML = "";
+      achievementDefinitions.forEach((achievement) => {
+        const unlockedAt = AchievementManager.data.unlocked[achievement.id];
+        const rawProgress = Math.max(0, achievement.progress(StatsManager.data));
+        const progress = Math.min(achievement.target, rawProgress);
+        const percent = achievement.target === 0 ? 100 : Math.min(100, (progress / achievement.target) * 100);
+        const item = document.createElement("article");
+        item.className = `achievement-item${unlockedAt ? "" : " locked"}`;
+        item.innerHTML = `
+          <div class="achievement-icon">${achievement.icon}</div>
+          <div>
+            <div class="achievement-title">
+              <span>${achievementText(achievement, "name")}</span>
+              <span class="achievement-category">${achievement.category}</span>
+            </div>
+            <div class="achievement-desc">${achievementText(achievement, "desc")}</div>
+            <div class="progress-bar"><span style="width:${percent}%"></span></div>
+            <div class="achievement-meta">
+              ${tr("achievementProgress")}: ${Math.round(progress * 100) / 100} / ${achievement.target}
+              · ${unlockedAt ? tr("achievementUnlockedOn") : tr("achievementLocked")}: ${formatDate(unlockedAt)}
+            </div>
+          </div>
+        `;
+        achievementList.appendChild(item);
+      });
+
+      const stats = StatsManager.data;
+      const statRows = [
+        ["statTotalShots", stats.totalShots],
+        ["statLongestShot", formatYards(stats.longestShot)],
+        ["statTotalDistance", formatYards(stats.totalDistance)],
+        ["statHighestSpeed", `${stats.highestSpeed.toFixed(1)} m/s`],
+        ["statHighestApex", formatYards(stats.highestApex)],
+        ["statClosestTarget", stats.closestToTarget == null ? "-" : formatYards(stats.closestToTarget, 2)],
+        ["statSuccessfulPutts", stats.successfulPutts],
+        ["statLongestPutt", formatYards(stats.longestPutt)],
+        ["statHolesCompleted", stats.holesCompleted],
+        ["statBestScore", stats.bestScore ? scoreStars(stats.bestScore) : "-"],
+        ["statObstacleCompletions", stats.obstacleCompletions],
+        ["statClubsUsed", `${stats.clubsUsed.length} / ${ALL_CLUBS.length}`],
+        ["statModesPlayed", `${stats.modesPlayed.length} / ${ALL_MODES.length}`],
+        ["statCurrentStreak", stats.currentStreak],
+        ["statBestStreak", stats.bestStreak]
+      ];
+      statisticsList.innerHTML = "";
+      statRows.forEach(([labelKey, value]) => {
+        const row = document.createElement("div");
+        row.className = "stat-line";
+        row.innerHTML = `<span>${tr(labelKey)}</span><strong>${value}</strong>`;
+        statisticsList.appendChild(row);
+      });
+    }
+
+    function toggleAchievementPanel(show) {
+      achievementPanel.classList.toggle("hidden", !show);
+      if (show) renderAchievements();
+    }
+
     function applyLanguage() {
       document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
       document.title = tr("docTitle");
@@ -2575,6 +3240,8 @@
       lobbyLanguageBtn.textContent = tr("languageButton");
       resetBtn.title = tr("resetTitle");
       homeBtn.title = tr("homeTitle");
+      achievementsBtn.title = tr("achievementsButtonTitle");
+      lobbyAchievementsBtn.title = tr("achievementsButtonTitle");
       stage.setAttribute("aria-label", tr("stageLabel"));
       document.querySelectorAll("[data-i18n]").forEach((node) => {
         node.textContent = tr(node.dataset.i18n);
@@ -2586,11 +3253,13 @@
       if (mode !== "lobby") setLaunchButton(launchButtonKey, launchBtn.disabled);
       if (shot) updateText();
       if (!holeModal.classList.contains("hidden")) updateHoleModalText();
+      renderAchievements();
       updateGameInfo();
       if (mode !== "lobby") drawScene();
     }
 
     fillPlayers();
+    AchievementManager.evaluate();
     applyLanguage();
     showLobby();
 
@@ -2670,10 +3339,22 @@
     startPuttingBtn.addEventListener("click", () => showSimulator("putting"));
     startFreeBtn.addEventListener("click", () => showSimulator("free"));
     homeBtn.addEventListener("click", showLobby);
+    [achievementsBtn, lobbyAchievementsBtn].forEach((button) => {
+      button.addEventListener("click", () => toggleAchievementPanel(true));
+    });
+    achievementCloseBtn.addEventListener("click", () => toggleAchievementPanel(false));
+    achievementPanel.addEventListener("click", (event) => {
+      if (event.target === achievementPanel) toggleAchievementPanel(false);
+    });
     [languageBtn, lobbyLanguageBtn].forEach((button) => button.addEventListener("click", () => {
       currentLang = currentLang === "zh" ? "en" : "zh";
       applyLanguage();
     }));
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !achievementPanel.classList.contains("hidden")) {
+        toggleAchievementPanel(false);
+      }
+    });
     window.addEventListener("resize", () => {
       if (mode !== "lobby") drawScene();
     });
