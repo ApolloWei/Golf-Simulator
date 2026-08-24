@@ -873,6 +873,45 @@
       100% { opacity: 0; transform: translateY(-8px) scale(0.98); }
     }
 
+    @media (min-width: 851px) {
+      .app {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 18px 0;
+        overflow: hidden;
+      }
+
+      .app > header {
+        flex: 0 0 auto;
+        margin-bottom: 12px;
+      }
+
+      .app .subtitle {
+        line-height: 1.45;
+      }
+
+      .layout {
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+
+      .panel {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+
+      .stage {
+        height: 100%;
+        min-height: 0;
+      }
+
+      canvas {
+        min-height: 0;
+      }
+    }
+
     @media (max-width: 850px) {
       .app {
         width: min(100vw - 20px, 680px);
