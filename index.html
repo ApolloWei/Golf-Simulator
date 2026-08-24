@@ -3242,6 +3242,56 @@
       };
     }
 
+    function getCarryHoleInPlan() {
+      if (!isClassicMode() || shot?.club === "Putter" || shot.bounceSegments.length === 0) return null;
+      if (shot.duration <= 0 || shot.flightDuration <= 0) return null;
+      const carryProgress = Math.min(1, shot.flightDuration / shot.duration);
+      const carryWindOffset = windOffsetForProgress(carryProgress);
+      const carryX = gameShotStartYards + gameShotDirection * shot.distanceYards + carryWindOffset;
+      const holeRadius = hasClassicGreen() ? HOLE_RADIUS_YARDS : 5;
+      if (Math.abs(gameTargetYards - carryX) > holeRadius) return null;
+      return {
+        progress: carryProgress,
+        distanceToHole: Math.abs(gameTargetYards - gameShotStartYards)
+      };
+    }
+
+    function completeClassicHoleAtDistance(distanceToHole) {
+      ballPosition = {
+        x: gameTargetYards,
+        y: 0,
+        time: shot.flightDuration,
+        shotX: distanceToHole
+      };
+      trail.push(ballPosition);
+      landed = true;
+      showLandingMarker = false;
+      gameShots += 1;
+      gameBallYards = gameTargetYards;
+      gameRemainingYards = 0;
+      gameFinished = true;
+      updateGameViewForPoint(ballPosition);
+      startHoleSinkAnimation();
+      playHoleDingSound();
+      const roundScore = classicScore(gameShots);
+      recordCompletedShot({
+        distance: distanceToHole,
+        remaining: 0,
+        classicComplete: true,
+        score: roundScore,
+        shots: gameShots,
+        streakSuccess: true
+      });
+      setLaunchButton("relaunch", true);
+      updateText("gameCompleteMessage", {
+        shots: gameShots,
+        distance: Math.round(distanceToHole),
+        remaining: 0,
+        score: scoreStars(roundScore)
+      });
+      updateGameInfo();
+    }
+
     function completePuttAtHole(distanceToHole) {
       ballPosition = {
         x: gameTargetYards,
@@ -3336,7 +3386,9 @@
       const flightMs = Math.max(1800, Math.min(7800, shot.duration * 1000));
       const started = performance.now();
       const puttSinkPlan = getPuttSinkPlan();
+      const carryHoleInPlan = getCarryHoleInPlan();
       let puttSinkResolved = false;
+      let carryHoleInResolved = false;
 
       function frame(now) {
         const elapsed = now - started;
@@ -3359,6 +3411,14 @@
             }
           : { ...localPoint, shotX: localPoint.x };
         trail.push({ x: ballPosition.x, y: ballPosition.y });
+
+        if (carryHoleInPlan && !carryHoleInResolved && flightProgress >= carryHoleInPlan.progress) {
+          carryHoleInResolved = true;
+          flightProgress = carryHoleInPlan.progress;
+          completeClassicHoleAtDistance(carryHoleInPlan.distanceToHole);
+          finishHoleSinkAnimation(() => showHoleCompleteModal(gameShots));
+          return;
+        }
 
         if (puttSinkPlan && !puttSinkResolved && flightProgress >= puttSinkPlan.progress) {
           puttSinkResolved = true;
