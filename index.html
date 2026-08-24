@@ -1356,6 +1356,7 @@
     let sinkProgress = 0;
     let ballHidden = false;
     let audioContext = null;
+    let audioPrimed = false;
     let gameTargetYards = 0;
     let gameRemainingYards = 0;
     let gameBallYards = 0;
@@ -2526,21 +2527,39 @@
       };
     }
 
-    function playLaunchSound() {
-      if (!soundToggle.checked) return;
+    function getAudioContext() {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-
+      if (!AudioCtx) return null;
       audioContext ||= new AudioCtx();
-      const now = audioContext.currentTime;
-      const master = audioContext.createGain();
+      return audioContext;
+    }
+
+    function primeAudioContext() {
+      if (audioPrimed || !soundToggle.checked) return;
+      const context = getAudioContext();
+      if (!context) return;
+      audioPrimed = true;
+      if (context.state === "suspended") context.resume().catch(() => {});
+      const silent = context.createBufferSource();
+      const gain = context.createGain();
+      gain.gain.setValueAtTime(0, context.currentTime);
+      silent.buffer = context.createBuffer(1, 1, context.sampleRate);
+      silent.connect(gain);
+      gain.connect(context.destination);
+      silent.start(context.currentTime);
+      silent.stop(context.currentTime + 0.01);
+    }
+
+    function scheduleLaunchSound(context) {
+      const now = context.currentTime + 0.004;
+      const master = context.createGain();
       master.gain.setValueAtTime(0.0001, now);
       master.gain.exponentialRampToValueAtTime(0.42, now + 0.006);
       master.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-      master.connect(audioContext.destination);
+      master.connect(context.destination);
 
-      const click = audioContext.createOscillator();
-      const clickGain = audioContext.createGain();
+      const click = context.createOscillator();
+      const clickGain = context.createGain();
       click.type = "triangle";
       click.frequency.setValueAtTime(1320, now);
       click.frequency.exponentialRampToValueAtTime(420, now + 0.12);
@@ -2551,15 +2570,15 @@
       click.start(now);
       click.stop(now + 0.18);
 
-      const bufferSize = Math.floor(audioContext.sampleRate * 0.08);
-      const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+      const bufferSize = Math.floor(context.sampleRate * 0.08);
+      const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
       const data = buffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i += 1) {
         data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2.4);
       }
-      const noise = audioContext.createBufferSource();
-      const filter = audioContext.createBiquadFilter();
-      const noiseGain = audioContext.createGain();
+      const noise = context.createBufferSource();
+      const filter = context.createBiquadFilter();
+      const noiseGain = context.createGain();
       noise.buffer = buffer;
       filter.type = "highpass";
       filter.frequency.setValueAtTime(1800, now);
@@ -2570,6 +2589,19 @@
       noiseGain.connect(master);
       noise.start(now);
       noise.stop(now + 0.08);
+    }
+
+    function playLaunchSound() {
+      if (!soundToggle.checked) return;
+      const context = getAudioContext();
+      if (!context) return;
+      if (context.state === "suspended") {
+        context.resume()
+          .then(() => scheduleLaunchSound(context))
+          .catch(() => {});
+        return;
+      }
+      scheduleLaunchSound(context);
     }
 
     function resizeCanvas() {
@@ -3570,6 +3602,13 @@
       updateTrajectoryControls();
       if (mode !== "lobby") drawScene();
     });
+    soundToggle.addEventListener("change", () => {
+      audioPrimed = false;
+      if (soundToggle.checked) primeAudioContext();
+    });
+    window.addEventListener("pointerdown", primeAudioContext, { capture: true });
+    window.addEventListener("keydown", primeAudioContext, { capture: true });
+    launchBtn.addEventListener("pointerdown", primeAudioContext);
     launchBtn.addEventListener("click", launch);
     resetBtn.addEventListener("click", () => {
       if (isPuttingPracticeMode()) startPuttingPractice();
