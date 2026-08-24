@@ -1087,6 +1087,20 @@
         </div>
 
         <div class="control">
+          <label class="check-row" for="trajectoryToggle">
+            <input id="trajectoryToggle" type="checkbox" checked />
+            <span data-i18n="trajectoryOption">显示飞行轨迹</span>
+          </label>
+        </div>
+
+        <div class="control hidden" id="trajectoryOnlyControl">
+          <label class="check-row" for="trajectoryOnlyToggle">
+            <input id="trajectoryOnlyToggle" type="checkbox" />
+            <span data-i18n="trajectoryOnlyOption">只显示轨迹，不显示球</span>
+          </label>
+        </div>
+
+        <div class="control">
           <label class="check-row" for="soundToggle">
             <input id="soundToggle" type="checkbox" checked />
             <span data-i18n="soundOption">击球音效</span>
@@ -1291,6 +1305,9 @@
     const angleSlider = document.querySelector("#angle");
     const powerSlider = document.querySelector("#power");
     const bounceToggle = document.querySelector("#bounceToggle");
+    const trajectoryToggle = document.querySelector("#trajectoryToggle");
+    const trajectoryOnlyControl = document.querySelector("#trajectoryOnlyControl");
+    const trajectoryOnlyToggle = document.querySelector("#trajectoryOnlyToggle");
     const soundToggle = document.querySelector("#soundToggle");
     const languageBtn = document.querySelector("#languageBtn");
     const stage = document.querySelector("#stage");
@@ -1437,6 +1454,8 @@
         launchAngle: "发射角度",
         power: "力度",
         bounceOption: "落地后弹跳",
+        trajectoryOption: "显示飞行轨迹",
+        trajectoryOnlyOption: "只显示轨迹，不显示球",
         soundOption: "击球音效",
         hint: "距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。",
         targetDistance: "目标飞行距离",
@@ -1563,6 +1582,8 @@
         launchAngle: "Launch Angle",
         power: "Power",
         bounceOption: "Bounce after landing",
+        trajectoryOption: "Show flight trail",
+        trajectoryOnlyOption: "Trail only, hide ball",
         soundOption: "Launch sound",
         hint: "Distances come from your table. The simulator uses the selected distance and angle to estimate launch speed, then plays the shot with projectile motion.",
         targetDistance: "Target Carry",
@@ -1911,6 +1932,13 @@
       windArrow.textContent = currentWind.arrow;
     }
 
+    function updateTrajectoryControls() {
+      const showTrajectoryOnly = isFreeMode();
+      trajectoryOnlyControl.classList.toggle("hidden", !showTrajectoryOnly);
+      if (!showTrajectoryOnly) trajectoryOnlyToggle.checked = false;
+      if (!trajectoryToggle.checked) trajectoryOnlyToggle.checked = false;
+    }
+
     function randomTarget() {
       return Math.floor(250 + Math.random() * 221);
     }
@@ -2044,6 +2072,7 @@
       obstacleCourse = null;
       gameFinished = false;
       updateWindHud();
+      updateTrajectoryControls();
     }
 
     function showSimulator(nextMode) {
@@ -2062,6 +2091,7 @@
       fields.gameInfo.classList.toggle("show", challengeMode);
       updateLifeHud();
       updateWindHud();
+      updateTrajectoryControls();
       fillClubs({ reset: !challengeMode, preserveSwing: nextMode === "free" });
       if (nextMode === "putting") startPuttingPractice();
       else if (nextMode === "obstacle") startObstacleCourse();
@@ -2797,6 +2827,24 @@
       ctx.restore();
     }
 
+    function drawFullShotPath(origin, scale, minX) {
+      if (!isFreeMode() || !trajectoryOnlyToggle.checked || !trajectoryToggle.checked || !shot) return;
+      ctx.save();
+      ctx.strokeStyle = "rgba(36, 120, 183, 0.82)";
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      for (let i = 0; i <= 90; i += 1) {
+        const point = pointAt(i / 90);
+        const p = screenPoint({ x: point.x, y: point.y }, origin, scale, minX);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
     function drawPrediction(origin, scale, minX) {
       if (!isChallengeMode() || animation || gameFinished) return;
       const preview = getShot();
@@ -2976,14 +3024,17 @@
       const { origin, maxX, maxY, minX, scale } = getScale(rect);
 
       drawGrid(rect, origin, scale, maxX, maxY, minX);
-      drawPreviousTraces(origin, scale, minX);
-      drawPrediction(origin, scale, minX);
+      if (trajectoryToggle.checked) {
+        drawPreviousTraces(origin, scale, minX);
+        drawFullShotPath(origin, scale, minX);
+        drawPrediction(origin, scale, minX);
+      }
       drawObstacles(origin, scale, minX);
-      drawTrace(origin, scale, minX);
+      if (trajectoryToggle.checked && !trajectoryOnlyToggle.checked) drawTrace(origin, scale, minX);
       drawLanding(origin, scale, minX);
       drawFlag(origin, scale, minX);
 
-      if (!ballHidden) {
+      if (!ballHidden && !trajectoryOnlyToggle.checked) {
         const ballScreen = screenPoint(ballPosition, origin, scale, minX);
         if (ballSinking) {
           const easedSink = 1 - Math.pow(1 - sinkProgress, 2);
@@ -3479,6 +3530,7 @@
       if (shot) updateText();
       if (!holeModal.classList.contains("hidden")) updateHoleModalText();
       updateWindHud();
+      updateTrajectoryControls();
       renderAchievements();
       updateGameInfo();
       if (mode !== "lobby") drawScene();
@@ -3504,6 +3556,15 @@
     });
     bounceToggle.addEventListener("change", () => {
       adjustShotSettings("powerChanged");
+    });
+    trajectoryToggle.addEventListener("change", () => {
+      updateTrajectoryControls();
+      if (mode !== "lobby") drawScene();
+    });
+    trajectoryOnlyToggle.addEventListener("change", () => {
+      if (trajectoryOnlyToggle.checked) trajectoryToggle.checked = true;
+      updateTrajectoryControls();
+      if (mode !== "lobby") drawScene();
     });
     launchBtn.addEventListener("click", launch);
     resetBtn.addEventListener("click", () => {
