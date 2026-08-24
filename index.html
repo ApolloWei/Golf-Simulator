@@ -1296,6 +1296,9 @@
     let landed = false;
     let showLandingMarker = false;
     let flightProgress = 0;
+    let ballSinking = false;
+    let sinkProgress = 0;
+    let ballHidden = false;
     let audioContext = null;
     let gameTargetYards = 0;
     let gameRemainingYards = 0;
@@ -2894,8 +2897,9 @@
       ctx.restore();
     }
 
-    function drawGolfBall(px, py, radius, spin) {
+    function drawGolfBall(px, py, radius, spin, alpha = 1) {
       ctx.save();
+      ctx.globalAlpha = alpha;
       const shadow = Math.max(0.15, Math.min(1, 1 - ballPosition.y / 90));
       ctx.fillStyle = `rgba(0, 0, 0, ${0.18 * shadow})`;
       ctx.beginPath();
@@ -2940,8 +2944,17 @@
       drawLanding(origin, scale, minX);
       drawFlag(origin, scale, minX);
 
-      const ballScreen = screenPoint(ballPosition, origin, scale, minX);
-      drawGolfBall(ballScreen.x, ballScreen.y, 8, flightProgress * 18);
+      if (!ballHidden) {
+        const ballScreen = screenPoint(ballPosition, origin, scale, minX);
+        if (ballSinking) {
+          const easedSink = 1 - Math.pow(1 - sinkProgress, 2);
+          const radius = Math.max(0.2, 8 * (1 - easedSink));
+          const alpha = Math.max(0, 1 - sinkProgress * 1.15);
+          drawGolfBall(ballScreen.x, ballScreen.y + easedSink * 13, radius, flightProgress * 18, alpha);
+        } else {
+          drawGolfBall(ballScreen.x, ballScreen.y, 8, flightProgress * 18);
+        }
+      }
 
       if (greenZooming && !animation) {
         const closeEnough = Math.abs(gameViewMinX - gameViewTargetMinX) < 0.08
@@ -3029,6 +3042,9 @@
       showLandingMarker = false;
       greenZooming = false;
       flightProgress = 0;
+      ballSinking = false;
+      sinkProgress = 0;
+      ballHidden = false;
       setLaunchButton("launch", false);
       updateText(messageKey, vars);
       updateGameInfo();
@@ -3044,6 +3060,65 @@
         apex: shot.maxHeightYards,
         ...extra
       });
+    }
+
+    function isActivePuttingShot() {
+      return isChallengeMode() && shot?.club === "Putter"
+        && (isPuttingPracticeMode() || (isClassicMode() && gameOnGreen));
+    }
+
+    function getPuttSinkPlan() {
+      if (!isActivePuttingShot() || shot.finalDistanceYards <= 0) return null;
+      const distanceToHole = (gameTargetYards - gameShotStartYards) * gameShotDirection;
+      if (distanceToHole < 0 || distanceToHole > shot.finalDistanceYards) return null;
+      const finalX = gameShotStartYards + gameShotDirection * shot.finalDistanceYards;
+      const passedHole = (finalX - gameTargetYards) * gameShotDirection >= 0;
+      const stopAfterHole = Math.abs(finalX - gameTargetYards) <= 2;
+      if (!passedHole || !stopAfterHole) return null;
+      return {
+        progress: shot.finalDistanceYards === 0 ? 1 : distanceToHole / shot.finalDistanceYards,
+        distanceToHole: Math.abs(distanceToHole)
+      };
+    }
+
+    function completePuttAtHole(distanceToHole) {
+      ballPosition = {
+        x: gameTargetYards,
+        y: 0,
+        time: shot.duration * flightProgress,
+        shotX: distanceToHole
+      };
+      trail.push(ballPosition);
+      landed = true;
+      showLandingMarker = false;
+      gameShots += 1;
+      gameBallYards = gameTargetYards;
+      gameRemainingYards = 0;
+      gameFinished = true;
+      ballSinking = true;
+      sinkProgress = 0;
+      updateGameViewForPoint(ballPosition);
+      recordCompletedShot({
+        distance: distanceToHole,
+        remaining: 0,
+        puttSunk: true,
+        classicComplete: isClassicMode(),
+        score: isClassicMode() ? classicScore(gameShots) : undefined,
+        shots: gameShots,
+        streakSuccess: true
+      });
+      setLaunchButton("launch", true);
+      if (isPuttingPracticeMode()) {
+        updateText("puttingPracticeComplete", { remaining: 0 });
+      } else {
+        updateText("gameCompleteMessage", {
+          shots: gameShots,
+          distance: Math.round(distanceToHole),
+          remaining: 0,
+          score: scoreStars(classicScore(gameShots))
+        });
+      }
+      updateGameInfo();
     }
 
     function launch() {
@@ -3067,12 +3142,17 @@
       landed = false;
       showLandingMarker = false;
       flightProgress = 0;
+      ballSinking = false;
+      sinkProgress = 0;
+      ballHidden = false;
       resetFlightStats("preparing");
       setLaunchButton("flying", true);
 
       const swingMs = 520;
       const flightMs = Math.max(1800, Math.min(7800, shot.duration * 1000));
       const started = performance.now();
+      const puttSinkPlan = getPuttSinkPlan();
+      let puttSinkResolved = false;
 
       function frame(now) {
         const elapsed = now - started;
@@ -3095,6 +3175,31 @@
             }
           : { ...localPoint, shotX: localPoint.x };
         trail.push({ x: ballPosition.x, y: ballPosition.y });
+
+        if (puttSinkPlan && !puttSinkResolved && flightProgress >= puttSinkPlan.progress) {
+          puttSinkResolved = true;
+          flightProgress = puttSinkPlan.progress;
+          completePuttAtHole(puttSinkPlan.distanceToHole);
+          const sinkStarted = performance.now();
+          function sinkFrame(sinkNow) {
+            sinkProgress = Math.min(1, (sinkNow - sinkStarted) / 520);
+            drawScene();
+            if (sinkProgress < 1) {
+              animation = scheduleAnimationFrame(sinkFrame);
+              return;
+            }
+            ballSinking = false;
+            ballHidden = true;
+            animation = null;
+            if (isPuttingPracticeMode()) {
+              holeAdvanceTimer = setTimeout(() => startPuttingPractice(), 800);
+            } else {
+              showHoleCompleteModal(gameShots);
+            }
+          }
+          animation = scheduleAnimationFrame(sinkFrame);
+          return;
+        }
 
         if (flightProgress >= 1) {
           const finalWindOffset = windOffsetForProgress(1);
