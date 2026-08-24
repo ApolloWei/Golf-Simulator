@@ -2604,6 +2604,41 @@
       scheduleLaunchSound(context);
     }
 
+    function scheduleHoleDingSound(context) {
+      const now = context.currentTime + 0.004;
+      const master = context.createGain();
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.24, now + 0.01);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.72);
+      master.connect(context.destination);
+
+      [1568, 2093].forEach((frequency, index) => {
+        const tone = context.createOscillator();
+        const gain = context.createGain();
+        tone.type = "sine";
+        tone.frequency.setValueAtTime(frequency, now + index * 0.025);
+        gain.gain.setValueAtTime(index === 0 ? 0.9 : 0.42, now + index * 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.62 + index * 0.05);
+        tone.connect(gain);
+        gain.connect(master);
+        tone.start(now + index * 0.025);
+        tone.stop(now + 0.76);
+      });
+    }
+
+    function playHoleDingSound() {
+      if (!soundToggle.checked) return;
+      const context = getAudioContext();
+      if (!context) return;
+      if (context.state === "suspended") {
+        context.resume()
+          .then(() => scheduleHoleDingSound(context))
+          .catch(() => {});
+        return;
+      }
+      scheduleHoleDingSound(context);
+    }
+
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
       const ratio = window.devicePixelRatio || 1;
@@ -3217,13 +3252,13 @@
       trail.push(ballPosition);
       landed = true;
       showLandingMarker = false;
-      gameShots += 1;
       gameBallYards = gameTargetYards;
       gameRemainingYards = 0;
       gameFinished = true;
-      ballSinking = true;
-      sinkProgress = 0;
       updateGameViewForPoint(ballPosition);
+      startHoleSinkAnimation();
+      playHoleDingSound();
+      gameShots += 1;
       recordCompletedShot({
         distance: distanceToHole,
         remaining: 0,
@@ -3245,6 +3280,29 @@
         });
       }
       updateGameInfo();
+    }
+
+    function startHoleSinkAnimation() {
+      ballSinking = true;
+      ballHidden = false;
+      sinkProgress = 0;
+    }
+
+    function finishHoleSinkAnimation(afterSink) {
+      const sinkStarted = performance.now();
+      function sinkFrame(sinkNow) {
+        sinkProgress = Math.min(1, (sinkNow - sinkStarted) / 520);
+        drawScene();
+        if (sinkProgress < 1) {
+          animation = scheduleAnimationFrame(sinkFrame);
+          return;
+        }
+        ballSinking = false;
+        ballHidden = true;
+        animation = null;
+        afterSink();
+      }
+      animation = scheduleAnimationFrame(sinkFrame);
     }
 
     function launch() {
@@ -3306,24 +3364,13 @@
           puttSinkResolved = true;
           flightProgress = puttSinkPlan.progress;
           completePuttAtHole(puttSinkPlan.distanceToHole);
-          const sinkStarted = performance.now();
-          function sinkFrame(sinkNow) {
-            sinkProgress = Math.min(1, (sinkNow - sinkStarted) / 520);
-            drawScene();
-            if (sinkProgress < 1) {
-              animation = scheduleAnimationFrame(sinkFrame);
-              return;
-            }
-            ballSinking = false;
-            ballHidden = true;
-            animation = null;
+          finishHoleSinkAnimation(() => {
             if (isPuttingPracticeMode()) {
               holeAdvanceTimer = setTimeout(() => startPuttingPractice(), 800);
             } else {
               showHoleCompleteModal(gameShots);
             }
-          }
-          animation = scheduleAnimationFrame(sinkFrame);
+          });
           return;
         }
 
@@ -3386,8 +3433,23 @@
             }
             if (isPuttingPracticeMode()) {
               gameFinished = gameRemainingYards <= HOLE_RADIUS_YARDS;
+              if (gameFinished) {
+                const sinkDistance = Math.abs(gameTargetYards - gameShotStartYards);
+                gameBallYards = gameTargetYards;
+                gameRemainingYards = 0;
+                ballPosition = {
+                  x: gameTargetYards,
+                  y: 0,
+                  time: shot.duration,
+                  shotX: sinkDistance
+                };
+                trail.push(ballPosition);
+                showLandingMarker = false;
+                startHoleSinkAnimation();
+                playHoleDingSound();
+              }
               recordCompletedShot({
-                distance: actualShotDistance,
+                distance: gameFinished ? Math.abs(gameTargetYards - gameShotStartYards) : actualShotDistance,
                 remaining: gameRemainingYards,
                 puttSunk: gameFinished,
                 streakSuccess: gameFinished
@@ -3398,7 +3460,11 @@
               });
               updateGameInfo();
               if (gameFinished) {
-                holeAdvanceTimer = setTimeout(() => startPuttingPractice(), 1200);
+                finishHoleSinkAnimation(() => {
+                  holeAdvanceTimer = setTimeout(() => startPuttingPractice(), 800);
+                });
+                drawScene();
+                return;
               }
               drawScene();
               animation = null;
@@ -3429,6 +3495,19 @@
             if (landedOnGreen) {
               enterPuttingMode();
             } else {
+              if (isClassicMode() && gameFinished) {
+                gameBallYards = gameTargetYards;
+                ballPosition = {
+                  x: gameTargetYards,
+                  y: 0,
+                  time: shot.duration,
+                  shotX: actualShotDistance
+                };
+                trail.push(ballPosition);
+                showLandingMarker = false;
+                startHoleSinkAnimation();
+                playHoleDingSound();
+              }
               updateText(messageKey, {
                 shots: gameShots,
                 distance: Math.round(shot.finalDistanceYards),
@@ -3443,7 +3522,9 @@
                 score
               });
             } else if (gameFinished) {
-              showHoleCompleteModal(gameShots);
+              finishHoleSinkAnimation(() => showHoleCompleteModal(gameShots));
+              drawScene();
+              return;
             }
             if (!isClassicMode()) resetSwingControlsToDefault();
           } else {
