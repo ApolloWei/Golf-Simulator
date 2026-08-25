@@ -151,6 +151,22 @@
       filter: brightness(1.04);
     }
 
+    .lobby-actions {
+      position: absolute;
+      top: 2px;
+      right: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lobby-actions .language-button,
+    .lobby-actions .achievements-button,
+    .lobby-actions .supporter-button {
+      position: static;
+      margin: 0;
+    }
+
     .supporter-button {
       position: absolute;
       top: 2px;
@@ -1054,6 +1070,20 @@
         vertical-align: top;
       }
 
+      .lobby-actions {
+        position: static;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .lobby-actions .language-button,
+      .lobby-actions .achievements-button,
+      .lobby-actions .supporter-button {
+        margin: 0;
+      }
+
       .life-hud {
         position: static;
         display: none;
@@ -1105,9 +1135,11 @@
 <body>
   <section class="lobby" id="lobby">
     <header>
-      <button class="supporter-button" id="supporterBtn" type="button" data-i18n="supporterButton">支持者</button>
-      <button class="achievements-button" id="lobbyAchievementsBtn" type="button" title="Achievements">🏆</button>
-      <button class="language-button" id="lobbyLanguageBtn" type="button">English</button>
+      <div class="lobby-actions">
+        <button class="supporter-button" id="supporterBtn" type="button" data-i18n="supporterButton">支持者</button>
+        <button class="achievements-button" id="lobbyAchievementsBtn" type="button" title="Achievements">🏆</button>
+        <button class="language-button" id="lobbyLanguageBtn" type="button">English</button>
+      </div>
       <h1 data-i18n="lobbyTitle">高尔夫模拟器</h1>
       <p class="subtitle" data-i18n="lobbySubtitle">先选择球员，再进入自由练习或挑战模式。</p>
     </header>
