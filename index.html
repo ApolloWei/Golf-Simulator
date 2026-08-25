@@ -1941,12 +1941,12 @@
       { id: "reach_the_green", icon: "🟩", category: "Classic", target: 1, name: { en: "Reach the Green", zh: "一杆上果岭" }, desc: { en: "Land on the green in one stroke in Classic Mode.", zh: "经典模式第一杆打上果岭。" }, progress: (s) => s.reachedGreenInOne },
       { id: "wind_whisperer", icon: "🌬️", category: "Classic", target: 1, name: { en: "Wind Whisperer", zh: "风语者" }, desc: { en: "Sink a shot from over 30 yards in strong wind.", zh: "在大风中从 30 码外击球进洞。" }, progress: (s) => s.windWhispererShots },
       { id: "big_hitter", icon: "🏌️", category: "Distance", target: 1, name: { en: "Big Hitter", zh: "重炮手" }, desc: { en: "Hit a drive over 300 yards.", zh: "用 Driver 打出 300 码以上。" }, progress: (s) => s.driver300Shots },
-      { id: "rolling_stone", icon: "🪨", category: "Distance", target: 1, name: { en: "Rolling Stone", zh: "滚动之石" }, desc: { en: "Travel 50+ yards after the first bounce.", zh: "第一次落地后继续滚动/弹跳 50 码以上。" }, progress: (s) => s.rollingStoneShots },
+      { id: "rolling_stone", icon: "🪨", category: "Distance", target: 1, name: { en: "Rolling Stone", zh: "滚动之石" }, desc: { en: "Travel 40+ yards after the first bounce.", zh: "第一次落地后继续滚动/弹跳 40 码以上。" }, progress: (s) => s.rollingStoneShots },
       { id: "four_hundred_club", icon: "🚀", category: "Distance", target: 400, name: { en: "400 Club", zh: "400 码俱乐部" }, desc: { en: "Hit a shot of 400+ yards.", zh: "打出 400 码以上的一杆。" }, progress: (s) => s.longestShot },
       { id: "five_hundred_club", icon: "🛰️", category: "Distance", target: 500, name: { en: "500 Club", zh: "500 码俱乐部" }, desc: { en: "Hit a shot of 500+ yards.", zh: "打出 500 码以上的一杆。" }, progress: (s) => s.longestShot },
       { id: "orbit_launch", icon: "🌌", category: "Distance", target: 180, name: { en: "Orbit Launch", zh: "冲出大气层" }, desc: { en: "Reach an apex of 180+ yards.", zh: "让球的最高点达到 180 码以上。" }, progress: (s) => s.highestApex },
       { id: "driver_specialist", icon: "💣", category: "Distance", target: 20, name: { en: "Driver Specialist", zh: "一号木专家" }, desc: { en: "Hit 20 drives of 300+ yards.", zh: "用 Driver 打出 20 次 300 码以上。" }, progress: (s) => s.driver300Shots },
-      { id: "rolling_legend", icon: "🌀", category: "Distance", target: 10, name: { en: "Rolling Legend", zh: "滚动传奇" }, desc: { en: "Travel 50+ yards after first bounce 10 times.", zh: "累计 10 次在第一次落地后继续滚动/弹跳 50 码以上。" }, progress: (s) => s.rollingStoneShots },
+      { id: "rolling_legend", icon: "🌀", category: "Distance", target: 10, name: { en: "Rolling Legend", zh: "滚动传奇" }, desc: { en: "Travel 40+ yards after first bounce 10 times.", zh: "累计 10 次在第一次落地后继续滚动/弹跳 40 码以上。" }, progress: (s) => s.rollingStoneShots },
       { id: "distance_marathon", icon: "🛣️", category: "Distance", target: 25000, name: { en: "Distance Marathon", zh: "距离马拉松" }, desc: { en: "Accumulate 25,000 yards of total distance.", zh: "累计飞行距离达到 25,000 码。" }, progress: (s) => s.totalDistance },
       { id: "shot_grinder", icon: "📚", category: "General", target: 500, name: { en: "Shot Grinder", zh: "练习狂人" }, desc: { en: "Play 500 total shots.", zh: "累计打出 500 杆。" }, progress: (s) => s.totalShots },
       { id: "pin_machine", icon: "🎛️", category: "Accuracy", target: 10, name: { en: "Pin Machine", zh: "追旗机器" }, desc: { en: "Land within 3 yards from 100+ yards out 10 times.", zh: "从 100 码外击球并停在洞口 3 码以内 10 次。" }, progress: (s) => s.closeCalls },
@@ -2074,7 +2074,7 @@
         this.addUnique("clubSlotsUsed", clubCollectionSlot(result.player, result.club));
         this.addUnique("modesPlayed", result.mode);
         if (result.club === "Driver" && distance >= 300) this.data.driver300Shots += 1;
-        if (postBounceDistance >= 50) this.data.rollingStoneShots += 1;
+        if (postBounceDistance >= 40) this.data.rollingStoneShots += 1;
         if (result.puttSunk) {
           this.data.successfulPutts += 1;
           this.data.longestPutt = Math.max(this.data.longestPutt, distance);
