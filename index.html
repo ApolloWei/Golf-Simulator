@@ -207,6 +207,84 @@
       grid-column: span 3;
     }
 
+    .player-unlock-panel {
+      display: grid;
+      gap: 12px;
+      margin: 16px 0 18px;
+      padding: 14px;
+      border: 1px solid rgba(205, 219, 209, 0.95);
+      border-radius: 8px;
+      background: #f7fbf6;
+    }
+
+    .player-unlock-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .player-unlock-percent {
+      color: var(--fairway-dark);
+      white-space: nowrap;
+    }
+
+    .player-unlock-bar {
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e1eadf;
+    }
+
+    .player-unlock-bar span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #53a35f, #d4b15f);
+      transition: width 240ms ease;
+    }
+
+    .player-unlock-list {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .player-unlock-item {
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .player-unlock-item.locked {
+      opacity: 0.66;
+      background: #f1f4f0;
+    }
+
+    .player-unlock-item strong {
+      display: block;
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 13px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .player-unlock-item span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
     .difficulty-toggle.three {
       grid-template-columns: repeat(3, 1fr);
     }
@@ -956,6 +1034,10 @@
         grid-template-columns: 1fr;
       }
 
+      .player-unlock-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .layout {
         grid-template-columns: 1fr;
       }
@@ -997,6 +1079,14 @@
       <div class="control">
         <label for="lobbyPlayer" data-i18n="choosePlayer">选择球员</label>
         <select id="lobbyPlayer"></select>
+      </div>
+      <div class="player-unlock-panel" id="playerUnlockPanel">
+        <div class="player-unlock-head">
+          <span data-i18n="playerUnlockProgress">角色解锁进度</span>
+          <span class="player-unlock-percent" id="playerUnlockPercent">0%</span>
+        </div>
+        <div class="player-unlock-bar" aria-hidden="true"><span id="playerUnlockBar"></span></div>
+        <div class="player-unlock-list" id="playerUnlockList"></div>
       </div>
       <div class="mode-grid">
         <button class="mode-button primary-row" id="startGameBtn" type="button">
@@ -1277,6 +1367,9 @@
     const lobby = document.querySelector("#lobby");
     const launchDock = document.querySelector("#launchDock");
     const lobbyPlayerSelect = document.querySelector("#lobbyPlayer");
+    const playerUnlockPercent = document.querySelector("#playerUnlockPercent");
+    const playerUnlockBar = document.querySelector("#playerUnlockBar");
+    const playerUnlockList = document.querySelector("#playerUnlockList");
     const startGameBtn = document.querySelector("#startGameBtn");
     const startObstacleBtn = document.querySelector("#startObstacleBtn");
     const startPrecisionBtn = document.querySelector("#startPrecisionBtn");
@@ -1398,6 +1491,13 @@
         lobbyTitle: "高尔夫模拟器",
         lobbySubtitle: "先选择球员，再进入自由练习或挑战模式。",
         choosePlayer: "选择球员",
+        playerUnlockProgress: "角色解锁进度",
+        playerUnlocked: "已解锁",
+        playerLocked: "未解锁",
+        unlockCalvin: "初始可用",
+        unlockNelly: "完成 60% 成就解锁",
+        unlockBryson: "完成 80% 成就解锁",
+        unlockYoutuber: "完成“十连一杆进洞”解锁",
         classicDifficulty: "经典模式难度",
         classicGreenRule: "经典模式果岭",
         easyMode: "简单",
@@ -1526,6 +1626,13 @@
         lobbyTitle: "Golf Simulator",
         lobbySubtitle: "Choose a player, then enter Classic, Precision, or Free Mode.",
         choosePlayer: "Choose Player",
+        playerUnlockProgress: "Player Unlock Progress",
+        playerUnlocked: "Unlocked",
+        playerLocked: "Locked",
+        unlockCalvin: "Available from the start",
+        unlockNelly: "Unlock at 60% achievements",
+        unlockBryson: "Unlock at 80% achievements",
+        unlockYoutuber: "Unlock by completing Ace Decade",
         classicDifficulty: "Classic Difficulty",
         classicGreenRule: "Classic Green",
         easyMode: "Easy",
@@ -1678,6 +1785,32 @@
         if (slot) slots.add(slot);
       });
       return Math.min(CLUB_COLLECTION_TARGET, slots.size);
+    }
+
+    function achievementUnlockedCount() {
+      return Object.keys(AchievementManager.data.unlocked || {}).length;
+    }
+
+    function achievementCompletionRatio() {
+      return achievementDefinitions.length === 0 ? 0 : achievementUnlockedCount() / achievementDefinitions.length;
+    }
+
+    function isPlayerUnlocked(name) {
+      if (name === "Calvin") return true;
+      if (name === "Pro (Nelly Korda)") return achievementCompletionRatio() >= 0.6;
+      if (name === "Pro (Bryson DeChambeau)") return achievementCompletionRatio() >= 0.8;
+      if (name === "Youtube Golfer") {
+        return AchievementManager.isUnlocked("ace_decade")
+          || (StatsManager.data.bestHoleInOneStreak || 0) >= 10;
+      }
+      return false;
+    }
+
+    function playerUnlockRequirementKey(name) {
+      if (name === "Pro (Nelly Korda)") return "unlockNelly";
+      if (name === "Pro (Bryson DeChambeau)") return "unlockBryson";
+      if (name === "Youtube Golfer") return "unlockYoutuber";
+      return "unlockCalvin";
     }
 
     const achievementDefinitions = [
@@ -1902,6 +2035,7 @@
         this.save();
         AchievementManager.evaluate();
         renderAchievements();
+        refreshPlayerUnlocks();
       }
     };
 
@@ -2111,19 +2245,51 @@
     }
 
     function fillPlayers() {
+      const previousPlayer = playerSelect.value || "Calvin";
+      const previousLobbyPlayer = lobbyPlayerSelect.value || previousPlayer;
       playerSelect.innerHTML = "";
       lobbyPlayerSelect.innerHTML = "";
       Object.keys(players).forEach((name) => {
+        const unlocked = isPlayerUnlocked(name);
+        const label = `${unlocked ? "" : "🔒 "}${name} ${ratingStars(name)}`;
         const option = document.createElement("option");
         option.value = name;
-        option.textContent = `${name} ${ratingStars(name)}`;
+        option.textContent = label;
+        option.disabled = !unlocked;
         playerSelect.appendChild(option);
 
         const lobbyOption = document.createElement("option");
         lobbyOption.value = name;
-        lobbyOption.textContent = `${name} ${ratingStars(name)}`;
+        lobbyOption.textContent = label;
+        lobbyOption.disabled = !unlocked;
         lobbyPlayerSelect.appendChild(lobbyOption);
       });
+      playerSelect.value = isPlayerUnlocked(previousPlayer) ? previousPlayer : "Calvin";
+      lobbyPlayerSelect.value = isPlayerUnlocked(previousLobbyPlayer) ? previousLobbyPlayer : playerSelect.value;
+      renderPlayerUnlocks();
+    }
+
+    function renderPlayerUnlocks() {
+      const percent = Math.round(achievementCompletionRatio() * 100);
+      if (playerUnlockPercent) playerUnlockPercent.textContent = `${percent}%`;
+      if (playerUnlockBar) playerUnlockBar.style.width = `${Math.min(100, percent)}%`;
+      if (!playerUnlockList) return;
+      playerUnlockList.innerHTML = "";
+      Object.keys(players).forEach((name) => {
+        const unlocked = isPlayerUnlocked(name);
+        const item = document.createElement("div");
+        item.className = `player-unlock-item${unlocked ? "" : " locked"}`;
+        item.innerHTML = `
+          <strong>${unlocked ? "✓" : "🔒"} ${name}</strong>
+          <span>${unlocked ? tr("playerUnlocked") : tr("playerLocked")} · ${tr(playerUnlockRequirementKey(name))}</span>
+        `;
+        playerUnlockList.appendChild(item);
+      });
+    }
+
+    function refreshPlayerUnlocks() {
+      fillPlayers();
+      if (mode === "free") fillClubs({ reset: false, preserveSwing: true });
     }
 
     function setClassicDifficulty(value) {
@@ -2208,6 +2374,8 @@
     }
 
     function showSimulator(nextMode) {
+      fillPlayers();
+      if (!isPlayerUnlocked(lobbyPlayerSelect.value)) lobbyPlayerSelect.value = "Calvin";
       const challengeMode = nextMode === "classic" || nextMode === "obstacle" || nextMode === "precision" || nextMode === "putting";
       gameOnGreen = false;
       greenZooming = false;
@@ -3842,6 +4010,7 @@
       if (!holeModal.classList.contains("hidden")) updateHoleModalText();
       updateWindHud();
       updateTrajectoryControls();
+      fillPlayers();
       renderAchievements();
       updateGameInfo();
       if (mode !== "lobby") drawScene();
