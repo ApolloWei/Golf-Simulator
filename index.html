@@ -1655,11 +1655,30 @@
       stats: "golfSimulatorStats.v1"
     };
 
-    const ALL_CLUBS = Array.from(new Set([
-      ...Object.values(players).flat().map(([club]) => club),
-      "Putter"
-    ])).sort();
+    const CLUB_COLLECTION_TARGET = Math.max(...Object.values(players).map((clubs) => clubs.length));
     const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
+
+    function clubCollectionSlot(player, club) {
+      if (!club || club === "Putter") return null;
+      const playerClubs = players[player] || [];
+      const playerIndex = playerClubs.findIndex(([name]) => name === club);
+      if (playerIndex >= 0) return `slot-${playerIndex + 1}`;
+
+      for (const clubs of Object.values(players)) {
+        const index = clubs.findIndex(([name]) => name === club);
+        if (index >= 0) return `slot-${index + 1}`;
+      }
+      return null;
+    }
+
+    function clubCollectorProgress(stats) {
+      const slots = new Set(stats.clubSlotsUsed || []);
+      (stats.clubsUsed || []).forEach((club) => {
+        const slot = clubCollectionSlot(null, club);
+        if (slot) slots.add(slot);
+      });
+      return Math.min(CLUB_COLLECTION_TARGET, slots.size);
+    }
 
     const achievementDefinitions = [
       { id: "first_shot", icon: "🏌️", category: "General", target: 1, name: { en: "First Shot", zh: "第一杆" }, desc: { en: "Hit your first shot.", zh: "打出你的第一杆。" }, progress: (s) => s.totalShots },
@@ -1684,7 +1703,7 @@
       { id: "getting_started", icon: "🔰", category: "General", target: 10, name: { en: "Getting Started", zh: "渐入佳境" }, desc: { en: "Play 10 shots.", zh: "累计打出 10 杆。" }, progress: (s) => s.totalShots },
       { id: "practice_makes_perfect", icon: "📈", category: "General", target: 50, name: { en: "Practice Makes Perfect", zh: "熟能生巧" }, desc: { en: "Play 50 shots.", zh: "累计打出 50 杆。" }, progress: (s) => s.totalShots },
       { id: "golf_fanatic", icon: "🏌️", category: "General", target: 100, name: { en: "Golf Fanatic", zh: "高尔夫狂热者" }, desc: { en: "Play 100 shots.", zh: "累计打出 100 杆。" }, progress: (s) => s.totalShots },
-      { id: "club_collector", icon: "🧰", category: "General", target: ALL_CLUBS.length, name: { en: "Club Collector", zh: "球杆收藏家" }, desc: { en: "Use every club.", zh: "使用过所有球杆。" }, progress: (s) => s.clubsUsed.length },
+      { id: "club_collector", icon: "🧰", category: "General", target: CLUB_COLLECTION_TARGET, name: { en: "Club Collector", zh: "球杆收藏家" }, desc: { en: "Use every club in a full set.", zh: "使用过一整套标准球杆。" }, progress: clubCollectorProgress },
       { id: "experimenter", icon: "🧪", category: "General", target: ALL_MODES.length, name: { en: "Experimenter", zh: "实验玩家" }, desc: { en: "Play every mode.", zh: "玩过每一种模式。" }, progress: (s) => s.modesPlayed.length }
     ];
 
@@ -1705,6 +1724,7 @@
       cleanObstacleRuns: 0,
       hardObstacleCompletions: 0,
       clubsUsed: [],
+      clubSlotsUsed: [],
       modesPlayed: [],
       currentStreak: 0,
       bestStreak: 0
@@ -1749,6 +1769,7 @@
             : Math.min(this.data.closestToTarget, result.remaining);
         }
         this.addUnique("clubsUsed", result.club);
+        this.addUnique("clubSlotsUsed", clubCollectionSlot(result.player, result.club));
         this.addUnique("modesPlayed", result.mode);
         if (result.puttSunk) {
           this.data.successfulPutts += 1;
@@ -3215,6 +3236,7 @@
     function recordCompletedShot(extra = {}) {
       StatsManager.recordShot({
         mode,
+        player: shot.player,
         club: shot.club,
         distance: shot.finalDistanceYards,
         speed: shot.speed,
@@ -3667,7 +3689,7 @@
         ["statHolesCompleted", stats.holesCompleted],
         ["statBestScore", stats.bestScore ? scoreStars(stats.bestScore) : "-"],
         ["statObstacleCompletions", stats.obstacleCompletions],
-        ["statClubsUsed", `${stats.clubsUsed.length} / ${ALL_CLUBS.length}`],
+        ["statClubsUsed", `${clubCollectorProgress(stats)} / ${CLUB_COLLECTION_TARGET}`],
         ["statModesPlayed", `${stats.modesPlayed.length} / ${ALL_MODES.length}`],
         ["statCurrentStreak", stats.currentStreak],
         ["statBestStreak", stats.bestStreak]
