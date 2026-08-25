@@ -1414,6 +1414,12 @@
         ["58°", 80], ["54°", 98], ["50°", 113], ["PW", 122], ["9 Iron", 134],
         ["8 Iron", 149], ["7 Iron", 159], ["6 Iron", 173], ["5 Iron", 185],
         ["6 Wood", 200], ["3 Wood", 223], ["Driver", 258]
+      ],
+      "大爷": [
+        ["LW", 50], ["SW", 60], ["GW", 70], ["PW", 85], ["9 Iron", 85],
+        ["8 Iron", 95], ["7 Iron", 110], ["6 Iron", 100], ["5 Iron", 105],
+        ["4 Hybrid", 120], ["3 Hybrid", 130], ["7 Wood", 125], ["5 Wood", 138],
+        ["3 Wood", 153], ["Driver", 175]
       ]
     };
 
@@ -1421,15 +1427,17 @@
       "60°": 34, "58°": 33, "56°": 32, "54°": 31, "52°": 30, "50°": 28,
       "48°": 27, "45°": 25, "PW": 24, "9 Iron": 22, "8 Iron": 20,
       "7 Iron": 18, "6 Iron": 16, "5 Iron": 14, "4 Iron": 13,
-      "3 Iron": 12, "4 Hybrid": 13, "6 Wood": 12, "5 Wood": 11,
-      "3 Wood": 10, "Driver": 12, "Putter": PUTTER_ANGLE
+      "3 Iron": 12, "4 Hybrid": 13, "3 Hybrid": 13, "7 Wood": 12,
+      "6 Wood": 12, "5 Wood": 11, "3 Wood": 10, "GW": 26,
+      "SW": 31, "LW": 34, "Driver": 12, "Putter": PUTTER_ANGLE
     };
 
     const playerRatings = {
       "Calvin": 1,
       "Youtube Golfer": 3,
       "Pro (Bryson DeChambeau)": 5,
-      "Pro (Nelly Korda)": 5
+      "Pro (Nelly Korda)": 5,
+      "大爷": 1
     };
 
     const app = document.querySelector("#app");
@@ -1573,6 +1581,7 @@
         unlockNelly: "完成 60% 成就解锁",
         unlockBryson: "完成 80% 成就解锁",
         unlockYoutuber: "完成“十连一杆进洞”解锁",
+        unlockDaye: "完成所有成就解锁",
         classicDifficulty: "经典模式难度",
         classicGreenRule: "经典模式果岭",
         easyMode: "简单",
@@ -1713,6 +1722,7 @@
         unlockNelly: "Unlock at 60% achievements",
         unlockBryson: "Unlock at 80% achievements",
         unlockYoutuber: "Unlock by completing Ace Decade",
+        unlockDaye: "Unlock by completing every achievement",
         classicDifficulty: "Classic Difficulty",
         classicGreenRule: "Classic Green",
         easyMode: "Easy",
@@ -1844,7 +1854,7 @@
     };
     const SUPPORTER_PASSWORD_HASH = "ea72c79594296e45b8c2a296644d988581f58cfac6601d122ed0a8bd7c02e8bf";
 
-    const CLUB_COLLECTION_TARGET = Math.max(...Object.values(players).map((clubs) => clubs.length));
+    const CLUB_COLLECTION_TARGET = 13;
     const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
 
     function clubCollectionSlot(player, club) {
@@ -1877,6 +1887,10 @@
       return achievementDefinitions.length === 0 ? 0 : achievementUnlockedCount() / achievementDefinitions.length;
     }
 
+    function allAchievementsUnlocked() {
+      return achievementDefinitions.length > 0 && achievementUnlockedCount() >= achievementDefinitions.length;
+    }
+
     function hasSupporterUnlock() {
       return localStorage.getItem(STORAGE_KEYS.supporterUnlock) === "true";
     }
@@ -1896,6 +1910,7 @@
         return AchievementManager.isUnlocked("ace_decade")
           || (StatsManager.data.bestHoleInOneStreak || 0) >= 10;
       }
+      if (name === "大爷") return allAchievementsUnlocked();
       return false;
     }
 
@@ -1903,6 +1918,7 @@
       if (name === "Pro (Nelly Korda)") return "unlockNelly";
       if (name === "Pro (Bryson DeChambeau)") return "unlockBryson";
       if (name === "Youtube Golfer") return "unlockYoutuber";
+      if (name === "大爷") return "unlockDaye";
       return "unlockCalvin";
     }
 
