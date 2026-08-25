@@ -151,6 +151,35 @@
       filter: brightness(1.04);
     }
 
+    .supporter-button {
+      position: absolute;
+      top: 2px;
+      left: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(30, 56, 39, 0.1);
+    }
+
+    .supporter-button.unlocked {
+      border-color: rgba(83, 163, 95, 0.45);
+      background: #edf8ee;
+      color: var(--fairway-dark);
+    }
+
+    .supporter-button:hover {
+      filter: brightness(1.04);
+    }
+
     .lobby {
       width: min(920px, calc(100vw - 32px));
       margin: 0 auto;
@@ -1069,6 +1098,7 @@
 <body>
   <section class="lobby" id="lobby">
     <header>
+      <button class="supporter-button" id="supporterBtn" type="button" data-i18n="supporterButton">支持者</button>
       <button class="achievements-button" id="lobbyAchievementsBtn" type="button" title="Achievements">🏆</button>
       <button class="language-button" id="lobbyLanguageBtn" type="button">English</button>
       <h1 data-i18n="lobbyTitle">高尔夫模拟器</h1>
@@ -1370,6 +1400,7 @@
     const playerUnlockPercent = document.querySelector("#playerUnlockPercent");
     const playerUnlockBar = document.querySelector("#playerUnlockBar");
     const playerUnlockList = document.querySelector("#playerUnlockList");
+    const supporterBtn = document.querySelector("#supporterBtn");
     const startGameBtn = document.querySelector("#startGameBtn");
     const startObstacleBtn = document.querySelector("#startObstacleBtn");
     const startPrecisionBtn = document.querySelector("#startPrecisionBtn");
@@ -1490,6 +1521,11 @@
         languageButton: "English",
         lobbyTitle: "高尔夫模拟器",
         lobbySubtitle: "先选择球员，再进入自由练习或挑战模式。",
+        supporterButton: "支持者",
+        supporterUnlockedButton: "支持者 ✓",
+        supporterPrompt: "请输入支持者密码",
+        supporterSuccess: "支持者已解锁！所有人物以后都会自动开放。",
+        supporterFail: "密码不正确。",
         choosePlayer: "选择球员",
         playerUnlockProgress: "角色解锁进度",
         playerUnlocked: "已解锁",
@@ -1625,6 +1661,11 @@
         languageButton: "中文",
         lobbyTitle: "Golf Simulator",
         lobbySubtitle: "Choose a player, then enter Classic, Precision, or Free Mode.",
+        supporterButton: "Supporter",
+        supporterUnlockedButton: "Supporter ✓",
+        supporterPrompt: "Enter supporter password",
+        supporterSuccess: "Supporter unlocked. All players will stay available.",
+        supporterFail: "Incorrect password.",
         choosePlayer: "Choose Player",
         playerUnlockProgress: "Player Unlock Progress",
         playerUnlocked: "Unlocked",
@@ -1759,7 +1800,8 @@
 
     const STORAGE_KEYS = {
       achievements: "golfSimulatorAchievements.v1",
-      stats: "golfSimulatorStats.v1"
+      stats: "golfSimulatorStats.v1",
+      supporterUnlock: "golfSimulatorSupporterUnlock.v1"
     };
 
     const CLUB_COLLECTION_TARGET = Math.max(...Object.values(players).map((clubs) => clubs.length));
@@ -1795,7 +1837,12 @@
       return achievementDefinitions.length === 0 ? 0 : achievementUnlockedCount() / achievementDefinitions.length;
     }
 
+    function hasSupporterUnlock() {
+      return localStorage.getItem(STORAGE_KEYS.supporterUnlock) === "true";
+    }
+
     function isPlayerUnlocked(name) {
+      if (hasSupporterUnlock()) return true;
       if (name === "Calvin") return true;
       if (name === "Pro (Nelly Korda)") return achievementCompletionRatio() >= 0.6;
       if (name === "Pro (Bryson DeChambeau)") return achievementCompletionRatio() >= 0.8;
@@ -2273,6 +2320,10 @@
       const percent = Math.round(achievementCompletionRatio() * 100);
       if (playerUnlockPercent) playerUnlockPercent.textContent = `${percent}%`;
       if (playerUnlockBar) playerUnlockBar.style.width = `${Math.min(100, percent)}%`;
+      if (supporterBtn) {
+        supporterBtn.textContent = tr(hasSupporterUnlock() ? "supporterUnlockedButton" : "supporterButton");
+        supporterBtn.classList.toggle("unlocked", hasSupporterUnlock());
+      }
       if (!playerUnlockList) return;
       playerUnlockList.innerHTML = "";
       Object.keys(players).forEach((name) => {
@@ -2290,6 +2341,22 @@
     function refreshPlayerUnlocks() {
       fillPlayers();
       if (mode === "free") fillClubs({ reset: false, preserveSwing: true });
+    }
+
+    function unlockSupporterMode() {
+      if (hasSupporterUnlock()) {
+        refreshPlayerUnlocks();
+        return;
+      }
+      const entered = window.prompt(tr("supporterPrompt"));
+      if (entered == null) return;
+      if (entered.trim() !== "Peter") {
+        window.alert(tr("supporterFail"));
+        return;
+      }
+      localStorage.setItem(STORAGE_KEYS.supporterUnlock, "true");
+      refreshPlayerUnlocks();
+      window.alert(tr("supporterSuccess"));
     }
 
     function setClassicDifficulty(value) {
@@ -4113,6 +4180,7 @@
     startPuttingBtn.addEventListener("click", () => showSimulator("putting"));
     startFreeBtn.addEventListener("click", () => showSimulator("free"));
     homeBtn.addEventListener("click", showLobby);
+    supporterBtn.addEventListener("click", unlockSupporterMode);
     [achievementsBtn, lobbyAchievementsBtn].forEach((button) => {
       button.addEventListener("click", () => toggleAchievementPanel(true));
     });
