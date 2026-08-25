@@ -1689,10 +1689,16 @@
       { id: "pin_seeker", icon: "📍", category: "Accuracy", target: 1, name: { en: "Pin Seeker", zh: "追旗手" }, desc: { en: "Finish within 5 yards.", zh: "停在目标 5 码以内。" }, progress: (s) => s.closestToTarget != null && s.closestToTarget <= 5 ? 1 : 0 },
       { id: "almost_perfect", icon: "✨", category: "Accuracy", target: 1, name: { en: "Almost Perfect", zh: "几乎完美" }, desc: { en: "Finish within 1 yard.", zh: "停在目标 1 码以内。" }, progress: (s) => s.closestToTarget != null && s.closestToTarget <= 1 ? 1 : 0 },
       { id: "bullseye", icon: "🏹", category: "Accuracy", target: 1, name: { en: "Bullseye", zh: "正中靶心" }, desc: { en: "Finish within 0.25 yards.", zh: "停在目标 0.25 码以内。" }, progress: (s) => s.closestToTarget != null && s.closestToTarget <= 0.25 ? 1 : 0 },
+      { id: "close_call", icon: "🎯", category: "Accuracy", target: 1, name: { en: "Close Call", zh: "擦洞而过" }, desc: { en: "Land within 3 yards of the hole from over 100 yards away.", zh: "从 100 码外击球并停在洞口 3 码以内。" }, progress: (s) => s.closeCalls },
+      { id: "on_the_pin", icon: "📌", category: "Accuracy", target: 1, name: { en: "On the Pin", zh: "贴旗杆" }, desc: { en: "Finish within 0.25 yards from 75+ yards out. Bounce allowed.", zh: "从 75 码外击球并停在 0.25 码以内，允许弹跳。" }, progress: (s) => s.onThePinShots },
+      { id: "straight_shooter", icon: "📏", category: "Accuracy", target: 3, name: { en: "Straight Shooter", zh: "连续神准" }, desc: { en: "Hit three shots in a row within 1 yard of the target.", zh: "连续 3 杆停在目标 1 码以内。" }, progress: (s) => s.bestPerfectAccuracyStreak },
+      { id: "power_and_precision", icon: "⚡", category: "Accuracy", target: 1, name: { en: "Power & Precision", zh: "力量与精准" }, desc: { en: "Use 90%+ power and land within 5 yards of the hole.", zh: "使用 90% 以上力度并停在洞口 5 码以内。" }, progress: (s) => s.powerPrecisionShots },
       { id: "first_putt", icon: "⛳", category: "Putting", target: 1, name: { en: "First Putt", zh: "第一记推杆" }, desc: { en: "Sink your first putt.", zh: "推进你的第一颗球。" }, progress: (s) => s.successfulPutts },
       { id: "long_putt", icon: "🟢", category: "Putting", target: 5, name: { en: "Long Putt", zh: "长距离推杆" }, desc: { en: "Sink a 5+ yard putt.", zh: "推进 5 码以上的推杆。" }, progress: (s) => s.longestPutt },
       { id: "sniper_putt", icon: "🔭", category: "Putting", target: 10, name: { en: "Sniper Putt", zh: "狙击推杆" }, desc: { en: "Sink a 10+ yard putt.", zh: "推进 10 码以上的推杆。" }, progress: (s) => s.longestPutt },
+      { id: "extra_long_putt", icon: "🧲", category: "Putting", target: 15, name: { en: "Extra Long Putt", zh: "超长推杆" }, desc: { en: "Sink a putt longer than 15 yards.", zh: "推进 15 码以上的推杆。" }, progress: (s) => s.longestPutt },
       { id: "putting_master", icon: "👑", category: "Putting", target: 10, name: { en: "Putting Master", zh: "推杆大师" }, desc: { en: "Sink 10 putts.", zh: "累计推进 10 次。" }, progress: (s) => s.successfulPutts },
+      { id: "putting_practice_streak", icon: "🪙", category: "Putting", target: 10, name: { en: "Putting Practice", zh: "推杆连进" }, desc: { en: "Make 10 consecutive putts from 5 yards or closer.", zh: "连续推进 10 个 5 码以内的推杆。" }, progress: (s) => s.bestShortPuttStreak },
       { id: "gate_crasher", icon: "🚪", category: "Obstacle", target: 1, name: { en: "Gate Crasher", zh: "破门而入" }, desc: { en: "Pass your first obstacle gate.", zh: "第一次穿过障碍门。" }, progress: (s) => s.obstacleGatesPassed },
       { id: "clean_run", icon: "🧼", category: "Obstacle", target: 1, name: { en: "Clean Run", zh: "完美穿越" }, desc: { en: "Complete an obstacle course without missing a gate.", zh: "一次不漏地通过一组障碍。" }, progress: (s) => s.cleanObstacleRuns },
       { id: "obstacle_master", icon: "🏆", category: "Obstacle", target: 1, name: { en: "Obstacle Master", zh: "障碍大师" }, desc: { en: "Complete Hard Obstacle Mode.", zh: "在困难障碍模式中通过一组障碍。" }, progress: (s) => s.hardObstacleCompletions },
@@ -1700,6 +1706,16 @@
       { id: "par", icon: "⭐", category: "Classic", target: 1, name: { en: "Par", zh: "标准杆" }, desc: { en: "Finish a hole at par or better.", zh: "用标准杆或更少杆数完成一洞。" }, progress: (s) => s.bestClassicShots != null && s.bestClassicShots <= 4 ? 1 : 0 },
       { id: "birdie", icon: "🌟", category: "Classic", target: 1, name: { en: "Birdie", zh: "小鸟球" }, desc: { en: "Finish one under par.", zh: "低于标准杆一杆完成。" }, progress: (s) => s.bestClassicShots != null && s.bestClassicShots <= 3 ? 1 : 0 },
       { id: "eagle", icon: "💫", category: "Classic", target: 1, name: { en: "Eagle", zh: "老鹰球" }, desc: { en: "Finish two under par.", zh: "低于标准杆两杆完成。" }, progress: (s) => s.bestClassicShots != null && s.bestClassicShots <= 2 ? 1 : 0 },
+      { id: "first_birdie", icon: "🐦", category: "Classic", target: 1, name: { en: "First Birdie", zh: "第一只小鸟" }, desc: { en: "Score your first birdie.", zh: "第一次打出小鸟球。" }, progress: (s) => s.birdies || (s.bestClassicShots != null && s.bestClassicShots <= 3 ? 1 : 0) },
+      { id: "first_eagle", icon: "🦅", category: "Classic", target: 1, name: { en: "First Eagle", zh: "第一只老鹰" }, desc: { en: "Score your first eagle.", zh: "第一次打出老鹰球。" }, progress: (s) => s.eagles || (s.bestClassicShots != null && s.bestClassicShots <= 2 ? 1 : 0) },
+      { id: "eagle_eyes", icon: "👁️", category: "Classic", target: 1, name: { en: "Eagle Eyes", zh: "鹰眼" }, desc: { en: "Score an eagle on any hole.", zh: "任意一洞打出老鹰球。" }, progress: (s) => s.eagles || (s.bestClassicShots != null && s.bestClassicShots <= 2 ? 1 : 0) },
+      { id: "albatross", icon: "💎", category: "Classic", target: 1, name: { en: "Albatross", zh: "信天翁" }, desc: { en: "Score three under par on a single hole.", zh: "单洞低于标准杆 3 杆完成。" }, progress: (s) => s.albatrosses || (s.bestClassicShots != null && s.bestClassicShots <= 1 ? 1 : 0) },
+      { id: "hole_in_one", icon: "🥇", category: "Classic", target: 1, name: { en: "Hole-in-One", zh: "一杆进洞" }, desc: { en: "Get a hole-in-one on any hole.", zh: "任意一洞一杆进洞。" }, progress: (s) => s.holeInOnes || (s.bestClassicShots != null && s.bestClassicShots <= 1 ? 1 : 0) },
+      { id: "birdie_streak", icon: "🔥", category: "Classic", target: 3, name: { en: "Birdie Streak", zh: "小鸟连击" }, desc: { en: "Score 3 birdies in a row.", zh: "连续 3 洞打出小鸟球或更好。" }, progress: (s) => s.bestBirdieStreak },
+      { id: "reach_the_green", icon: "🟩", category: "Classic", target: 1, name: { en: "Reach the Green", zh: "一杆上果岭" }, desc: { en: "Land on the green in one stroke in Classic Mode.", zh: "经典模式第一杆打上果岭。" }, progress: (s) => s.reachedGreenInOne },
+      { id: "wind_whisperer", icon: "🌬️", category: "Classic", target: 1, name: { en: "Wind Whisperer", zh: "风语者" }, desc: { en: "Sink a shot from over 30 yards in strong wind.", zh: "在大风中从 30 码外击球进洞。" }, progress: (s) => s.windWhispererShots },
+      { id: "big_hitter", icon: "🏌️", category: "Distance", target: 1, name: { en: "Big Hitter", zh: "重炮手" }, desc: { en: "Hit a drive over 300 yards.", zh: "用 Driver 打出 300 码以上。" }, progress: (s) => s.driver300Shots },
+      { id: "rolling_stone", icon: "🪨", category: "Distance", target: 1, name: { en: "Rolling Stone", zh: "滚动之石" }, desc: { en: "Travel 50+ yards after the first bounce.", zh: "第一次落地后继续滚动/弹跳 50 码以上。" }, progress: (s) => s.rollingStoneShots },
       { id: "getting_started", icon: "🔰", category: "General", target: 10, name: { en: "Getting Started", zh: "渐入佳境" }, desc: { en: "Play 10 shots.", zh: "累计打出 10 杆。" }, progress: (s) => s.totalShots },
       { id: "practice_makes_perfect", icon: "📈", category: "General", target: 50, name: { en: "Practice Makes Perfect", zh: "熟能生巧" }, desc: { en: "Play 50 shots.", zh: "累计打出 50 杆。" }, progress: (s) => s.totalShots },
       { id: "golf_fanatic", icon: "🏌️", category: "General", target: 100, name: { en: "Golf Fanatic", zh: "高尔夫狂热者" }, desc: { en: "Play 100 shots.", zh: "累计打出 100 杆。" }, progress: (s) => s.totalShots },
@@ -1727,7 +1743,24 @@
       clubSlotsUsed: [],
       modesPlayed: [],
       currentStreak: 0,
-      bestStreak: 0
+      bestStreak: 0,
+      closeCalls: 0,
+      onThePinShots: 0,
+      currentPerfectAccuracyStreak: 0,
+      bestPerfectAccuracyStreak: 0,
+      powerPrecisionShots: 0,
+      currentShortPuttStreak: 0,
+      bestShortPuttStreak: 0,
+      birdies: 0,
+      eagles: 0,
+      albatrosses: 0,
+      holeInOnes: 0,
+      currentBirdieStreak: 0,
+      bestBirdieStreak: 0,
+      reachedGreenInOne: 0,
+      windWhispererShots: 0,
+      driver300Shots: 0,
+      rollingStoneShots: 0
     };
 
     function safeLoad(key, fallback) {
@@ -1758,29 +1791,64 @@
       },
       recordShot(result) {
         const distance = Math.max(0, result.distance || 0);
+        const remaining = result.remaining;
+        const hasTarget = remaining != null;
+        const postBounceDistance = Math.max(0, result.postBounceDistance || 0);
         this.data.totalShots += 1;
         this.data.longestShot = Math.max(this.data.longestShot, distance);
         this.data.totalDistance += distance;
         this.data.highestSpeed = Math.max(this.data.highestSpeed, result.speed || 0);
         this.data.highestApex = Math.max(this.data.highestApex, result.apex || 0);
-        if (result.remaining != null) {
+        if (hasTarget) {
           this.data.closestToTarget = this.data.closestToTarget == null
-            ? result.remaining
-            : Math.min(this.data.closestToTarget, result.remaining);
+            ? remaining
+            : Math.min(this.data.closestToTarget, remaining);
+          if (distance >= 100 && remaining <= 3) this.data.closeCalls += 1;
+          if (distance >= 75 && remaining <= 0.25) this.data.onThePinShots += 1;
+          if (remaining <= 1) this.data.currentPerfectAccuracyStreak += 1;
+          else this.data.currentPerfectAccuracyStreak = 0;
+          this.data.bestPerfectAccuracyStreak = Math.max(
+            this.data.bestPerfectAccuracyStreak,
+            this.data.currentPerfectAccuracyStreak
+          );
+          if ((result.powerPercent || 0) >= 90 && remaining <= 5) this.data.powerPrecisionShots += 1;
         }
         this.addUnique("clubsUsed", result.club);
         this.addUnique("clubSlotsUsed", clubCollectionSlot(result.player, result.club));
         this.addUnique("modesPlayed", result.mode);
+        if (result.club === "Driver" && distance >= 300) this.data.driver300Shots += 1;
+        if (postBounceDistance >= 50) this.data.rollingStoneShots += 1;
         if (result.puttSunk) {
           this.data.successfulPutts += 1;
           this.data.longestPutt = Math.max(this.data.longestPutt, distance);
+          if (distance <= 5) this.data.currentShortPuttStreak += 1;
+          else this.data.currentShortPuttStreak = 0;
+          this.data.bestShortPuttStreak = Math.max(this.data.bestShortPuttStreak, this.data.currentShortPuttStreak);
+        } else if (result.club === "Putter") {
+          this.data.currentShortPuttStreak = 0;
         }
         if (result.classicComplete) {
+          const shots = result.shots || 0;
+          const underPar = 4 - shots;
           this.data.holesCompleted += 1;
           this.data.bestScore = Math.max(this.data.bestScore, result.score || 0);
           this.data.bestClassicShots = this.data.bestClassicShots == null
-            ? result.shots
-            : Math.min(this.data.bestClassicShots, result.shots);
+            ? shots
+            : Math.min(this.data.bestClassicShots, shots);
+          if (underPar >= 1) {
+            this.data.birdies += 1;
+            this.data.currentBirdieStreak += 1;
+          } else {
+            this.data.currentBirdieStreak = 0;
+          }
+          if (underPar >= 2) this.data.eagles += 1;
+          if (underPar >= 3) this.data.albatrosses += 1;
+          if (shots === 1) this.data.holeInOnes += 1;
+          this.data.bestBirdieStreak = Math.max(this.data.bestBirdieStreak, this.data.currentBirdieStreak);
+          if (distance >= 30 && (result.windYards || 0) >= 4) this.data.windWhispererShots += 1;
+        }
+        if (result.landedOnGreen && result.strokeNumber === 1 && result.mode === "classic") {
+          this.data.reachedGreenInOne += 1;
         }
         if (result.obstaclePassed) {
           this.data.obstacleCompletions += 1;
@@ -3241,6 +3309,9 @@
         distance: shot.finalDistanceYards,
         speed: shot.speed,
         apex: shot.maxHeightYards,
+        powerPercent: shot.powerPercent,
+        postBounceDistance: Math.max(0, shot.finalDistanceYards - shot.distanceYards),
+        windYards: currentWind.yards,
         ...extra
       });
     }
@@ -3298,6 +3369,7 @@
       const roundScore = classicScore(gameShots);
       recordCompletedShot({
         distance: distanceToHole,
+        postBounceDistance: 0,
         remaining: 0,
         classicComplete: true,
         score: roundScore,
@@ -3566,6 +3638,8 @@
               puttSunk: isClassicMode() && gameFinished && shot.club === "Putter",
               score: roundScore,
               shots: gameShots,
+              strokeNumber: gameShots,
+              landedOnGreen,
               streakSuccess: mode === "precision" ? gameRemainingYards <= 10 : (isClassicMode() ? gameFinished : undefined)
             });
             let messageKey = "gameLandedMessage";
