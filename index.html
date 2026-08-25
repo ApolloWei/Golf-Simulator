@@ -1803,6 +1803,7 @@
       stats: "golfSimulatorStats.v1",
       supporterUnlock: "golfSimulatorSupporterUnlock.v1"
     };
+    const SUPPORTER_PASSWORD_HASH = "ea72c79594296e45b8c2a296644d988581f58cfac6601d122ed0a8bd7c02e8bf";
 
     const CLUB_COLLECTION_TARGET = Math.max(...Object.values(players).map((clubs) => clubs.length));
     const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
@@ -1839,6 +1840,12 @@
 
     function hasSupporterUnlock() {
       return localStorage.getItem(STORAGE_KEYS.supporterUnlock) === "true";
+    }
+
+    async function sha256Hex(value) {
+      const bytes = new TextEncoder().encode(value);
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
     }
 
     function isPlayerUnlocked(name) {
@@ -2343,14 +2350,15 @@
       if (mode === "free") fillClubs({ reset: false, preserveSwing: true });
     }
 
-    function unlockSupporterMode() {
+    async function unlockSupporterMode() {
       if (hasSupporterUnlock()) {
         refreshPlayerUnlocks();
         return;
       }
       const entered = window.prompt(tr("supporterPrompt"));
       if (entered == null) return;
-      if (entered.trim() !== "Peter") {
+      const enteredHash = await sha256Hex(entered.trim());
+      if (enteredHash !== SUPPORTER_PASSWORD_HASH) {
         window.alert(tr("supporterFail"));
         return;
       }
