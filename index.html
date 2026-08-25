@@ -1736,6 +1736,9 @@
       { id: "eagle_collector", icon: "🧭", category: "Classic", target: 5, name: { en: "Eagle Collector", zh: "老鹰收藏家" }, desc: { en: "Score 5 eagles or better.", zh: "累计打出 5 次老鹰球或更好。" }, progress: (s) => s.eagles },
       { id: "albatross_hunter", icon: "💠", category: "Classic", target: 3, name: { en: "Albatross Hunter", zh: "信天翁猎手" }, desc: { en: "Score 3 albatrosses.", zh: "累计打出 3 次信天翁。" }, progress: (s) => s.albatrosses },
       { id: "ace_hunter", icon: "🥇", category: "Classic", target: 3, name: { en: "Ace Hunter", zh: "一杆进洞猎手" }, desc: { en: "Make 3 holes-in-one.", zh: "累计完成 3 次一杆进洞。" }, progress: (s) => s.holeInOnes },
+      { id: "ace_decade", icon: "🔟", category: "Classic", target: 10, name: { en: "Ace Decade", zh: "十连一杆进洞" }, desc: { en: "Make 10 holes-in-one in a row.", zh: "连续 10 个经典模式球洞一杆进洞。" }, progress: (s) => s.bestHoleInOneStreak },
+      { id: "ace_century", icon: "💯", category: "Classic", target: 100, name: { en: "Ace Century", zh: "百次一杆进洞" }, desc: { en: "Make 100 total holes-in-one.", zh: "累计完成 100 次一杆进洞。" }, progress: (s) => s.holeInOnes },
+      { id: "two_stroke_dynasty", icon: "🏛️", category: "Classic", target: 1000, name: { en: "Two-Stroke Dynasty", zh: "千次两杆以内" }, desc: { en: "Complete 1,000 Classic holes in two strokes or fewer.", zh: "累计 1000 次在经典模式中两杆以内进洞。" }, progress: (s) => s.twoStrokeOrBetterHoles },
       { id: "birdie_chain_elite", icon: "⛓️", category: "Classic", target: 5, name: { en: "Birdie Chain Elite", zh: "小鸟长连击" }, desc: { en: "Score birdie or better on 5 Classic holes in a row.", zh: "连续 5 个经典模式球洞打出小鸟球或更好。" }, progress: (s) => s.bestBirdieStreak },
       { id: "green_machine", icon: "🟢", category: "Classic", target: 15, name: { en: "Green Machine", zh: "果岭机器" }, desc: { en: "Reach the green in one stroke 15 times.", zh: "累计 15 次第一杆打上果岭。" }, progress: (s) => s.reachedGreenInOne },
       { id: "gate_marathon", icon: "🚪", category: "Obstacle", target: 100, name: { en: "Gate Marathon", zh: "障碍门马拉松" }, desc: { en: "Pass 100 obstacle gates.", zh: "累计穿过 100 个障碍门。" }, progress: (s) => s.obstacleGatesPassed },
@@ -1780,6 +1783,9 @@
       eagles: 0,
       albatrosses: 0,
       holeInOnes: 0,
+      currentHoleInOneStreak: 0,
+      bestHoleInOneStreak: 0,
+      twoStrokeOrBetterHoles: 0,
       currentBirdieStreak: 0,
       bestBirdieStreak: 0,
       reachedGreenInOne: 0,
@@ -1868,7 +1874,14 @@
           }
           if (underPar >= 2) this.data.eagles += 1;
           if (underPar >= 3) this.data.albatrosses += 1;
-          if (shots === 1) this.data.holeInOnes += 1;
+          if (shots === 1) {
+            this.data.holeInOnes += 1;
+            this.data.currentHoleInOneStreak += 1;
+          } else {
+            this.data.currentHoleInOneStreak = 0;
+          }
+          if (shots <= 2) this.data.twoStrokeOrBetterHoles += 1;
+          this.data.bestHoleInOneStreak = Math.max(this.data.bestHoleInOneStreak, this.data.currentHoleInOneStreak);
           this.data.bestBirdieStreak = Math.max(this.data.bestBirdieStreak, this.data.currentBirdieStreak);
           if (distance >= 30 && (result.windYards || 0) >= 4) this.data.windWhispererShots += 1;
         }
