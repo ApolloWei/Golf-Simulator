@@ -645,8 +645,8 @@
       backdrop-filter: blur(8px);
     }
 
-    .launch-dock.game-clear {
-      top: 108px;
+    .launch-dock.free-corner {
+      top: 88px;
       bottom: auto;
     }
 
@@ -1136,6 +1136,13 @@
         bottom: 18px;
         justify-content: flex-end;
       }
+
+      .launch-dock.free-corner {
+        left: auto;
+        right: 10px;
+        top: 74px;
+        bottom: auto;
+      }
     }
   </style>
 </head>
@@ -1600,8 +1607,12 @@
         lobbySubtitle: "先选择球员，再进入自由练习或挑战模式。",
         supporterButton: "支持者",
         supporterUnlockedButton: "支持者 ✓",
+        supporterFutureUnlockedButton: "支持者+ ✓",
+        supporterChoicePrompt: "选择解锁类型：\n1 = 只解锁所有正常人物\n2 = 所有人物 + Future Calvin",
         supporterPrompt: "请输入支持者密码",
+        supporterFuturePrompt: "请输入 Future Calvin 支持者密码",
         supporterSuccess: "支持者已解锁！所有人物以后都会自动开放。",
+        supporterFutureSuccess: "Future Calvin 已解锁！",
         supporterFail: "密码不正确。",
         choosePlayer: "选择球员",
         playerUnlockProgress: "角色解锁进度",
@@ -1744,8 +1755,12 @@
         lobbySubtitle: "Choose a player, then enter Classic, Precision, or Free Mode.",
         supporterButton: "Supporter",
         supporterUnlockedButton: "Supporter ✓",
+        supporterFutureUnlockedButton: "Supporter+ ✓",
+        supporterChoicePrompt: "Choose unlock type:\n1 = Normal players only\n2 = All players + Future Calvin",
         supporterPrompt: "Enter supporter password",
+        supporterFuturePrompt: "Enter Future Calvin supporter password",
         supporterSuccess: "Supporter unlocked. All players will stay available.",
+        supporterFutureSuccess: "Future Calvin unlocked.",
         supporterFail: "Incorrect password.",
         choosePlayer: "Choose Player",
         playerUnlockProgress: "Player Unlock Progress",
@@ -1886,9 +1901,11 @@
     const STORAGE_KEYS = {
       achievements: "golfSimulatorAchievements.v1",
       stats: "golfSimulatorStats.v1",
-      supporterUnlock: "golfSimulatorSupporterUnlock.v1"
+      supporterUnlock: "golfSimulatorSupporterUnlock.v1",
+      supporterFutureUnlock: "golfSimulatorSupporterFutureUnlock.v1"
     };
     const SUPPORTER_PASSWORD_HASH = "ea72c79594296e45b8c2a296644d988581f58cfac6601d122ed0a8bd7c02e8bf";
+    const SUPPORTER_FUTURE_PASSWORD_HASH = "2dfcab3471c3a8bcea03ea7c0402547d9235998780a7e8c248b4da2a2b2a42c6";
 
     const CLUB_COLLECTION_TARGET = 13;
     const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
@@ -1931,6 +1948,10 @@
       return localStorage.getItem(STORAGE_KEYS.supporterUnlock) === "true";
     }
 
+    function hasFutureSupporterUnlock() {
+      return localStorage.getItem(STORAGE_KEYS.supporterFutureUnlock) === "true";
+    }
+
     async function sha256Hex(value) {
       const bytes = new TextEncoder().encode(value);
       const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -1938,6 +1959,7 @@
     }
 
     function isPlayerUnlocked(name) {
+      if (name === "Future Calvin") return hasFutureSupporterUnlock();
       if (hasSupporterUnlock()) return true;
       if (name === "Calvin") return true;
       if (name === "Bob the Kid") return achievementCompletionRatio() >= 0.4;
@@ -2353,7 +2375,7 @@
       trajectoryOnlyControl.classList.toggle("hidden", !showTrajectoryOnly);
       if (!showTrajectoryOnly) trajectoryOnlyToggle.checked = false;
       if (!trajectoryToggle.checked) trajectoryOnlyToggle.checked = false;
-      launchDock.classList.toggle("game-clear", isChallengeMode() && mode !== "lobby");
+      launchDock.classList.toggle("free-corner", isFreeMode());
     }
 
     function randomTarget() {
@@ -2429,8 +2451,12 @@
       if (playerUnlockPercent) playerUnlockPercent.textContent = `${percent}%`;
       if (playerUnlockBar) playerUnlockBar.style.width = `${Math.min(100, percent)}%`;
       if (supporterBtn) {
-        supporterBtn.textContent = tr(hasSupporterUnlock() ? "supporterUnlockedButton" : "supporterButton");
-        supporterBtn.classList.toggle("unlocked", hasSupporterUnlock());
+        supporterBtn.textContent = tr(hasFutureSupporterUnlock()
+          ? "supporterFutureUnlockedButton"
+          : hasSupporterUnlock()
+            ? "supporterUnlockedButton"
+            : "supporterButton");
+        supporterBtn.classList.toggle("unlocked", hasSupporterUnlock() || hasFutureSupporterUnlock());
       }
       if (!playerUnlockList) return;
       playerUnlockList.innerHTML = "";
@@ -2452,20 +2478,24 @@
     }
 
     async function unlockSupporterMode() {
-      if (hasSupporterUnlock()) {
-        refreshPlayerUnlocks();
-        return;
-      }
-      const entered = window.prompt(tr("supporterPrompt"));
+      const choice = window.prompt(tr("supporterChoicePrompt"), hasSupporterUnlock() ? "2" : "1");
+      if (choice == null) return;
+      const normalizedChoice = choice.trim();
+      const unlocksFuture = normalizedChoice === "2";
+      const unlocksNormal = normalizedChoice === "1" || unlocksFuture;
+      if (!unlocksNormal) return;
+      const entered = window.prompt(tr(unlocksFuture ? "supporterFuturePrompt" : "supporterPrompt"));
       if (entered == null) return;
       const enteredHash = await sha256Hex(entered.trim());
-      if (enteredHash !== SUPPORTER_PASSWORD_HASH) {
+      const expectedHash = unlocksFuture ? SUPPORTER_FUTURE_PASSWORD_HASH : SUPPORTER_PASSWORD_HASH;
+      if (enteredHash !== expectedHash) {
         window.alert(tr("supporterFail"));
         return;
       }
-      localStorage.setItem(STORAGE_KEYS.supporterUnlock, "true");
+      if (unlocksNormal) localStorage.setItem(STORAGE_KEYS.supporterUnlock, "true");
+      if (unlocksFuture) localStorage.setItem(STORAGE_KEYS.supporterFutureUnlock, "true");
       refreshPlayerUnlocks();
-      window.alert(tr("supporterSuccess"));
+      window.alert(tr(unlocksFuture ? "supporterFutureSuccess" : "supporterSuccess"));
     }
 
     function setClassicDifficulty(value) {
