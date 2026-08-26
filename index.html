@@ -1280,6 +1280,13 @@
           </label>
         </div>
 
+        <div class="control">
+          <label class="check-row" for="cheatToggle">
+            <input id="cheatToggle" type="checkbox" />
+            <span data-i18n="cheatOption">允许作弊</span>
+          </label>
+        </div>
+
         <p class="hint" data-i18n="hint">距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。</p>
 
         <div class="stats">
@@ -1517,6 +1524,7 @@
     const trajectoryOnlyControl = document.querySelector("#trajectoryOnlyControl");
     const trajectoryOnlyToggle = document.querySelector("#trajectoryOnlyToggle");
     const soundToggle = document.querySelector("#soundToggle");
+    const cheatToggle = document.querySelector("#cheatToggle");
     const languageBtn = document.querySelector("#languageBtn");
     const stage = document.querySelector("#stage");
     const windHud = document.querySelector("#windHud");
@@ -1686,6 +1694,7 @@
         trajectoryOption: "显示飞行轨迹",
         trajectoryOnlyOption: "只显示轨迹，不显示球",
         soundOption: "击球音效",
+        cheatOption: "允许作弊",
         hint: "距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。",
         targetDistance: "目标飞行距离",
         targetDistanceWithBounce: "目标飞行距离（with bounce）",
@@ -1834,6 +1843,7 @@
         trajectoryOption: "Show flight trail",
         trajectoryOnlyOption: "Trail only, hide ball",
         soundOption: "Launch sound",
+        cheatOption: "Allow cheats",
         hint: "Distances come from your table. The simulator uses the selected distance and angle to estimate launch speed, then plays the shot with projectile motion.",
         targetDistance: "Target Carry",
         targetDistanceWithBounce: "Target Carry (with bounce)",
@@ -2384,6 +2394,7 @@
       if (!showTrajectoryOnly) trajectoryOnlyToggle.checked = false;
       if (!trajectoryToggle.checked) trajectoryOnlyToggle.checked = false;
       launchDock.classList.toggle("free-corner", isFreeMode());
+      updateResetButtonVisibility();
     }
 
     function randomTarget() {
@@ -2824,6 +2835,11 @@
     }
 
     function adjustShotSettings(messageKey, vars = {}) {
+      if (animation) {
+        fields.angle.textContent = `${angleSlider.value}°`;
+        fields.power.textContent = `${powerSlider.value}%`;
+        return;
+      }
       if (isClassicMode() && landed && !gameFinished) {
         shot = getShot();
         showLandingMarker = false;
@@ -3642,6 +3658,33 @@
       launchButtonKey = key;
       launchBtn.disabled = disabled;
       launchBtn.innerHTML = `<span class="ball-dot" aria-hidden="true"></span>${tr(key)}`;
+      updateResetButtonVisibility();
+    }
+
+    function updateResetButtonVisibility() {
+      const showReset = isFreeMode() || (isChallengeMode() && cheatToggle.checked);
+      resetBtn.classList.toggle("hidden", !showReset);
+    }
+
+    function currentMapReadyMessage() {
+      if (isPuttingPracticeMode()) return ["puttingPracticeReady", { remaining: Math.round(gameRemainingYards) }];
+      if (isObstacleMode()) return ["obstacleReady", {}];
+      if (mode === "precision") return ["precisionReady", { target: gameTargetYards }];
+      if (isClassicMode() && gameOnGreen) return ["puttingReady", {}];
+      if (isClassicMode()) return [isClassicHardMode() ? "hardGameReady" : "gameReady", { target: gameTargetYards }];
+      return ["reset", {}];
+    }
+
+    function useResetButton() {
+      if (isChallengeMode() && animation) {
+        const [messageKey, vars] = currentMapReadyMessage();
+        resetShot(messageKey, vars);
+        return;
+      }
+      if (isPuttingPracticeMode()) startPuttingPractice();
+      else if (isObstacleMode()) startObstacleCourse();
+      else if (isChallengeMode()) startGame(mode);
+      else resetShot("reset");
     }
 
     function updateText(messageKey = currentMessageKey, vars = currentMessageVars) {
@@ -4264,16 +4307,12 @@
       audioPrimed = false;
       if (soundToggle.checked) primeAudioContext();
     });
+    cheatToggle.addEventListener("change", updateResetButtonVisibility);
     window.addEventListener("pointerdown", primeAudioContext, { capture: true });
     window.addEventListener("keydown", primeAudioContext, { capture: true });
     launchBtn.addEventListener("pointerdown", primeAudioContext);
     launchBtn.addEventListener("click", launch);
-    resetBtn.addEventListener("click", () => {
-      if (isPuttingPracticeMode()) startPuttingPractice();
-      else if (isObstacleMode()) startObstacleCourse();
-      else if (isChallengeMode()) startGame(mode);
-      else resetShot("reset");
-    });
+    resetBtn.addEventListener("click", useResetButton);
     function handleDifficultyChoice(event, value) {
       event.stopPropagation();
       setClassicDifficulty(value);
