@@ -1407,6 +1407,11 @@
         ["9 Iron", 130], ["8 Iron", 140], ["7 Iron", 150], ["6 Iron", 160],
         ["5 Iron", 180], ["4 Hybrid", 190], ["3 Wood", 210], ["Driver", 240]
       ],
+      "Bob the Kid": [
+        ["60°", 60], ["56°", 70], ["50°", 85], ["PW", 105], ["9 Iron", 120],
+        ["8 Iron", 135], ["7 Iron", 145], ["6 Iron", 160], ["5 Iron", 170],
+        ["4 Iron", 180], ["3 Hybrid", 195], ["3 Wood", 210], ["Driver", 250]
+      ],
       "Youtube Golfer": [
         ["60°", 101], ["56°", 125], ["52°", 148], ["PW", 165], ["9 Iron", 174],
         ["8 Iron", 194], ["7 Iron", 207], ["6 Iron", 216], ["5 Iron", 223],
@@ -1447,11 +1452,16 @@
 
     const playerRatings = {
       "Calvin": 1,
+      "Bob the Kid": 2,
       "Youtube Golfer": 3,
       "Pro (Bryson DeChambeau)": 5,
       "Pro (Nelly Korda)": 5,
       "Pro (Scottie Scheffler)": 5,
       "大爷": 1
+    };
+
+    const playerDisplayNames = {
+      "大爷": { zh: "大爷", en: "Your Grandfather" }
     };
 
     const app = document.querySelector("#app");
@@ -1592,6 +1602,7 @@
         playerUnlocked: "已解锁",
         playerLocked: "未解锁",
         unlockCalvin: "初始可用",
+        unlockBob: "完成 40% 成就解锁",
         unlockNelly: "完成 60% 成就解锁",
         unlockScottie: "完成 75% 成就解锁",
         unlockBryson: "完成 80% 成就解锁",
@@ -1734,6 +1745,7 @@
         playerUnlocked: "Unlocked",
         playerLocked: "Locked",
         unlockCalvin: "Available from the start",
+        unlockBob: "Unlock at 40% achievements",
         unlockNelly: "Unlock at 60% achievements",
         unlockScottie: "Unlock at 75% achievements",
         unlockBryson: "Unlock at 80% achievements",
@@ -1920,6 +1932,7 @@
     function isPlayerUnlocked(name) {
       if (hasSupporterUnlock()) return true;
       if (name === "Calvin") return true;
+      if (name === "Bob the Kid") return achievementCompletionRatio() >= 0.4;
       if (name === "Pro (Nelly Korda)") return achievementCompletionRatio() >= 0.6;
       if (name === "Pro (Scottie Scheffler)") return achievementCompletionRatio() >= 0.75;
       if (name === "Pro (Bryson DeChambeau)") return achievementCompletionRatio() >= 0.8;
@@ -1932,6 +1945,7 @@
     }
 
     function playerUnlockRequirementKey(name) {
+      if (name === "Bob the Kid") return "unlockBob";
       if (name === "Pro (Nelly Korda)") return "unlockNelly";
       if (name === "Pro (Scottie Scheffler)") return "unlockScottie";
       if (name === "Pro (Bryson DeChambeau)") return "unlockBryson";
@@ -2263,6 +2277,10 @@
       return "⭐️".repeat(playerRatings[player] || 1);
     }
 
+    function playerDisplayName(player) {
+      return playerDisplayNames[player]?.[currentLang] || player;
+    }
+
     function scoreStars(score) {
       return "⭐️".repeat(Math.max(1, Math.min(5, score)));
     }
@@ -2379,7 +2397,7 @@
       lobbyPlayerSelect.innerHTML = "";
       Object.keys(players).forEach((name) => {
         const unlocked = isPlayerUnlocked(name);
-        const label = `${unlocked ? "" : "🔒 "}${name} ${ratingStars(name)}`;
+        const label = `${unlocked ? "" : "🔒 "}${playerDisplayName(name)} ${ratingStars(name)}`;
         const option = document.createElement("option");
         option.value = name;
         option.textContent = label;
@@ -2412,7 +2430,7 @@
         const item = document.createElement("div");
         item.className = `player-unlock-item${unlocked ? "" : " locked"}`;
         item.innerHTML = `
-          <strong>${unlocked ? "✓" : "🔒"} ${name}</strong>
+          <strong>${unlocked ? "✓" : "🔒"} ${playerDisplayName(name)}</strong>
           <span>${unlocked ? tr("playerUnlocked") : tr("playerLocked")} · ${tr(playerUnlockRequirementKey(name))}</span>
         `;
         playerUnlockList.appendChild(item);
@@ -4042,7 +4060,7 @@
             recordCompletedShot();
             setLaunchButton("relaunch", false);
             updateText("landedMessage", {
-              player: shot.player,
+              player: playerDisplayName(shot.player),
               club: shot.club,
               power: shot.powerPercent,
               distance: Math.round(shot.finalDistanceYards)
