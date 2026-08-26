@@ -3088,7 +3088,7 @@
       const baselineMaxX = Math.ceil((shot.finalDistanceYards * 1.12) / 50) * 50;
       const maxX = isChallengeMode() ? gameViewMaxX : Math.max(50, baselineMaxX);
       const maxY = isChallengeMode() ? gameViewMaxY : Math.max(30, Math.ceil((shot.maxHeightYards * 1.45) / 25) * 25);
-      const origin = { x: 52, y: rect.height - 68 };
+      const origin = { x: 52, y: rect.height - (isClassicHardMode() ? 132 : 68) };
       const xScale = (rect.width - origin.x - 38) / maxX;
       const yScale = (origin.y - 30) / maxY;
       return { origin, maxX, maxY, minX: isChallengeMode() ? gameViewMinX : 0, scale: Math.min(xScale, yScale) };
