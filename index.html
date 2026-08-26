@@ -2312,6 +2312,14 @@
       return playerDisplayNames[player]?.[currentLang] || player;
     }
 
+    function sortedPlayerNames() {
+      return Object.keys(players).sort((a, b) => {
+        const ratingDiff = (playerRatings[a] || 1) - (playerRatings[b] || 1);
+        if (ratingDiff !== 0) return ratingDiff;
+        return playerDisplayName(a).localeCompare(playerDisplayName(b), currentLang === "zh" ? "zh-CN" : "en-US");
+      });
+    }
+
     function scoreStars(score) {
       return "⭐️".repeat(Math.max(1, Math.min(5, score)));
     }
@@ -2426,7 +2434,7 @@
       const previousLobbyPlayer = lobbyPlayerSelect.value || previousPlayer;
       playerSelect.innerHTML = "";
       lobbyPlayerSelect.innerHTML = "";
-      Object.keys(players).forEach((name) => {
+      sortedPlayerNames().forEach((name) => {
         const unlocked = isPlayerUnlocked(name);
         const label = `${unlocked ? "" : "🔒 "}${playerDisplayName(name)} ${ratingStars(name)}`;
         const option = document.createElement("option");
@@ -2460,7 +2468,7 @@
       }
       if (!playerUnlockList) return;
       playerUnlockList.innerHTML = "";
-      Object.keys(players).forEach((name) => {
+      sortedPlayerNames().forEach((name) => {
         const unlocked = isPlayerUnlocked(name);
         const item = document.createElement("div");
         item.className = `player-unlock-item${unlocked ? "" : " locked"}`;
