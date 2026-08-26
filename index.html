@@ -645,6 +645,11 @@
       backdrop-filter: blur(8px);
     }
 
+    .launch-dock.hard-clear {
+      top: 108px;
+      bottom: auto;
+    }
+
     .launch-button,
     .reset-button {
       height: 46px;
@@ -1127,6 +1132,8 @@
       .launch-dock {
         right: 10px;
         left: 10px;
+        top: auto;
+        bottom: 18px;
         justify-content: flex-end;
       }
     }
@@ -2319,6 +2326,7 @@
       trajectoryOnlyControl.classList.toggle("hidden", !showTrajectoryOnly);
       if (!showTrajectoryOnly) trajectoryOnlyToggle.checked = false;
       if (!trajectoryToggle.checked) trajectoryOnlyToggle.checked = false;
+      launchDock.classList.toggle("hard-clear", isClassicHardMode() && mode !== "lobby");
     }
 
     function randomTarget() {
