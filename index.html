@@ -645,7 +645,7 @@
       backdrop-filter: blur(8px);
     }
 
-    .launch-dock.hard-clear {
+    .launch-dock.game-clear {
       top: 108px;
       bottom: auto;
     }
@@ -2326,7 +2326,7 @@
       trajectoryOnlyControl.classList.toggle("hidden", !showTrajectoryOnly);
       if (!showTrajectoryOnly) trajectoryOnlyToggle.checked = false;
       if (!trajectoryToggle.checked) trajectoryOnlyToggle.checked = false;
-      launchDock.classList.toggle("hard-clear", isClassicHardMode() && mode !== "lobby");
+      launchDock.classList.toggle("game-clear", isChallengeMode() && mode !== "lobby");
     }
 
     function randomTarget() {
