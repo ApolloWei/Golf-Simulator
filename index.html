@@ -448,20 +448,46 @@
 
     .range-row {
       display: grid;
-      grid-template-columns: 1fr 58px;
+      grid-template-columns: 1fr 72px;
       gap: 10px;
       align-items: center;
+    }
+
+    .value-box {
+      position: relative;
+    }
+
+    .value-box::after {
+      content: attr(data-unit);
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 13px;
+      pointer-events: none;
     }
 
     .value-pill {
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      width: 100%;
       height: 32px;
+      padding: 0 24px 0 10px;
       border: 1px solid var(--line);
       border-radius: 7px;
       background: #f8faf7;
+      color: var(--ink);
+      font: inherit;
       font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .value-pill::-webkit-outer-spin-button,
+    .value-pill::-webkit-inner-spin-button {
+      margin: 0;
+      -webkit-appearance: none;
     }
 
     .hint {
@@ -1240,7 +1266,9 @@
           <label for="angle" data-i18n="launchAngle">发射角度</label>
           <div class="range-row">
             <input id="angle" type="range" min="1" max="55" step="1" />
-            <span class="value-pill" id="angleValue">12°</span>
+            <span class="value-box" data-unit="°">
+              <input class="value-pill" id="angleValue" type="number" min="1" max="55" step="1" value="12" aria-label="Launch angle" />
+            </span>
           </div>
         </div>
 
@@ -1248,7 +1276,9 @@
           <label for="power" data-i18n="power">力度</label>
           <div class="range-row">
             <input id="power" type="range" min="0" max="100" step="1" value="80" />
-            <span class="value-pill" id="powerValue">80%</span>
+            <span class="value-box" data-unit="%">
+              <input class="value-pill" id="powerValue" type="number" min="0" max="100" step="1" value="80" aria-label="Power percent" />
+            </span>
           </div>
         </div>
 
@@ -2433,11 +2463,21 @@
       return (mode === "classic" && classicGreenRule === "green") || mode === "precision" || mode === "putting";
     }
 
+    function clampNumber(value, min, max, fallback) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return fallback;
+      return Math.min(max, Math.max(min, Math.round(number)));
+    }
+
+    function syncSwingValueInputs() {
+      fields.angle.value = angleSlider.value;
+      fields.power.value = powerSlider.value;
+    }
+
     function resetSwingControlsToDefault() {
       angleSlider.value = DEFAULT_LAUNCH_ANGLE;
       powerSlider.value = DEFAULT_POWER_PERCENT;
-      fields.angle.textContent = `${DEFAULT_LAUNCH_ANGLE}°`;
-      fields.power.textContent = `${DEFAULT_POWER_PERCENT}%`;
+      syncSwingValueInputs();
     }
 
     function fillPlayers() {
@@ -2836,8 +2876,7 @@
 
     function adjustShotSettings(messageKey, vars = {}) {
       if (animation) {
-        fields.angle.textContent = `${angleSlider.value}°`;
-        fields.power.textContent = `${powerSlider.value}%`;
+        syncSwingValueInputs();
         return;
       }
       if (isClassicMode() && landed && !gameFinished) {
@@ -3702,8 +3741,7 @@
         else phaseKey = "phaseApex";
       }
 
-      fields.angle.textContent = `${shot.angleDeg}°`;
-      fields.power.textContent = `${shot.powerPercent}%`;
+      syncSwingValueInputs();
       updateTargetDistanceLabel();
       fields.distance.textContent = `${Math.round(shot.finalDistanceYards)} yd`;
       fields.liveDistance.textContent = `${Math.round(shotProgressX)} yd`;
@@ -3729,8 +3767,7 @@
     function resetFlightStats(messageKey = "preparing", vars = {}) {
       currentMessageKey = messageKey;
       currentMessageVars = vars;
-      fields.angle.textContent = `${shot.angleDeg}°`;
-      fields.power.textContent = `${shot.powerPercent}%`;
+      syncSwingValueInputs();
       updateTargetDistanceLabel();
       fields.distance.textContent = "0 yd";
       fields.liveDistance.textContent = "0 yd";
@@ -4289,6 +4326,26 @@
       adjustShotSettings("angleChanged");
     });
     powerSlider.addEventListener("input", () => {
+      adjustShotSettings("powerChanged");
+    });
+    fields.angle.addEventListener("input", () => {
+      if (fields.angle.value === "") return;
+      angleSlider.value = clampNumber(fields.angle.value, 1, 55, Number(angleSlider.value));
+      adjustShotSettings("angleChanged");
+    });
+    fields.angle.addEventListener("change", () => {
+      angleSlider.value = clampNumber(fields.angle.value, 1, 55, Number(angleSlider.value));
+      syncSwingValueInputs();
+      adjustShotSettings("angleChanged");
+    });
+    fields.power.addEventListener("input", () => {
+      if (fields.power.value === "") return;
+      powerSlider.value = clampNumber(fields.power.value, 0, 100, Number(powerSlider.value));
+      adjustShotSettings("powerChanged");
+    });
+    fields.power.addEventListener("change", () => {
+      powerSlider.value = clampNumber(fields.power.value, 0, 100, Number(powerSlider.value));
+      syncSwingValueInputs();
       adjustShotSettings("powerChanged");
     });
     bounceToggle.addEventListener("change", () => {
