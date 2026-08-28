@@ -3107,6 +3107,10 @@
       fields.targetDistanceLabel.textContent = tr(key);
     }
 
+    function displayedTargetDistanceYards() {
+      return isClassicHardMode() ? shot.distanceYards : shot.finalDistanceYards;
+    }
+
     function enterPuttingMode() {
       if (!hasClassicGreen()) return;
       if (gameOnGreen) return;
@@ -4024,7 +4028,7 @@
 
       syncSwingValueInputs();
       updateTargetDistanceLabel();
-      fields.distance.textContent = `${Math.round(shot.finalDistanceYards)} yd`;
+      fields.distance.textContent = `${Math.round(displayedTargetDistanceYards())} yd`;
       fields.liveDistance.textContent = `${Math.round(shotProgressX)} yd`;
       fields.speed.textContent = `${shot.speed.toFixed(1)} m/s`;
       fields.currentSpeed.textContent = `${velocity.speed.toFixed(1)} m/s`;
