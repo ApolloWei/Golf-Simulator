@@ -1466,6 +1466,11 @@
         ["8 Iron", 135], ["7 Iron", 145], ["6 Iron", 160], ["5 Iron", 170],
         ["4 Iron", 180], ["3 Hybrid", 195], ["3 Wood", 210], ["Driver", 250]
       ],
+      "老花眼": [
+        ["SW", 98], ["PW", 120], ["9 Iron", 137], ["8 Iron", 148], ["7 Iron", 159],
+        ["6 Iron", 169], ["5 Iron", 180], ["4 Iron", 191], ["3 Iron", 202],
+        ["5 Wood", 208], ["3 Wood", 230], ["Driver", 252]
+      ],
       "Heart Recovery Player": [
         ["LW", 43], ["SW", 51], ["GW", 60], ["PW", 68], ["9 Iron", 74],
         ["8 Iron", 79], ["7 Iron", 85], ["6 Iron", 92], ["5 Iron", 99],
@@ -1517,6 +1522,7 @@
     const playerRatings = {
       "Calvin": 1,
       "Bob the Kid": 2,
+      "老花眼": 4,
       "Heart Recovery Player": 4,
       "Future Calvin": 5,
       "Youtube Golfer": 3,
@@ -1528,6 +1534,7 @@
 
     const playerDisplayNames = {
       "Heart Recovery Player": { zh: "心脏手术后的专业球员", en: "Heart Recovery Pro Player" },
+      "老花眼": { zh: "老花眼", en: "Presbyopia Player" },
       "大爷": { zh: "大爷", en: "Your Grandfather" }
     };
 
@@ -1688,6 +1695,7 @@
         unlockBob: "完成 40% 成就解锁",
         unlockFutureCalvin: "成为支持者解锁",
         unlockHeartRecovery: "完成所有 + Only 成就解锁",
+        unlockLowVision: "完成所有 Bonus 和 + Only 成就解锁",
         unlockNelly: "完成 60% 成就解锁",
         unlockScottie: "完成 75% 成就解锁",
         unlockBryson: "完成 80% 成就解锁",
@@ -1758,6 +1766,7 @@
         targetDistance: "目标飞行距离",
         targetDistanceWithBounce: "目标飞行距离（with bounce）",
         targetDistanceWithoutBounce: "目标飞行距离（without bounce）",
+        hiddenTarget: "未知",
         currentDistance: "当前飞行距离",
         initialSpeed: "初速度",
         currentSpeed: "当前速度",
@@ -1768,6 +1777,7 @@
         availableClubs: "当前球员可用球杆",
         gameInfo: "洞距：{target} yd｜剩余：{remaining} yd｜杆数：{shots}",
         hardGameInfo: "经典困难｜只显示粗略刻度｜杆数：{shots}",
+        lowVisionGameInfo: "旗杆位置：未知｜剩余：未知｜杆数：{shots}",
         precisionInfo: "精准模式｜一杆机会｜已打：{shots}",
         puttingInfo: "果岭练习｜剩余：{remaining} yd｜练习次数：{shots}",
         obstacleInfo: "障碍物模式｜障碍：{obstacles} 个｜通过：{cleared}｜已打：{shots}",
@@ -1796,14 +1806,18 @@
         landedMessage: "{player} 使用 {club}，{power}% 力度让小球飞行了 {distance} yd。",
         gameLandedMessage: "第 {shots} 杆飞行 {distance} yd，距离洞口还剩 {remaining} yd。",
         hardGameLandedMessage: "第 {shots} 杆已落地。继续根据旗杆位置和粗略刻度估算下一杆。",
+        lowVisionLandedMessage: "第 {shots} 杆已落地。继续根据 50 码刻度和蓝色预估区域判断下一杆。",
         gameCompleteMessage: "进洞！总共用了 {shots} 杆。本关评分：{score}。",
         holeCompleteTitle: "恭喜！",
         holeCompleteText: "你用了 {shots} 杆打进了。本关评分：{score}。3 秒后进入下一关。",
         precisionCompleteMessage: "本杆距离旗杆 {remaining} yd。本关评分：{score}。",
+        lowVisionPrecisionCompleteMessage: "本杆已结束。本关评分：{score}。",
         precisionCompleteTitle: "本关结果",
         precisionCompleteText: "你离旗杆还差 {remaining} yd。本关评分：{score}。3 秒后进入下一关。",
+        lowVisionPrecisionCompleteText: "本杆已结束。本关评分：{score}。3 秒后进入下一关。",
         gameReady: "游戏开始。目标在 {target} yd 处，选择球杆、角度和力度后发射。",
         hardGameReady: "经典困难模式开始。只显示粗略刻度，观察旗杆位置后发射。",
+        lowVisionReady: "老花眼模式开始。只能看到 50 码刻度；目标较远时会显示当前击球的蓝色落点预估区。",
         precisionReady: "精准模式开始。只有一杆机会，观察旗杆位置后发射。",
         obstacleReady: "障碍物模式开始。系统已经生成标准弹道和障碍门，调整球杆、角度和力度后发射。",
         obstacleSuccess: "成功穿过这一组障碍！不扣生命，下一组马上出现。当前总分：{score}。",
@@ -1845,6 +1859,7 @@
         unlockBob: "Unlock at 40% achievements",
         unlockFutureCalvin: "Unlock as a Supporter",
         unlockHeartRecovery: "Unlock by completing every + Only achievement",
+        unlockLowVision: "Unlock by completing every Bonus and + Only achievement",
         unlockNelly: "Unlock at 60% achievements",
         unlockScottie: "Unlock at 75% achievements",
         unlockBryson: "Unlock at 80% achievements",
@@ -1915,6 +1930,7 @@
         targetDistance: "Target Carry",
         targetDistanceWithBounce: "Target Carry (with bounce)",
         targetDistanceWithoutBounce: "Target Carry (without bounce)",
+        hiddenTarget: "Unknown",
         currentDistance: "Current Distance",
         initialSpeed: "Initial Speed",
         currentSpeed: "Current Speed",
@@ -1925,6 +1941,7 @@
         availableClubs: "Available Clubs",
         gameInfo: "Hole: {target} yd | Remaining: {remaining} yd | Shots: {shots}",
         hardGameInfo: "Classic Hard | Coarse marks only | Shots: {shots}",
+        lowVisionGameInfo: "Flag: unknown | Remaining: unknown | Shots: {shots}",
         precisionInfo: "Precision Mode | One shot | Shots: {shots}",
         puttingInfo: "Green Practice | Remaining: {remaining} yd | Putts: {shots}",
         obstacleInfo: "Obstacle Mode | Gates: {obstacles} | Cleared: {cleared} | Shots: {shots}",
@@ -1953,14 +1970,18 @@
         landedMessage: "{player} used {club} at {power}% power. The ball flew {distance} yd.",
         gameLandedMessage: "Shot {shots} flew {distance} yd. {remaining} yd left to the hole.",
         hardGameLandedMessage: "Shot {shots} landed. Use the flag position and coarse marks to judge the next shot.",
+        lowVisionLandedMessage: "Shot {shots} landed. Use the 50-yard marks and blue estimate zone to judge the next shot.",
         gameCompleteMessage: "Holed out in {shots} shots. Score: {score}.",
         holeCompleteTitle: "Congratulations!",
         holeCompleteText: "You holed out in {shots} shots. Score: {score}. The next hole starts in 3 seconds.",
         precisionCompleteMessage: "This shot finished {remaining} yd from the flag. Score: {score}.",
+        lowVisionPrecisionCompleteMessage: "Shot finished. Score: {score}.",
         precisionCompleteTitle: "Round Result",
         precisionCompleteText: "You finished {remaining} yd from the flag. Score: {score}. The next hole starts in 3 seconds.",
+        lowVisionPrecisionCompleteText: "Shot finished. Score: {score}. The next hole starts in 3 seconds.",
         gameReady: "Game started. The flag is {target} yd away. Choose club, angle, and power, then launch.",
         hardGameReady: "Classic Hard started. Only coarse marks are shown. Read the flag position and launch.",
+        lowVisionReady: "Presbyopia mode started. You only get 50-yard marks; for long targets, the current shot gets a blue landing estimate zone.",
         precisionReady: "Precision Mode started. You have one shot. Read the flag position and launch.",
         obstacleReady: "Obstacle Mode started. A reference trajectory and gates are ready. Adjust club, angle, and power, then launch.",
         obstacleSuccess: "You cleared this gate set. No life lost. Next set coming up. Total score: {score}.",
@@ -2023,6 +2044,11 @@
       return achievementDefinitions.length > 0 && achievementUnlockedCount() >= achievementDefinitions.length;
     }
 
+    function allBonusAchievementsUnlocked() {
+      return bonusAchievementDefinitions.length > 0
+        && achievementUnlockedCount(bonusAchievementDefinitions) >= bonusAchievementDefinitions.length;
+    }
+
     function allPlusAchievementsUnlocked() {
       return plusOnlyAchievementDefinitions.length > 0
         && achievementUnlockedCount(plusOnlyAchievementDefinitions) >= plusOnlyAchievementDefinitions.length;
@@ -2060,6 +2086,7 @@
       if (hasSupporterMaxUnlock()) return true;
       if (name === "Future Calvin") return hasFutureSupporterUnlock();
       if (name === "Heart Recovery Player") return hasFutureSupporterUnlock() && allPlusAchievementsUnlocked();
+      if (name === "老花眼") return allBonusAchievementsUnlocked() && allPlusAchievementsUnlocked();
       if (hasSupporterUnlock()) return true;
       if (name === "Calvin") return true;
       if (name === "Bob the Kid") return achievementCompletionRatio() >= 0.4;
@@ -2078,6 +2105,7 @@
       if (name === "Bob the Kid") return "unlockBob";
       if (name === "Future Calvin") return "unlockFutureCalvin";
       if (name === "Heart Recovery Player") return "unlockHeartRecovery";
+      if (name === "老花眼") return "unlockLowVision";
       if (name === "Pro (Nelly Korda)") return "unlockNelly";
       if (name === "Pro (Scottie Scheffler)") return "unlockScottie";
       if (name === "Pro (Bryson DeChambeau)") return "unlockBryson";
@@ -2641,6 +2669,10 @@
       return mode === "classic" && classicDifficulty === "hard";
     }
 
+    function isLowVisionPlayer() {
+      return playerSelect.value === "老花眼";
+    }
+
     function hasClassicGreen() {
       return mode === "classic" && classicGreenRule === "green";
     }
@@ -2916,8 +2948,8 @@
       fillClubs({ reset: false });
       updateWindHud();
       const readyKey = mode === "precision"
-        ? "precisionReady"
-        : (isClassicHardMode() ? "hardGameReady" : "gameReady");
+        ? (isLowVisionPlayer() ? "lowVisionReady" : "precisionReady")
+        : (isLowVisionPlayer() ? "lowVisionReady" : (isClassicHardMode() ? "hardGameReady" : "gameReady"));
       resetShot(readyKey, { target: gameTargetYards });
     }
 
@@ -3037,15 +3069,16 @@
     function updateGameInfo() {
       if (!isChallengeMode()) return;
       let infoKey = "gameInfo";
-      if (mode === "precision") infoKey = "precisionInfo";
+      if (isLowVisionPlayer() && (mode === "classic" || mode === "precision" || mode === "putting")) infoKey = "lowVisionGameInfo";
+      else if (mode === "precision") infoKey = "precisionInfo";
       else if (mode === "putting") infoKey = "puttingInfo";
       else if (mode === "obstacle") infoKey = "obstacleInfo";
       else if (isClassicHardMode()) infoKey = "hardGameInfo";
       fields.gameInfo.textContent = [
         tr("rating", { stars: ratingStars(playerSelect.value) }),
         tr(infoKey, {
-          target: gameTargetYards,
-          remaining: Math.round(gameRemainingYards),
+          target: isLowVisionPlayer() ? tr("hiddenTarget") : gameTargetYards,
+          remaining: isLowVisionPlayer() ? tr("hiddenTarget") : Math.round(gameRemainingYards),
           obstacles: obstacleCourse ? obstacleCourse.gates.length : 0,
           lives: obstacleLives,
           maxLives: obstacleMaxLives,
@@ -3558,15 +3591,16 @@
       }
     }
 
-    function drawHardModeMarks(origin, scale, maxX, minX) {
-      if (!isClassicHardMode()) return;
+    function drawCoarseMarks(origin, scale, maxX, minX) {
+      const step = isLowVisionPlayer() ? 50 : 100;
+      if (!isClassicHardMode() && !isLowVisionPlayer()) return;
       ctx.save();
       ctx.strokeStyle = "rgba(29, 42, 34, 0.48)";
       ctx.fillStyle = "rgba(29, 42, 34, 0.72)";
       ctx.lineWidth = 2;
       ctx.font = "700 12px Arial";
-      const firstMark = Math.ceil(minX / 100) * 100;
-      for (let yards = Math.max(100, firstMark); yards <= minX + maxX; yards += 100) {
+      const firstMark = Math.ceil(minX / step) * step;
+      for (let yards = Math.max(step, firstMark); yards <= minX + maxX; yards += step) {
         const x = origin.x + (yards - minX) * scale;
         if (x > canvas.clientWidth - 26) break;
         ctx.beginPath();
@@ -3575,6 +3609,32 @@
         ctx.stroke();
         ctx.fillText(`${yards}`, x - 12, origin.y + 36);
       }
+      ctx.restore();
+    }
+
+    function drawLowVisionEstimate(origin, scale, minX) {
+      if (!isLowVisionPlayer() || !isChallengeMode() || animation || gameFinished || gameRemainingYards <= 200) return;
+      const preview = getShot();
+      const direction = gameTargetYards >= gameBallYards ? 1 : -1;
+      const finalWindOffset = windOffsetForProgress(1);
+      const estimatedLandingX = gameBallYards + direction * preview.finalDistanceYards + finalWindOffset;
+      const center = screenPoint({ x: estimatedLandingX, y: 0 }, origin, scale, minX);
+      const bandWidth = 30 * scale;
+      const blend = Math.min(Math.max(14, scale * 2), bandWidth * 0.48);
+      const left = center.x - bandWidth / 2;
+      const estimate = ctx.createLinearGradient(left - blend, 0, left + bandWidth + blend, 0);
+      estimate.addColorStop(0, "rgba(45, 139, 214, 0)");
+      estimate.addColorStop(0.18, "rgba(45, 139, 214, 0.2)");
+      estimate.addColorStop(0.35, "rgba(66, 161, 237, 0.58)");
+      estimate.addColorStop(0.5, "rgba(94, 182, 255, 0.78)");
+      estimate.addColorStop(0.65, "rgba(66, 161, 237, 0.58)");
+      estimate.addColorStop(0.82, "rgba(45, 139, 214, 0.2)");
+      estimate.addColorStop(1, "rgba(45, 139, 214, 0)");
+      ctx.save();
+      makeGroundPath({ width: canvas.clientWidth, height: canvas.clientHeight }, origin);
+      ctx.clip();
+      ctx.fillStyle = estimate;
+      ctx.fillRect(left - blend, origin.y - 24, bandWidth + blend * 2, canvas.clientHeight - origin.y + 30);
       ctx.restore();
     }
 
@@ -3590,7 +3650,8 @@
 
       if (isChallengeMode()) {
         drawGameScenery(rect, origin, scale, minX);
-        drawHardModeMarks(origin, scale, maxX, minX);
+        drawLowVisionEstimate(origin, scale, minX);
+        drawCoarseMarks(origin, scale, maxX, minX);
       } else {
         ctx.fillStyle = "rgba(45, 139, 87, 0.16)";
         ctx.fillRect(origin.x, origin.y, rect.width - origin.x - 26, 20);
@@ -3928,9 +3989,9 @@
     function currentMapReadyMessage() {
       if (isPuttingPracticeMode()) return ["puttingPracticeReady", { remaining: Math.round(gameRemainingYards) }];
       if (isObstacleMode()) return ["obstacleReady", {}];
-      if (mode === "precision") return ["precisionReady", { target: gameTargetYards }];
+      if (mode === "precision") return [isLowVisionPlayer() ? "lowVisionReady" : "precisionReady", { target: gameTargetYards }];
       if (isClassicMode() && gameOnGreen) return ["puttingReady", {}];
-      if (isClassicMode()) return [isClassicHardMode() ? "hardGameReady" : "gameReady", { target: gameTargetYards }];
+      if (isClassicMode()) return [isLowVisionPlayer() ? "lowVisionReady" : (isClassicHardMode() ? "hardGameReady" : "gameReady"), { target: gameTargetYards }];
       return ["reset", {}];
     }
 
@@ -4363,9 +4424,10 @@
               streakSuccess: mode === "precision" ? gameRemainingYards <= 10 : (isClassicMode() ? gameFinished : undefined)
             });
             let messageKey = "gameLandedMessage";
-            if (mode === "precision") messageKey = "precisionCompleteMessage";
+            if (mode === "precision") messageKey = isLowVisionPlayer() ? "lowVisionPrecisionCompleteMessage" : "precisionCompleteMessage";
             else if (gameFinished) messageKey = "gameCompleteMessage";
             else if (landedOnGreen) messageKey = "puttingReady";
+            else if (isLowVisionPlayer()) messageKey = "lowVisionLandedMessage";
             else if (isClassicHardMode()) messageKey = "hardGameLandedMessage";
             setLaunchButton(gameFinished ? "relaunch" : "launch", gameFinished);
             if (landedOnGreen) {
@@ -4393,7 +4455,7 @@
               updateGameInfo();
             }
             if (mode === "precision") {
-              showRoundCompleteModal("precisionCompleteTitle", "precisionCompleteText", {
+              showRoundCompleteModal("precisionCompleteTitle", isLowVisionPlayer() ? "lowVisionPrecisionCompleteText" : "precisionCompleteText", {
                 remaining: Math.round(gameRemainingYards),
                 score
               });
