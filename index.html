@@ -1667,11 +1667,14 @@
         supporterButton: "支持者",
         supporterUnlockedButton: "支持者 ✓",
         supporterFutureUnlockedButton: "支持者+ ✓",
-        supporterChoicePrompt: "选择解锁类型：\n1 = 只解锁所有正常人物\n2 = 所有人物 + Future Calvin",
+        supporterMaxUnlockedButton: "SupporterMax ✓",
+        supporterChoicePrompt: "选择解锁类型：\n1 = 只解锁所有正常人物\n2 = 所有人物 + Future Calvin\n3 = SupporterMax（直接解锁所有人物）",
         supporterPrompt: "请输入支持者密码",
         supporterFuturePrompt: "请输入 Future Calvin 支持者密码",
+        supporterMaxPrompt: "请输入 SupporterMax 密码",
         supporterSuccess: "支持者已解锁！所有人物以后都会自动开放。",
         supporterFutureSuccess: "Future Calvin 已解锁！",
+        supporterMaxSuccess: "SupporterMax 已解锁！所有人物已开放。",
         supporterFail: "密码不正确。",
         choosePlayer: "选择球员",
         playerUnlockProgress: "角色解锁进度",
@@ -1821,11 +1824,14 @@
         supporterButton: "Supporter",
         supporterUnlockedButton: "Supporter ✓",
         supporterFutureUnlockedButton: "Supporter+ ✓",
-        supporterChoicePrompt: "Choose unlock type:\n1 = Normal players only\n2 = All players + Future Calvin",
+        supporterMaxUnlockedButton: "SupporterMax ✓",
+        supporterChoicePrompt: "Choose unlock type:\n1 = Normal players only\n2 = All players + Future Calvin\n3 = SupporterMax (unlock every player directly)",
         supporterPrompt: "Enter supporter password",
         supporterFuturePrompt: "Enter Future Calvin supporter password",
+        supporterMaxPrompt: "Enter SupporterMax password",
         supporterSuccess: "Supporter unlocked. All players will stay available.",
         supporterFutureSuccess: "Future Calvin unlocked.",
+        supporterMaxSuccess: "SupporterMax unlocked. Every player is now available.",
         supporterFail: "Incorrect password.",
         choosePlayer: "Choose Player",
         playerUnlockProgress: "Player Unlock Progress",
@@ -1973,10 +1979,12 @@
       achievements: "golfSimulatorAchievements.v1",
       stats: "golfSimulatorStats.v1",
       supporterUnlock: "golfSimulatorSupporterUnlock.v1",
-      supporterFutureUnlock: "golfSimulatorSupporterFutureUnlock.v1"
+      supporterFutureUnlock: "golfSimulatorSupporterFutureUnlock.v1",
+      supporterMaxUnlock: "golfSimulatorSupporterMaxUnlock.v1"
     };
     const SUPPORTER_PASSWORD_HASH = "ea72c79594296e45b8c2a296644d988581f58cfac6601d122ed0a8bd7c02e8bf";
     const SUPPORTER_FUTURE_PASSWORD_HASH = "2dfcab3471c3a8bcea03ea7c0402547d9235998780a7e8c248b4da2a2b2a42c6";
+    const SUPPORTER_MAX_PASSWORD_HASH = "a43729edcece96240479409e5e66c0316e0ee893b18f644d0a93d771a7c6ae61";
 
     const CLUB_COLLECTION_TARGET = 13;
     const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
@@ -2028,9 +2036,13 @@
       return localStorage.getItem(STORAGE_KEYS.supporterFutureUnlock) === "true";
     }
 
+    function hasSupporterMaxUnlock() {
+      return localStorage.getItem(STORAGE_KEYS.supporterMaxUnlock) === "true";
+    }
+
     function canUseAchievement(achievement) {
-      if (achievement.tier === "plus") return hasFutureSupporterUnlock();
-      if (achievement.tier === "bonus") return hasSupporterUnlock() || hasFutureSupporterUnlock();
+      if (achievement.tier === "plus") return hasFutureSupporterUnlock() || hasSupporterMaxUnlock();
+      if (achievement.tier === "bonus") return hasSupporterUnlock() || hasFutureSupporterUnlock() || hasSupporterMaxUnlock();
       return true;
     }
 
@@ -2045,6 +2057,7 @@
     }
 
     function isPlayerUnlocked(name) {
+      if (hasSupporterMaxUnlock()) return true;
       if (name === "Future Calvin") return hasFutureSupporterUnlock();
       if (name === "Heart Recovery Player") return hasFutureSupporterUnlock() && allPlusAchievementsUnlocked();
       if (hasSupporterUnlock()) return true;
@@ -2699,7 +2712,7 @@
         plusAchievementBar,
         plusOnlyAchievementDefinitions,
         achievementUnlockedCount(plusOnlyAchievementDefinitions),
-        hasFutureSupporterUnlock(),
+        hasFutureSupporterUnlock() || hasSupporterMaxUnlock(),
         "plusProgressLocked"
       );
     }
@@ -2710,12 +2723,14 @@
       if (playerUnlockBar) playerUnlockBar.style.width = `${Math.min(100, percent)}%`;
       updateExtraAchievementProgress();
       if (supporterBtn) {
-        supporterBtn.textContent = tr(hasFutureSupporterUnlock()
-          ? "supporterFutureUnlockedButton"
-          : hasSupporterUnlock()
-            ? "supporterUnlockedButton"
-            : "supporterButton");
-        supporterBtn.classList.toggle("unlocked", hasSupporterUnlock() || hasFutureSupporterUnlock());
+        supporterBtn.textContent = tr(hasSupporterMaxUnlock()
+          ? "supporterMaxUnlockedButton"
+          : hasFutureSupporterUnlock()
+            ? "supporterFutureUnlockedButton"
+            : hasSupporterUnlock()
+              ? "supporterUnlockedButton"
+              : "supporterButton");
+        supporterBtn.classList.toggle("unlocked", hasSupporterUnlock() || hasFutureSupporterUnlock() || hasSupporterMaxUnlock());
       }
       if (!playerUnlockList) return;
       playerUnlockList.innerHTML = "";
@@ -2737,25 +2752,29 @@
     }
 
     async function unlockSupporterMode() {
-      const choice = window.prompt(tr("supporterChoicePrompt"), hasSupporterUnlock() ? "2" : "1");
+      const choice = window.prompt(tr("supporterChoicePrompt"), hasSupporterMaxUnlock() ? "3" : (hasSupporterUnlock() ? "2" : "1"));
       if (choice == null) return;
       const normalizedChoice = choice.trim();
-      const unlocksFuture = normalizedChoice === "2";
+      const unlocksMax = normalizedChoice === "3";
+      const unlocksFuture = normalizedChoice === "2" || unlocksMax;
       const unlocksNormal = normalizedChoice === "1" || unlocksFuture;
       if (!unlocksNormal) return;
-      const entered = window.prompt(tr(unlocksFuture ? "supporterFuturePrompt" : "supporterPrompt"));
+      const entered = window.prompt(tr(unlocksMax ? "supporterMaxPrompt" : (unlocksFuture ? "supporterFuturePrompt" : "supporterPrompt")));
       if (entered == null) return;
       const enteredHash = await sha256Hex(entered.trim());
-      const expectedHash = unlocksFuture ? SUPPORTER_FUTURE_PASSWORD_HASH : SUPPORTER_PASSWORD_HASH;
+      const expectedHash = unlocksMax
+        ? SUPPORTER_MAX_PASSWORD_HASH
+        : (unlocksFuture ? SUPPORTER_FUTURE_PASSWORD_HASH : SUPPORTER_PASSWORD_HASH);
       if (enteredHash !== expectedHash) {
         window.alert(tr("supporterFail"));
         return;
       }
       if (unlocksNormal) localStorage.setItem(STORAGE_KEYS.supporterUnlock, "true");
       if (unlocksFuture) localStorage.setItem(STORAGE_KEYS.supporterFutureUnlock, "true");
+      if (unlocksMax) localStorage.setItem(STORAGE_KEYS.supporterMaxUnlock, "true");
       AchievementManager.evaluate();
       refreshPlayerUnlocks();
-      window.alert(tr(unlocksFuture ? "supporterFutureSuccess" : "supporterSuccess"));
+      window.alert(tr(unlocksMax ? "supporterMaxSuccess" : (unlocksFuture ? "supporterFutureSuccess" : "supporterSuccess")));
     }
 
     function setClassicDifficulty(value) {
