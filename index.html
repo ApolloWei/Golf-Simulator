@@ -1195,6 +1195,16 @@
           <span class="player-unlock-percent" id="playerUnlockPercent">0%</span>
         </div>
         <div class="player-unlock-bar" aria-hidden="true"><span id="playerUnlockBar"></span></div>
+        <div class="player-unlock-head">
+          <span data-i18n="bonusAchievements">Bonus Achievements</span>
+          <span class="player-unlock-percent" id="bonusAchievementPercent">0%</span>
+        </div>
+        <div class="player-unlock-bar" aria-hidden="true"><span id="bonusAchievementBar"></span></div>
+        <div class="player-unlock-head">
+          <span data-i18n="plusOnlyAchievements">+ Only Achievements</span>
+          <span class="player-unlock-percent" id="plusAchievementPercent">0%</span>
+        </div>
+        <div class="player-unlock-bar" aria-hidden="true"><span id="plusAchievementBar"></span></div>
         <div class="player-unlock-list" id="playerUnlockList"></div>
       </div>
       <div class="mode-grid">
@@ -1456,6 +1466,11 @@
         ["8 Iron", 135], ["7 Iron", 145], ["6 Iron", 160], ["5 Iron", 170],
         ["4 Iron", 180], ["3 Hybrid", 195], ["3 Wood", 210], ["Driver", 250]
       ],
+      "Heart Recovery Player": [
+        ["LW", 43], ["SW", 51], ["GW", 60], ["PW", 68], ["9 Iron", 74],
+        ["8 Iron", 79], ["7 Iron", 85], ["6 Iron", 92], ["5 Iron", 99],
+        ["4 Iron", 106], ["5 Wood", 116], ["3 Wood", 125], ["Driver", 135]
+      ],
       "Future Calvin": [
         ["60°", 143], ["56°", 173], ["50°", 196], ["45°", 214], ["PW", 223],
         ["9 Iron", 253], ["8 Iron", 258], ["7 Iron", 282], ["6 Iron", 299],
@@ -1502,6 +1517,7 @@
     const playerRatings = {
       "Calvin": 1,
       "Bob the Kid": 2,
+      "Heart Recovery Player": 4,
       "Future Calvin": 5,
       "Youtube Golfer": 3,
       "Pro (Bryson DeChambeau)": 5,
@@ -1511,6 +1527,7 @@
     };
 
     const playerDisplayNames = {
+      "Heart Recovery Player": { zh: "心脏手术后的专业球员", en: "Heart Recovery Pro Player" },
       "大爷": { zh: "大爷", en: "Your Grandfather" }
     };
 
@@ -1520,6 +1537,10 @@
     const lobbyPlayerSelect = document.querySelector("#lobbyPlayer");
     const playerUnlockPercent = document.querySelector("#playerUnlockPercent");
     const playerUnlockBar = document.querySelector("#playerUnlockBar");
+    const bonusAchievementPercent = document.querySelector("#bonusAchievementPercent");
+    const bonusAchievementBar = document.querySelector("#bonusAchievementBar");
+    const plusAchievementPercent = document.querySelector("#plusAchievementPercent");
+    const plusAchievementBar = document.querySelector("#plusAchievementBar");
     const playerUnlockList = document.querySelector("#playerUnlockList");
     const supporterBtn = document.querySelector("#supporterBtn");
     const startGameBtn = document.querySelector("#startGameBtn");
@@ -1654,11 +1675,16 @@
         supporterFail: "密码不正确。",
         choosePlayer: "选择球员",
         playerUnlockProgress: "角色解锁进度",
+        bonusAchievements: "Bonus Achievements",
+        plusOnlyAchievements: "+ Only Achievements",
+        supporterProgressLocked: "支持者解锁",
+        plusProgressLocked: "Supporter+ 解锁",
         playerUnlocked: "已解锁",
         playerLocked: "未解锁",
         unlockCalvin: "初始可用",
         unlockBob: "完成 40% 成就解锁",
         unlockFutureCalvin: "成为支持者解锁",
+        unlockHeartRecovery: "完成所有 + Only 成就解锁",
         unlockNelly: "完成 60% 成就解锁",
         unlockScottie: "完成 75% 成就解锁",
         unlockBryson: "完成 80% 成就解锁",
@@ -1803,11 +1829,16 @@
         supporterFail: "Incorrect password.",
         choosePlayer: "Choose Player",
         playerUnlockProgress: "Player Unlock Progress",
+        bonusAchievements: "Bonus Achievements",
+        plusOnlyAchievements: "+ Only Achievements",
+        supporterProgressLocked: "Supporter locked",
+        plusProgressLocked: "Supporter+ locked",
         playerUnlocked: "Unlocked",
         playerLocked: "Locked",
         unlockCalvin: "Available from the start",
         unlockBob: "Unlock at 40% achievements",
         unlockFutureCalvin: "Unlock as a Supporter",
+        unlockHeartRecovery: "Unlock by completing every + Only achievement",
         unlockNelly: "Unlock at 60% achievements",
         unlockScottie: "Unlock at 75% achievements",
         unlockBryson: "Unlock at 80% achievements",
@@ -1972,8 +2003,8 @@
       return Math.min(CLUB_COLLECTION_TARGET, slots.size);
     }
 
-    function achievementUnlockedCount() {
-      return Object.keys(AchievementManager.data.unlocked || {}).length;
+    function achievementUnlockedCount(definitions = achievementDefinitions) {
+      return definitions.filter((achievement) => AchievementManager.isUnlocked(achievement.id)).length;
     }
 
     function achievementCompletionRatio() {
@@ -1984,12 +2015,27 @@
       return achievementDefinitions.length > 0 && achievementUnlockedCount() >= achievementDefinitions.length;
     }
 
+    function allPlusAchievementsUnlocked() {
+      return plusOnlyAchievementDefinitions.length > 0
+        && achievementUnlockedCount(plusOnlyAchievementDefinitions) >= plusOnlyAchievementDefinitions.length;
+    }
+
     function hasSupporterUnlock() {
       return localStorage.getItem(STORAGE_KEYS.supporterUnlock) === "true";
     }
 
     function hasFutureSupporterUnlock() {
       return localStorage.getItem(STORAGE_KEYS.supporterFutureUnlock) === "true";
+    }
+
+    function canUseAchievement(achievement) {
+      if (achievement.tier === "plus") return hasFutureSupporterUnlock();
+      if (achievement.tier === "bonus") return hasSupporterUnlock() || hasFutureSupporterUnlock();
+      return true;
+    }
+
+    function visibleAchievementDefinitions() {
+      return allAchievementDefinitions.filter(canUseAchievement);
     }
 
     async function sha256Hex(value) {
@@ -2000,6 +2046,7 @@
 
     function isPlayerUnlocked(name) {
       if (name === "Future Calvin") return hasFutureSupporterUnlock();
+      if (name === "Heart Recovery Player") return hasFutureSupporterUnlock() && allPlusAchievementsUnlocked();
       if (hasSupporterUnlock()) return true;
       if (name === "Calvin") return true;
       if (name === "Bob the Kid") return achievementCompletionRatio() >= 0.4;
@@ -2017,6 +2064,7 @@
     function playerUnlockRequirementKey(name) {
       if (name === "Bob the Kid") return "unlockBob";
       if (name === "Future Calvin") return "unlockFutureCalvin";
+      if (name === "Heart Recovery Player") return "unlockHeartRecovery";
       if (name === "Pro (Nelly Korda)") return "unlockNelly";
       if (name === "Pro (Scottie Scheffler)") return "unlockScottie";
       if (name === "Pro (Bryson DeChambeau)") return "unlockBryson";
@@ -2094,6 +2142,131 @@
       { id: "golf_fanatic", icon: "🏌️", category: "General", target: 100, name: { en: "Golf Fanatic", zh: "高尔夫狂热者" }, desc: { en: "Play 100 shots.", zh: "累计打出 100 杆。" }, progress: (s) => s.totalShots },
       { id: "club_collector", icon: "🧰", category: "General", target: CLUB_COLLECTION_TARGET, name: { en: "Club Collector", zh: "球杆收藏家" }, desc: { en: "Use every club in a full set.", zh: "使用过一整套标准球杆。" }, progress: clubCollectorProgress },
       { id: "experimenter", icon: "🧪", category: "General", target: ALL_MODES.length, name: { en: "Experimenter", zh: "实验玩家" }, desc: { en: "Play every mode.", zh: "玩过每一种模式。" }, progress: (s) => s.modesPlayed.length }
+    ];
+
+    function extraAchievement(tier, id, icon, category, target, enName, zhName, enDesc, zhDesc, progress) {
+      return {
+        id: `${tier}_${id}`,
+        tier,
+        icon,
+        category,
+        target,
+        name: { en: enName, zh: zhName },
+        desc: { en: enDesc, zh: zhDesc },
+        progress
+      };
+    }
+
+    const bonusAchievementDefinitions = [
+      extraAchievement("bonus", "range_regular", "🏌️", "General", 125, "Range Regular", "练习场常客", "Play 125 total shots.", "累计打出 125 杆。", (s) => s.totalShots),
+      extraAchievement("bonus", "range_rhythm", "🎼", "General", 175, "Range Rhythm", "练习节奏", "Play 175 total shots.", "累计打出 175 杆。", (s) => s.totalShots),
+      extraAchievement("bonus", "range_workhorse", "💪", "General", 225, "Range Workhorse", "练习劳模", "Play 225 total shots.", "累计打出 225 杆。", (s) => s.totalShots),
+      extraAchievement("bonus", "swing_session", "📋", "General", 300, "Swing Session", "挥杆训练课", "Play 300 total shots.", "累计打出 300 杆。", (s) => s.totalShots),
+      extraAchievement("bonus", "steady_grinder", "⏱️", "General", 375, "Steady Grinder", "稳定练习者", "Play 375 total shots.", "累计打出 375 杆。", (s) => s.totalShots),
+      extraAchievement("bonus", "ten_k_walk", "🚶", "Distance", 10000, "10K Walk", "万码漫步", "Accumulate 10,000 yards.", "累计距离达到 10,000 码。", (s) => s.totalDistance),
+      extraAchievement("bonus", "fairway_miles", "🛣️", "Distance", 15000, "Fairway Miles", "球道里程", "Accumulate 15,000 yards.", "累计距离达到 15,000 码。", (s) => s.totalDistance),
+      extraAchievement("bonus", "twenty_k_traveler", "🧭", "Distance", 20000, "20K Traveler", "两万码旅行者", "Accumulate 20,000 yards.", "累计距离达到 20,000 码。", (s) => s.totalDistance),
+      extraAchievement("bonus", "distance_builder", "🏗️", "Distance", 30000, "Distance Builder", "距离建筑师", "Accumulate 30,000 yards.", "累计距离达到 30,000 码。", (s) => s.totalDistance),
+      extraAchievement("bonus", "forty_k_fairway", "🏞️", "Distance", 40000, "40K Fairway", "四万码球道", "Accumulate 40,000 yards.", "累计距离达到 40,000 码。", (s) => s.totalDistance),
+      extraAchievement("bonus", "strong_send", "💥", "Distance", 260, "Strong Send", "有力一击", "Hit a 260+ yard shot.", "打出 260 码以上的一杆。", (s) => s.longestShot),
+      extraAchievement("bonus", "clean_contact", "✨", "Distance", 280, "Clean Contact", "扎实触球", "Hit a 280+ yard shot.", "打出 280 码以上的一杆。", (s) => s.longestShot),
+      extraAchievement("bonus", "big_carry", "🟦", "Distance", 320, "Big Carry", "大号飞行", "Hit a 320+ yard shot.", "打出 320 码以上的一杆。", (s) => s.longestShot),
+      extraAchievement("bonus", "fairway_rocket", "🚀", "Distance", 360, "Fairway Rocket", "球道火箭", "Hit a 360+ yard shot.", "打出 360 码以上的一杆。", (s) => s.longestShot),
+      extraAchievement("bonus", "supporter_cannon", "🧨", "Distance", 400, "Supporter Cannon", "支持者重炮", "Hit a 400+ yard shot.", "打出 400 码以上的一杆。", (s) => s.longestShot),
+      extraAchievement("bonus", "high_window", "🪟", "Distance", 45, "High Window", "高弹道窗口", "Reach a 45+ yard apex.", "最高点达到 45 码以上。", (s) => s.highestApex),
+      extraAchievement("bonus", "towering_ball", "🏙️", "Distance", 60, "Towering Ball", "高耸弹道", "Reach a 60+ yard apex.", "最高点达到 60 码以上。", (s) => s.highestApex),
+      extraAchievement("bonus", "cloud_touch", "☁️", "Distance", 80, "Cloud Touch", "碰到云边", "Reach an 80+ yard apex.", "最高点达到 80 码以上。", (s) => s.highestApex),
+      extraAchievement("bonus", "sky_ladder", "🪜", "Distance", 100, "Sky Ladder", "天空阶梯", "Reach a 100+ yard apex.", "最高点达到 100 码以上。", (s) => s.highestApex),
+      extraAchievement("bonus", "within_eight", "🎯", "Accuracy", 1, "Within Eight", "八码以内", "Finish within 8 yards of a target.", "停在目标 8 码以内。", (s) => s.closestToTarget != null && s.closestToTarget <= 8 ? 1 : 0),
+      extraAchievement("bonus", "within_six", "📍", "Accuracy", 1, "Within Six", "六码以内", "Finish within 6 yards of a target.", "停在目标 6 码以内。", (s) => s.closestToTarget != null && s.closestToTarget <= 6 ? 1 : 0),
+      extraAchievement("bonus", "within_four", "🔎", "Accuracy", 1, "Within Four", "四码以内", "Finish within 4 yards of a target.", "停在目标 4 码以内。", (s) => s.closestToTarget != null && s.closestToTarget <= 4 ? 1 : 0),
+      extraAchievement("bonus", "within_two", "🧲", "Accuracy", 1, "Within Two", "两码以内", "Finish within 2 yards of a target.", "停在目标 2 码以内。", (s) => s.closestToTarget != null && s.closestToTarget <= 2 ? 1 : 0),
+      extraAchievement("bonus", "three_close_calls", "📌", "Accuracy", 3, "Three Close Calls", "三次擦洞", "Land within 3 yards from 100+ yards out three times.", "从 100 码外停在 3 码以内 3 次。", (s) => s.closeCalls),
+      extraAchievement("bonus", "five_close_calls", "📌", "Accuracy", 5, "Five Close Calls", "五次擦洞", "Land within 3 yards from 100+ yards out five times.", "从 100 码外停在 3 码以内 5 次。", (s) => s.closeCalls),
+      extraAchievement("bonus", "eight_close_calls", "📌", "Accuracy", 8, "Eight Close Calls", "八次擦洞", "Land within 3 yards from 100+ yards out eight times.", "从 100 码外停在 3 码以内 8 次。", (s) => s.closeCalls),
+      extraAchievement("bonus", "twelve_close_calls", "📌", "Accuracy", 12, "Twelve Close Calls", "十二次擦洞", "Land within 3 yards from 100+ yards out twelve times.", "从 100 码外停在 3 码以内 12 次。", (s) => s.closeCalls),
+      extraAchievement("bonus", "power_touch_three", "⚡", "Accuracy", 3, "Power Touch III", "力量手感 III", "Land within 5 yards with 90%+ power three times.", "90% 以上力度停在 5 码以内 3 次。", (s) => s.powerPrecisionShots),
+      extraAchievement("bonus", "power_touch_five", "⚡", "Accuracy", 5, "Power Touch V", "力量手感 V", "90%+ power and within 5 yards five times.", "90% 以上力度停在 5 码以内 5 次。", (s) => s.powerPrecisionShots),
+      extraAchievement("bonus", "power_touch_eight", "⚡", "Accuracy", 8, "Power Touch VIII", "力量手感 VIII", "90%+ power and within 5 yards eight times.", "90% 以上力度停在 5 码以内 8 次。", (s) => s.powerPrecisionShots),
+      extraAchievement("bonus", "putt_fifteen", "⛳", "Putting", 15, "Putt Fifteen", "推进十五次", "Sink 15 putts.", "累计推进 15 次。", (s) => s.successfulPutts),
+      extraAchievement("bonus", "putt_twenty", "⛳", "Putting", 20, "Putt Twenty", "推进二十次", "Sink 20 putts.", "累计推进 20 次。", (s) => s.successfulPutts),
+      extraAchievement("bonus", "putt_thirty", "⛳", "Putting", 30, "Putt Thirty", "推进三十次", "Sink 30 putts.", "累计推进 30 次。", (s) => s.successfulPutts),
+      extraAchievement("bonus", "putt_forty", "⛳", "Putting", 40, "Putt Forty", "推进四十次", "Sink 40 putts.", "累计推进 40 次。", (s) => s.successfulPutts),
+      extraAchievement("bonus", "putt_sixty", "⛳", "Putting", 60, "Putt Sixty", "推进六十次", "Sink 60 putts.", "累计推进 60 次。", (s) => s.successfulPutts),
+      extraAchievement("bonus", "seven_yard_putt", "🟢", "Putting", 7, "Seven-Yard Putt", "七码推进", "Sink a 7+ yard putt.", "推进 7 码以上的推杆。", (s) => s.longestPutt),
+      extraAchievement("bonus", "edge_putt", "🟩", "Putting", 9.5, "Edge Putt", "果岭边推进", "Sink a 9.5+ yard putt.", "推进 9.5 码以上的推杆。", (s) => s.longestPutt),
+      extraAchievement("bonus", "five_holes", "🏁", "Classic", 5, "Five Holes", "五洞完成", "Complete 5 Classic holes.", "完成 5 个经典模式球洞。", (s) => s.holesCompleted),
+      extraAchievement("bonus", "ten_holes", "🏁", "Classic", 10, "Ten Holes", "十洞完成", "Complete 10 Classic holes.", "完成 10 个经典模式球洞。", (s) => s.holesCompleted),
+      extraAchievement("bonus", "twenty_holes", "🏁", "Classic", 20, "Twenty Holes", "二十洞完成", "Complete 20 Classic holes.", "完成 20 个经典模式球洞。", (s) => s.holesCompleted),
+      extraAchievement("bonus", "thirty_holes", "🏁", "Classic", 30, "Thirty Holes", "三十洞完成", "Complete 30 Classic holes.", "完成 30 个经典模式球洞。", (s) => s.holesCompleted),
+      extraAchievement("bonus", "three_birdies", "⭐", "Classic", 3, "Three Birdies", "三只小鸟", "Score 3 birdies or better.", "累计 3 次小鸟球或更好。", (s) => s.birdies),
+      extraAchievement("bonus", "five_birdies", "⭐", "Classic", 5, "Five Birdies", "五只小鸟", "Score 5 birdies or better.", "累计 5 次小鸟球或更好。", (s) => s.birdies),
+      extraAchievement("bonus", "two_eagles", "💫", "Classic", 2, "Two Eagles", "两只老鹰", "Score 2 eagles or better.", "累计 2 次老鹰球或更好。", (s) => s.eagles),
+      extraAchievement("bonus", "green_five", "🟩", "Classic", 5, "Green Five", "五次上果岭", "Reach the green in one stroke 5 times.", "累计 5 次第一杆上果岭。", (s) => s.reachedGreenInOne),
+      extraAchievement("bonus", "gate_ten", "🚪", "Obstacle", 10, "Gate Ten", "十门通过", "Pass 10 obstacle gates.", "累计穿过 10 个障碍门。", (s) => s.obstacleGatesPassed),
+      extraAchievement("bonus", "gate_twenty", "🚪", "Obstacle", 20, "Gate Twenty", "二十门通过", "Pass 20 obstacle gates.", "累计穿过 20 个障碍门。", (s) => s.obstacleGatesPassed),
+      extraAchievement("bonus", "gate_thirty", "🚪", "Obstacle", 30, "Gate Thirty", "三十门通过", "Pass 30 obstacle gates.", "累计穿过 30 个障碍门。", (s) => s.obstacleGatesPassed),
+      extraAchievement("bonus", "gate_forty", "🚪", "Obstacle", 40, "Gate Forty", "四十门通过", "Pass 40 obstacle gates.", "累计穿过 40 个障碍门。", (s) => s.obstacleGatesPassed),
+      extraAchievement("bonus", "full_bag_bonus", "🧰", "General", CLUB_COLLECTION_TARGET, "Full Bag Bonus", "支持者全套球包", "Use every club in a full set.", "使用过一整套标准球杆。", clubCollectorProgress)
+    ];
+
+    const plusOnlyAchievementDefinitions = [
+      extraAchievement("plus", "plus_warmup", "➕", "General", 150, "Plus Warmup", "Plus 热身", "Play 150 total shots.", "累计打出 150 杆。", (s) => s.totalShots),
+      extraAchievement("plus", "plus_session", "➕", "General", 250, "Plus Session", "Plus 训练课", "Play 250 total shots.", "累计打出 250 杆。", (s) => s.totalShots),
+      extraAchievement("plus", "plus_work", "➕", "General", 400, "Plus Work", "Plus 苦练", "Play 400 total shots.", "累计打出 400 杆。", (s) => s.totalShots),
+      extraAchievement("plus", "plus_stamina", "➕", "General", 600, "Plus Stamina", "Plus 耐力", "Play 600 total shots.", "累计打出 600 杆。", (s) => s.totalShots),
+      extraAchievement("plus", "plus_25k", "🛣️", "Distance", 25000, "Plus 25K", "Plus 两万五码", "Accumulate 25,000 yards.", "累计距离达到 25,000 码。", (s) => s.totalDistance),
+      extraAchievement("plus", "plus_50k", "🛣️", "Distance", 50000, "Plus 50K", "Plus 五万码", "Accumulate 50,000 yards.", "累计距离达到 50,000 码。", (s) => s.totalDistance),
+      extraAchievement("plus", "plus_75k", "🛣️", "Distance", 75000, "Plus 75K", "Plus 七万五码", "Accumulate 75,000 yards.", "累计距离达到 75,000 码。", (s) => s.totalDistance),
+      extraAchievement("plus", "plus_100k", "🛣️", "Distance", 100000, "Plus 100K", "Plus 十万码", "Accumulate 100,000 yards.", "累计距离达到 100,000 码。", (s) => s.totalDistance),
+      extraAchievement("plus", "future_430", "🚀", "Distance", 430, "Future 430", "未来 430", "Hit a 430+ yard shot.", "打出 430 码以上的一杆。", (s) => s.longestShot),
+      extraAchievement("plus", "future_460", "🚀", "Distance", 460, "Future 460", "未来 460", "Hit a 460+ yard shot.", "打出 460 码以上的一杆。", (s) => s.longestShot),
+      extraAchievement("plus", "future_500", "🚀", "Distance", 500, "Future 500", "未来 500", "Hit a 500+ yard shot.", "打出 500 码以上的一杆。", (s) => s.longestShot),
+      extraAchievement("plus", "future_550", "🚀", "Distance", 550, "Future 550", "未来 550", "Hit a 550+ yard shot.", "打出 550 码以上的一杆。", (s) => s.longestShot),
+      extraAchievement("plus", "ten_big_drives", "💣", "Distance", 10, "Ten Big Drives", "十次大号一木", "Hit 10 drives of 300+ yards.", "用 Driver 打出 10 次 300 码以上。", (s) => s.driver300Shots),
+      extraAchievement("plus", "twenty_five_big_drives", "💣", "Distance", 25, "Twenty-Five Big Drives", "二十五次大号一木", "Hit 25 drives of 300+ yards.", "用 Driver 打出 25 次 300 码以上。", (s) => s.driver300Shots),
+      extraAchievement("plus", "fifty_big_drives", "💣", "Distance", 50, "Fifty Big Drives", "五十次大号一木", "Hit 50 drives of 300+ yards.", "用 Driver 打出 50 次 300 码以上。", (s) => s.driver300Shots),
+      extraAchievement("plus", "plus_apex_100", "☁️", "Distance", 100, "Plus Apex 100", "Plus 百码高点", "Reach a 100+ yard apex.", "最高点达到 100 码以上。", (s) => s.highestApex),
+      extraAchievement("plus", "plus_apex_130", "☁️", "Distance", 130, "Plus Apex 130", "Plus 130 高点", "Reach a 130+ yard apex.", "最高点达到 130 码以上。", (s) => s.highestApex),
+      extraAchievement("plus", "plus_apex_160", "☁️", "Distance", 160, "Plus Apex 160", "Plus 160 高点", "Reach a 160+ yard apex.", "最高点达到 160 码以上。", (s) => s.highestApex),
+      extraAchievement("plus", "plus_roll_5", "🌀", "Distance", 5, "Plus Roll V", "Plus 弹跳 V", "Travel 40+ yards after first bounce 5 times.", "累计 5 次落地后继续 40 码以上。", (s) => s.rollingStoneShots),
+      extraAchievement("plus", "plus_roll_10", "🌀", "Distance", 10, "Plus Roll X", "Plus 弹跳 X", "Travel 40+ yards after first bounce 10 times.", "累计 10 次落地后继续 40 码以上。", (s) => s.rollingStoneShots),
+      extraAchievement("plus", "plus_roll_20", "🌀", "Distance", 20, "Plus Roll XX", "Plus 弹跳 XX", "Travel 40+ yards after first bounce 20 times.", "累计 20 次落地后继续 40 码以上。", (s) => s.rollingStoneShots),
+      extraAchievement("plus", "plus_within_five", "🎯", "Accuracy", 1, "Plus Within Five", "Plus 五码以内", "Finish within 5 yards of a target.", "停在目标 5 码以内。", (s) => s.closestToTarget != null && s.closestToTarget <= 5 ? 1 : 0),
+      extraAchievement("plus", "plus_within_three", "🎯", "Accuracy", 1, "Plus Within Three", "Plus 三码以内", "Finish within 3 yards of a target.", "停在目标 3 码以内。", (s) => s.closestToTarget != null && s.closestToTarget <= 3 ? 1 : 0),
+      extraAchievement("plus", "plus_within_one", "🎯", "Accuracy", 1, "Plus Within One", "Plus 一码以内", "Finish within 1 yard of a target.", "停在目标 1 码以内。", (s) => s.closestToTarget != null && s.closestToTarget <= 1 ? 1 : 0),
+      extraAchievement("plus", "plus_half_yard", "🎯", "Accuracy", 1, "Plus Half-Yard", "Plus 半码以内", "Finish within 0.5 yards of a target.", "停在目标 0.5 码以内。", (s) => s.closestToTarget != null && s.closestToTarget <= 0.5 ? 1 : 0),
+      extraAchievement("plus", "plus_close_10", "📌", "Accuracy", 10, "Plus Close X", "Plus 擦洞 X", "Land within 3 yards from 100+ yards out 10 times.", "从 100 码外停在 3 码以内 10 次。", (s) => s.closeCalls),
+      extraAchievement("plus", "plus_close_20", "📌", "Accuracy", 20, "Plus Close XX", "Plus 擦洞 XX", "Land within 3 yards from 100+ yards out 20 times.", "从 100 码外停在 3 码以内 20 次。", (s) => s.closeCalls),
+      extraAchievement("plus", "plus_close_35", "📌", "Accuracy", 35, "Plus Close XXXV", "Plus 擦洞 XXXV", "Land within 3 yards from 100+ yards out 35 times.", "从 100 码外停在 3 码以内 35 次。", (s) => s.closeCalls),
+      extraAchievement("plus", "plus_pin_3", "📍", "Accuracy", 3, "Plus Pin III", "Plus 贴旗 III", "Finish within 0.25 yards from 75+ yards out 3 times.", "从 75 码外停在 0.25 码以内 3 次。", (s) => s.onThePinShots),
+      extraAchievement("plus", "plus_pin_7", "📍", "Accuracy", 7, "Plus Pin VII", "Plus 贴旗 VII", "Finish within 0.25 yards from 75+ yards out 7 times.", "从 75 码外停在 0.25 码以内 7 次。", (s) => s.onThePinShots),
+      extraAchievement("plus", "plus_pin_12", "📍", "Accuracy", 12, "Plus Pin XII", "Plus 贴旗 XII", "Finish within 0.25 yards from 75+ yards out 12 times.", "从 75 码外停在 0.25 码以内 12 次。", (s) => s.onThePinShots),
+      extraAchievement("plus", "plus_putts_25", "⛳", "Putting", 25, "Plus Putts 25", "Plus 推杆 25", "Sink 25 putts.", "累计推进 25 次。", (s) => s.successfulPutts),
+      extraAchievement("plus", "plus_putts_50", "⛳", "Putting", 50, "Plus Putts 50", "Plus 推杆 50", "Sink 50 putts.", "累计推进 50 次。", (s) => s.successfulPutts),
+      extraAchievement("plus", "plus_putts_75", "⛳", "Putting", 75, "Plus Putts 75", "Plus 推杆 75", "Sink 75 putts.", "累计推进 75 次。", (s) => s.successfulPutts),
+      extraAchievement("plus", "plus_long_putt", "🟢", "Putting", 9.5, "Plus Long Putt", "Plus 长推", "Sink a 9.5+ yard putt.", "推进 9.5 码以上的推杆。", (s) => s.longestPutt),
+      extraAchievement("plus", "plus_sniper_putt", "🔭", "Putting", 10, "Plus Sniper Putt", "Plus 狙击推杆", "Sink a 10+ yard putt.", "推进 10 码以上的推杆。", (s) => s.longestPutt),
+      extraAchievement("plus", "plus_holes_15", "🏁", "Classic", 15, "Plus Holes 15", "Plus 15 洞", "Complete 15 Classic holes.", "完成 15 个经典模式球洞。", (s) => s.holesCompleted),
+      extraAchievement("plus", "plus_holes_30", "🏁", "Classic", 30, "Plus Holes 30", "Plus 30 洞", "Complete 30 Classic holes.", "完成 30 个经典模式球洞。", (s) => s.holesCompleted),
+      extraAchievement("plus", "plus_holes_60", "🏁", "Classic", 60, "Plus Holes 60", "Plus 60 洞", "Complete 60 Classic holes.", "完成 60 个经典模式球洞。", (s) => s.holesCompleted),
+      extraAchievement("plus", "plus_birdies_5", "⭐", "Classic", 5, "Plus Birdies 5", "Plus 小鸟 5", "Score 5 birdies or better.", "累计 5 次小鸟球或更好。", (s) => s.birdies),
+      extraAchievement("plus", "plus_birdies_15", "⭐", "Classic", 15, "Plus Birdies 15", "Plus 小鸟 15", "Score 15 birdies or better.", "累计 15 次小鸟球或更好。", (s) => s.birdies),
+      extraAchievement("plus", "plus_birdies_30", "⭐", "Classic", 30, "Plus Birdies 30", "Plus 小鸟 30", "Score 30 birdies or better.", "累计 30 次小鸟球或更好。", (s) => s.birdies),
+      extraAchievement("plus", "plus_eagles_3", "💫", "Classic", 3, "Plus Eagles 3", "Plus 老鹰 3", "Score 3 eagles or better.", "累计 3 次老鹰球或更好。", (s) => s.eagles),
+      extraAchievement("plus", "plus_eagles_8", "💫", "Classic", 8, "Plus Eagles 8", "Plus 老鹰 8", "Score 8 eagles or better.", "累计 8 次老鹰球或更好。", (s) => s.eagles),
+      extraAchievement("plus", "plus_gates_50", "🚪", "Obstacle", 50, "Plus Gates 50", "Plus 50 门", "Pass 50 obstacle gates.", "累计穿过 50 个障碍门。", (s) => s.obstacleGatesPassed),
+      extraAchievement("plus", "plus_gates_150", "🚪", "Obstacle", 150, "Plus Gates 150", "Plus 150 门", "Pass 150 obstacle gates.", "累计穿过 150 个障碍门。", (s) => s.obstacleGatesPassed),
+      extraAchievement("plus", "plus_clean_5", "🧼", "Obstacle", 5, "Plus Clean 5", "Plus 完美 5", "Complete 5 clean obstacle sets.", "累计无失误通过 5 组障碍。", (s) => s.cleanObstacleRuns),
+      extraAchievement("plus", "plus_clean_15", "🧼", "Obstacle", 15, "Plus Clean 15", "Plus 完美 15", "Complete 15 clean obstacle sets.", "累计无失误通过 15 组障碍。", (s) => s.cleanObstacleRuns),
+      extraAchievement("plus", "plus_hard_3", "🧱", "Obstacle", 3, "Plus Hard 3", "Plus 困难 3", "Clear 3 Hard Obstacle sets.", "通过 3 组困难障碍。", (s) => s.hardObstacleCompletions),
+      extraAchievement("plus", "plus_hard_8", "🧱", "Obstacle", 8, "Plus Hard 8", "Plus 困难 8", "Clear 8 Hard Obstacle sets.", "通过 8 组困难障碍。", (s) => s.hardObstacleCompletions)
+    ];
+
+    const allAchievementDefinitions = [
+      ...achievementDefinitions,
+      ...bonusAchievementDefinitions,
+      ...plusOnlyAchievementDefinitions
     ];
 
     const defaultStats = {
@@ -2262,7 +2435,7 @@
         return Boolean(this.data.unlocked[id]);
       },
       evaluate() {
-        achievementDefinitions.forEach((achievement) => {
+        visibleAchievementDefinitions().forEach((achievement) => {
           if (this.isUnlocked(achievement.id)) return;
           const progress = Math.min(achievement.target, achievement.progress(StatsManager.data));
           if (progress >= achievement.target) this.unlock(achievement);
@@ -2505,10 +2678,37 @@
       renderPlayerUnlocks();
     }
 
+    function updateAchievementPoolBar(percentNode, barNode, definitions, unlocked, available, lockedKey) {
+      if (!percentNode || !barNode) return;
+      const percent = definitions.length === 0 ? 0 : Math.round((unlocked / definitions.length) * 100);
+      percentNode.textContent = available ? `${unlocked} / ${definitions.length} · ${percent}%` : tr(lockedKey);
+      barNode.style.width = available ? `${Math.min(100, percent)}%` : "0%";
+    }
+
+    function updateExtraAchievementProgress() {
+      updateAchievementPoolBar(
+        bonusAchievementPercent,
+        bonusAchievementBar,
+        bonusAchievementDefinitions,
+        achievementUnlockedCount(bonusAchievementDefinitions),
+        hasSupporterUnlock() || hasFutureSupporterUnlock(),
+        "supporterProgressLocked"
+      );
+      updateAchievementPoolBar(
+        plusAchievementPercent,
+        plusAchievementBar,
+        plusOnlyAchievementDefinitions,
+        achievementUnlockedCount(plusOnlyAchievementDefinitions),
+        hasFutureSupporterUnlock(),
+        "plusProgressLocked"
+      );
+    }
+
     function renderPlayerUnlocks() {
       const percent = Math.round(achievementCompletionRatio() * 100);
       if (playerUnlockPercent) playerUnlockPercent.textContent = `${percent}%`;
       if (playerUnlockBar) playerUnlockBar.style.width = `${Math.min(100, percent)}%`;
+      updateExtraAchievementProgress();
       if (supporterBtn) {
         supporterBtn.textContent = tr(hasFutureSupporterUnlock()
           ? "supporterFutureUnlockedButton"
@@ -2553,6 +2753,7 @@
       }
       if (unlocksNormal) localStorage.setItem(STORAGE_KEYS.supporterUnlock, "true");
       if (unlocksFuture) localStorage.setItem(STORAGE_KEYS.supporterFutureUnlock, "true");
+      AchievementManager.evaluate();
       refreshPlayerUnlocks();
       window.alert(tr(unlocksFuture ? "supporterFutureSuccess" : "supporterSuccess"));
     }
@@ -4217,15 +4418,16 @@
 
     function renderAchievements() {
       if (!achievementList || !statisticsList) return;
-      const unlockedCount = Object.keys(AchievementManager.data.unlocked).length;
-      const total = achievementDefinitions.length;
+      const visibleDefinitions = visibleAchievementDefinitions();
+      const unlockedCount = achievementUnlockedCount(visibleDefinitions);
+      const total = visibleDefinitions.length;
       fields.achievementUnlocked.textContent = `${unlockedCount} / ${total}`;
-      fields.achievementCompletion.textContent = `${Math.round((unlockedCount / total) * 100)}%`;
+      fields.achievementCompletion.textContent = `${total === 0 ? 0 : Math.round((unlockedCount / total) * 100)}%`;
       fields.achievementLongest.textContent = formatYards(StatsManager.data.longestShot);
       fields.achievementStreak.textContent = String(StatsManager.data.bestStreak);
 
       achievementList.innerHTML = "";
-      achievementDefinitions.forEach((achievement) => {
+      visibleDefinitions.forEach((achievement) => {
         const unlockedAt = AchievementManager.data.unlocked[achievement.id];
         const rawProgress = Math.max(0, achievement.progress(StatsManager.data));
         const progress = Math.min(achievement.target, rawProgress);
