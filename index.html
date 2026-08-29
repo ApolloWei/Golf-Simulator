@@ -262,11 +262,16 @@
       background: #f7fbf6;
     }
 
+    .player-unlock-progress {
+      display: grid;
+      gap: 8px;
+    }
+
     .player-unlock-head {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+      gap: 16px;
       color: var(--ink);
       font-size: 13px;
       font-weight: 800;
@@ -1190,19 +1195,21 @@
         <select id="lobbyPlayer"></select>
       </div>
       <div class="player-unlock-panel" id="playerUnlockPanel">
-        <div class="player-unlock-head">
-          <span data-i18n="playerUnlockProgress">角色解锁进度</span>
-          <span class="player-unlock-percent" id="playerUnlockPercent">0%</span>
+        <div class="player-unlock-progress">
+          <div class="player-unlock-head">
+            <span data-i18n="playerUnlockProgress">角色解锁进度</span>
+            <span class="player-unlock-percent" id="playerUnlockPercent">0%</span>
+          </div>
+          <div class="player-unlock-bar" aria-hidden="true"><span id="playerUnlockBar"></span></div>
         </div>
-        <div class="player-unlock-bar" aria-hidden="true"><span id="playerUnlockBar"></span></div>
-        <div id="bonusAchievementProgress">
+        <div class="player-unlock-progress" id="bonusAchievementProgress">
           <div class="player-unlock-head">
             <span data-i18n="bonusAchievements">Bonus Achievements</span>
             <span class="player-unlock-percent" id="bonusAchievementPercent">0%</span>
           </div>
           <div class="player-unlock-bar" aria-hidden="true"><span id="bonusAchievementBar"></span></div>
         </div>
-        <div id="plusAchievementProgress">
+        <div class="player-unlock-progress" id="plusAchievementProgress">
           <div class="player-unlock-head">
             <span data-i18n="plusOnlyAchievements">+ Only Achievements</span>
             <span class="player-unlock-percent" id="plusAchievementPercent">0%</span>
