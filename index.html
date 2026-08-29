@@ -1195,16 +1195,20 @@
           <span class="player-unlock-percent" id="playerUnlockPercent">0%</span>
         </div>
         <div class="player-unlock-bar" aria-hidden="true"><span id="playerUnlockBar"></span></div>
-        <div class="player-unlock-head">
-          <span data-i18n="bonusAchievements">Bonus Achievements</span>
-          <span class="player-unlock-percent" id="bonusAchievementPercent">0%</span>
+        <div id="bonusAchievementProgress">
+          <div class="player-unlock-head">
+            <span data-i18n="bonusAchievements">Bonus Achievements</span>
+            <span class="player-unlock-percent" id="bonusAchievementPercent">0%</span>
+          </div>
+          <div class="player-unlock-bar" aria-hidden="true"><span id="bonusAchievementBar"></span></div>
         </div>
-        <div class="player-unlock-bar" aria-hidden="true"><span id="bonusAchievementBar"></span></div>
-        <div class="player-unlock-head">
-          <span data-i18n="plusOnlyAchievements">+ Only Achievements</span>
-          <span class="player-unlock-percent" id="plusAchievementPercent">0%</span>
+        <div id="plusAchievementProgress">
+          <div class="player-unlock-head">
+            <span data-i18n="plusOnlyAchievements">+ Only Achievements</span>
+            <span class="player-unlock-percent" id="plusAchievementPercent">0%</span>
+          </div>
+          <div class="player-unlock-bar" aria-hidden="true"><span id="plusAchievementBar"></span></div>
         </div>
-        <div class="player-unlock-bar" aria-hidden="true"><span id="plusAchievementBar"></span></div>
         <div class="player-unlock-list" id="playerUnlockList"></div>
       </div>
       <div class="mode-grid">
@@ -1551,8 +1555,18 @@
     };
 
     const playerDisplayNames = {
-      "Heart Recovery Player": { zh: "心脏手术后的专业球员", en: "Heart Recovery Pro Player" },
+      "Calvin": { zh: "卡尔文", en: "Calvin" },
+      "Bob the Kid": { zh: "小孩鲍勃", en: "Bob the Kid" },
       "老花眼": { zh: "老花眼", en: "Presbyopia Player" },
+      "Heart Recovery Player": { zh: "心脏手术后的专业球员", en: "Heart Recovery Pro Player" },
+      "Future Calvin": { zh: "未来卡尔文", en: "Future Calvin" },
+      "Youtube Golfer": { zh: "YouTube 高尔夫球手", en: "Youtube Golfer" },
+      "Pro (Bryson DeChambeau)": { zh: "职业球员（布赖森·德尚博）", en: "Pro (Bryson DeChambeau)" },
+      "Pro (Nelly Korda)": { zh: "职业球员（内莉·科达）", en: "Pro (Nelly Korda)" },
+      "Pro (Scottie Scheffler)": { zh: "职业球员（斯科蒂·舍夫勒）", en: "Pro (Scottie Scheffler)" },
+      "Pro (Tommy Fleetwood)": { zh: "职业球员（汤米·弗利特伍德）", en: "Pro (Tommy Fleetwood)" },
+      "Pro (Xander Schauffele)": { zh: "职业球员（赞德·谢奥菲勒）", en: "Pro (Xander Schauffele)" },
+      "Stephen Curry": { zh: "斯蒂芬·库里", en: "Stephen Curry" },
       "大爷": { zh: "大爷", en: "Your Grandfather" }
     };
 
@@ -1562,8 +1576,10 @@
     const lobbyPlayerSelect = document.querySelector("#lobbyPlayer");
     const playerUnlockPercent = document.querySelector("#playerUnlockPercent");
     const playerUnlockBar = document.querySelector("#playerUnlockBar");
+    const bonusAchievementProgress = document.querySelector("#bonusAchievementProgress");
     const bonusAchievementPercent = document.querySelector("#bonusAchievementPercent");
     const bonusAchievementBar = document.querySelector("#bonusAchievementBar");
+    const plusAchievementProgress = document.querySelector("#plusAchievementProgress");
     const plusAchievementPercent = document.querySelector("#plusAchievementPercent");
     const plusAchievementBar = document.querySelector("#plusAchievementBar");
     const playerUnlockList = document.querySelector("#playerUnlockList");
@@ -1693,7 +1709,7 @@
         supporterUnlockedButton: "支持者 ✓",
         supporterFutureUnlockedButton: "支持者+ ✓",
         supporterMaxUnlockedButton: "SupporterMax ✓",
-        supporterChoicePrompt: "选择解锁类型：\n1 = 只解锁所有正常人物\n2 = 所有人物 + Future Calvin\n3 = SupporterMax（直接解锁所有人物）",
+        supporterChoicePrompt: "选择解锁类型：\n1 = 支持者：解锁所有正常人物，并获得额外的成就\n2 = 支持者+：所有人物 + Future Calvin，并获得额外的成就\n3 = SupporterMax：直接解锁所有人物，并获得全部额外成就入口",
         supporterPrompt: "请输入支持者密码",
         supporterFuturePrompt: "请输入 Future Calvin 支持者密码",
         supporterMaxPrompt: "请输入 SupporterMax 密码",
@@ -1703,8 +1719,8 @@
         supporterFail: "密码不正确。",
         choosePlayer: "选择球员",
         playerUnlockProgress: "角色解锁进度",
-        bonusAchievements: "Bonus Achievements",
-        plusOnlyAchievements: "+ Only Achievements",
+        bonusAchievements: "奖励成就",
+        plusOnlyAchievements: "Plus 专属成就",
         supporterProgressLocked: "支持者解锁",
         plusProgressLocked: "Supporter+ 解锁",
         playerUnlocked: "已解锁",
@@ -1860,7 +1876,7 @@
         supporterUnlockedButton: "Supporter ✓",
         supporterFutureUnlockedButton: "Supporter+ ✓",
         supporterMaxUnlockedButton: "SupporterMax ✓",
-        supporterChoicePrompt: "Choose unlock type:\n1 = Normal players only\n2 = All players + Future Calvin\n3 = SupporterMax (unlock every player directly)",
+        supporterChoicePrompt: "Choose unlock type:\n1 = Supporter: unlock all normal players and get extra achievements\n2 = Supporter+: all players + Future Calvin and extra achievements\n3 = SupporterMax: unlock every player directly and access all extra achievement tracks",
         supporterPrompt: "Enter supporter password",
         supporterFuturePrompt: "Enter Future Calvin supporter password",
         supporterMaxPrompt: "Enter SupporterMax password",
@@ -2761,12 +2777,16 @@
     }
 
     function updateExtraAchievementProgress() {
+      const canSeeBonus = hasSupporterUnlock() || hasFutureSupporterUnlock() || hasSupporterMaxUnlock();
+      const canSeePlus = hasFutureSupporterUnlock() || hasSupporterMaxUnlock();
+      if (bonusAchievementProgress) bonusAchievementProgress.hidden = !canSeeBonus;
+      if (plusAchievementProgress) plusAchievementProgress.hidden = !canSeePlus;
       updateAchievementPoolBar(
         bonusAchievementPercent,
         bonusAchievementBar,
         bonusAchievementDefinitions,
         achievementUnlockedCount(bonusAchievementDefinitions),
-        hasSupporterUnlock() || hasFutureSupporterUnlock(),
+        canSeeBonus,
         "supporterProgressLocked"
       );
       updateAchievementPoolBar(
@@ -2774,7 +2794,7 @@
         plusAchievementBar,
         plusOnlyAchievementDefinitions,
         achievementUnlockedCount(plusOnlyAchievementDefinitions),
-        hasFutureSupporterUnlock() || hasSupporterMaxUnlock(),
+        canSeePlus,
         "plusProgressLocked"
       );
     }
