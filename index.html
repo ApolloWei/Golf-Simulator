@@ -1507,6 +1507,11 @@
         ["7 Iron", 186], ["6 Iron", 200], ["5 Iron", 215], ["4 Iron", 225],
         ["7 Wood", 240], ["5 Wood", 260], ["3 Wood", 280], ["Driver", 300]
       ],
+      "Pro (Xander Schauffele)": [
+        ["60°", 110], ["56°", 123], ["52°", 135], ["PW", 148], ["9 Iron", 162],
+        ["8 Iron", 175], ["7 Iron", 190], ["6 Iron", 205], ["5 Iron", 220],
+        ["4 Iron", 238], ["UW", 255], ["3 Wood", 280], ["Driver", 310]
+      ],
       "Stephen Curry": [
         ["60°", 107], ["54°", 120], ["50°", 131], ["10 Iron", 145], ["9 Iron", 161],
         ["8 Iron", 170], ["7 Iron", 186], ["6 Iron", 199], ["5 Iron", 207],
@@ -1540,6 +1545,7 @@
       "Pro (Nelly Korda)": 5,
       "Pro (Scottie Scheffler)": 5,
       "Pro (Tommy Fleetwood)": 5,
+      "Pro (Xander Schauffele)": 5,
       "Stephen Curry": 4,
       "大爷": 1
     };
@@ -1710,6 +1716,7 @@
         unlockLowVision: "完成所有 Bonus 和 + Only 成就解锁",
         unlockTommy: "完成 50% Bonus 成就解锁",
         unlockStephenCurry: "完成 80% Bonus 成就解锁",
+        unlockXander: "完成 50% + Only 成就解锁",
         unlockNelly: "完成 60% 成就解锁",
         unlockScottie: "完成 75% 成就解锁",
         unlockBryson: "完成 80% 成就解锁",
@@ -1876,6 +1883,7 @@
         unlockLowVision: "Unlock by completing every Bonus and + Only achievement",
         unlockTommy: "Unlock at 50% Bonus achievements",
         unlockStephenCurry: "Unlock at 80% Bonus achievements",
+        unlockXander: "Unlock at 50% + Only achievements",
         unlockNelly: "Unlock at 60% achievements",
         unlockScottie: "Unlock at 75% achievements",
         unlockBryson: "Unlock at 80% achievements",
@@ -2105,6 +2113,7 @@
       if (name === "老花眼") return allBonusAchievementsUnlocked() && allPlusAchievementsUnlocked();
       if (name === "Pro (Tommy Fleetwood)") return achievementUnlockedCount(bonusAchievementDefinitions) >= bonusAchievementDefinitions.length * 0.5;
       if (name === "Stephen Curry") return achievementUnlockedCount(bonusAchievementDefinitions) >= bonusAchievementDefinitions.length * 0.8;
+      if (name === "Pro (Xander Schauffele)") return achievementUnlockedCount(plusOnlyAchievementDefinitions) >= plusOnlyAchievementDefinitions.length * 0.5;
       if (hasSupporterUnlock()) return true;
       if (name === "Calvin") return true;
       if (name === "Bob the Kid") return achievementCompletionRatio() >= 0.4;
@@ -2126,6 +2135,7 @@
       if (name === "老花眼") return "unlockLowVision";
       if (name === "Pro (Tommy Fleetwood)") return "unlockTommy";
       if (name === "Stephen Curry") return "unlockStephenCurry";
+      if (name === "Pro (Xander Schauffele)") return "unlockXander";
       if (name === "Pro (Nelly Korda)") return "unlockNelly";
       if (name === "Pro (Scottie Scheffler)") return "unlockScottie";
       if (name === "Pro (Bryson DeChambeau)") return "unlockBryson";
