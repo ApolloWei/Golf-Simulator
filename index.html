@@ -681,6 +681,45 @@
       bottom: auto;
     }
 
+    .flight-speed-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 46px;
+      padding: 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f5f8f5;
+      color: var(--ink);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .speed-button {
+      width: 30px;
+      height: 30px;
+      border: 0;
+      border-radius: 7px;
+      background: #ffffff;
+      color: var(--fairway-dark);
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 5px 12px rgba(30, 56, 39, 0.08);
+    }
+
+    .speed-button:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .speed-value {
+      min-width: 38px;
+      text-align: center;
+      font-size: 13px;
+    }
+
     .launch-button,
     .reset-button {
       height: 46px;
@@ -1400,6 +1439,11 @@
 
   <div class="launch-dock hidden" id="launchDock">
     <button class="reset-button" id="resetBtn" title="重置">↺</button>
+    <div class="flight-speed-control" aria-label="Flight speed">
+      <button class="speed-button" id="slowerBtn" type="button" title="放慢">◀</button>
+      <span class="speed-value" id="flightSpeedText">1x</span>
+      <button class="speed-button" id="fasterBtn" type="button" title="加快">▶</button>
+    </div>
     <button class="launch-button" id="launchBtn">
       <span class="ball-dot" aria-hidden="true"></span>
       发射
@@ -1633,6 +1677,9 @@
     const ctx = canvas.getContext("2d");
     const launchBtn = document.querySelector("#launchBtn");
     const resetBtn = document.querySelector("#resetBtn");
+    const slowerBtn = document.querySelector("#slowerBtn");
+    const fasterBtn = document.querySelector("#fasterBtn");
+    const flightSpeedText = document.querySelector("#flightSpeedText");
     const holeModal = document.querySelector("#holeModal");
 
     const fields = {
@@ -1672,6 +1719,8 @@
     let ballHidden = false;
     let audioContext = null;
     let audioPrimed = false;
+    const flightSpeedOptions = [0.5, 1, 1.5, 2];
+    let flightSpeedIndex = 1;
     let gameTargetYards = 0;
     let gameRemainingYards = 0;
     let gameBallYards = 0;
@@ -1804,6 +1853,8 @@
         bounceOption: "落地后弹跳",
         trajectoryOption: "显示飞行轨迹",
         trajectoryOnlyOption: "只显示轨迹，不显示球",
+        flightSpeedSlow: "放慢飞行",
+        flightSpeedFast: "加快飞行",
         soundOption: "击球音效",
         cheatOption: "允许作弊",
         hint: "距离来自你给的表格。程序会根据选中的距离和角度反推出初速度，再用抛体公式播放这次击球。",
@@ -1971,6 +2022,8 @@
         bounceOption: "Bounce after landing",
         trajectoryOption: "Show flight trail",
         trajectoryOnlyOption: "Trail only, hide ball",
+        flightSpeedSlow: "Slow flight",
+        flightSpeedFast: "Speed up flight",
         soundOption: "Launch sound",
         cheatOption: "Allow cheats",
         hint: "Distances come from your table. The simulator uses the selected distance and angle to estimate launch speed, then plays the shot with projectile motion.",
@@ -4042,6 +4095,27 @@
       updateResetButtonVisibility();
     }
 
+    function updateFlightSpeedControl() {
+      const speed = flightSpeedOptions[flightSpeedIndex];
+      if (flightSpeedText) flightSpeedText.textContent = `${speed}x`;
+      if (slowerBtn) {
+        slowerBtn.disabled = flightSpeedIndex === 0;
+        slowerBtn.title = tr("flightSpeedSlow");
+      }
+      if (fasterBtn) {
+        fasterBtn.disabled = flightSpeedIndex === flightSpeedOptions.length - 1;
+        fasterBtn.title = tr("flightSpeedFast");
+      }
+    }
+
+    function changeFlightSpeed(direction) {
+      flightSpeedIndex = Math.min(
+        flightSpeedOptions.length - 1,
+        Math.max(0, flightSpeedIndex + direction)
+      );
+      updateFlightSpeedControl();
+    }
+
     function updateResetButtonVisibility() {
       const showReset = isFreeMode() || (isChallengeMode() && cheatToggle.checked);
       resetBtn.classList.toggle("hidden", !showReset);
@@ -4321,6 +4395,9 @@
       const swingMs = 520;
       const flightMs = Math.max(1800, Math.min(7800, shot.duration * 1000));
       const started = performance.now();
+      let lastFrameNow = started;
+      let flightElapsedMs = 0;
+      let flightClockStarted = false;
       const puttSinkPlan = getPuttSinkPlan();
       const carryHoleInPlan = getCarryHoleInPlan();
       let puttSinkResolved = false;
@@ -4329,13 +4406,21 @@
       function frame(now) {
         const elapsed = now - started;
         if (elapsed < swingMs) {
+          lastFrameNow = now;
           resetFlightStats("preparing");
           drawScene();
           animation = scheduleAnimationFrame(frame);
           return;
         }
 
-        flightProgress = Math.min(1, (elapsed - swingMs) / flightMs);
+        if (!flightClockStarted) {
+          flightClockStarted = true;
+          lastFrameNow = now;
+        } else {
+          flightElapsedMs += Math.max(0, now - lastFrameNow) * flightSpeedOptions[flightSpeedIndex];
+          lastFrameNow = now;
+        }
+        flightProgress = Math.min(1, flightElapsedMs / flightMs);
         const localPoint = pointAt(flightProgress);
         const windOffset = windOffsetForProgress(flightProgress);
         ballPosition = isChallengeMode()
@@ -4635,6 +4720,7 @@
       homeBtn.title = tr("homeTitle");
       achievementsBtn.title = tr("achievementsButtonTitle");
       lobbyAchievementsBtn.title = tr("achievementsButtonTitle");
+      updateFlightSpeedControl();
       stage.setAttribute("aria-label", tr("stageLabel"));
       document.querySelectorAll("[data-i18n]").forEach((node) => {
         node.textContent = tr(node.dataset.i18n);
@@ -4714,6 +4800,8 @@
     launchBtn.addEventListener("pointerdown", primeAudioContext);
     launchBtn.addEventListener("click", launch);
     resetBtn.addEventListener("click", useResetButton);
+    slowerBtn.addEventListener("click", () => changeFlightSpeed(-1));
+    fasterBtn.addEventListener("click", () => changeFlightSpeed(1));
     function handleDifficultyChoice(event, value) {
       event.stopPropagation();
       setClassicDifficulty(value);
