@@ -674,6 +674,18 @@
       background: rgba(255, 255, 255, 0.92);
       box-shadow: 0 16px 42px rgba(30, 56, 39, 0.18);
       backdrop-filter: blur(8px);
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .launch-dock.dragging {
+      cursor: grabbing;
+      transition: none;
+    }
+
+    .launch-dock.docked {
+      transition: left 180ms ease, right 180ms ease, top 180ms ease, bottom 180ms ease;
     }
 
     .launch-dock.free-corner {
@@ -1205,6 +1217,8 @@
         top: auto;
         bottom: 18px;
         justify-content: flex-end;
+        cursor: default;
+        touch-action: auto;
       }
 
       .launch-dock.free-corner {
@@ -2101,7 +2115,8 @@
       stats: "golfSimulatorStats.v1",
       supporterUnlock: "golfSimulatorSupporterUnlock.v1",
       supporterFutureUnlock: "golfSimulatorSupporterFutureUnlock.v1",
-      supporterMaxUnlock: "golfSimulatorSupporterMaxUnlock.v1"
+      supporterMaxUnlock: "golfSimulatorSupporterMaxUnlock.v1",
+      launchDockPosition: "golfSimulatorLaunchDockPosition.v1"
     };
     const SUPPORTER_PASSWORD_HASH = "ea72c79594296e45b8c2a296644d988581f58cfac6601d122ed0a8bd7c02e8bf";
     const SUPPORTER_FUTURE_PASSWORD_HASH = "2dfcab3471c3a8bcea03ea7c0402547d9235998780a7e8c248b4da2a2b2a42c6";
@@ -2743,7 +2758,7 @@
       trajectoryOnlyControl.classList.toggle("hidden", !showTrajectoryOnly);
       if (!showTrajectoryOnly) trajectoryOnlyToggle.checked = false;
       if (!trajectoryToggle.checked) trajectoryOnlyToggle.checked = false;
-      launchDock.classList.toggle("free-corner", isFreeMode());
+      restoreLaunchDockPosition();
       updateResetButtonVisibility();
     }
 
@@ -4116,6 +4131,92 @@
       updateFlightSpeedControl();
     }
 
+    function clampLaunchDockPosition(left, top) {
+      const rect = launchDock.getBoundingClientRect();
+      const margin = 10;
+      return {
+        left: Math.min(window.innerWidth - rect.width - margin, Math.max(margin, left)),
+        top: Math.min(window.innerHeight - rect.height - margin, Math.max(margin, top))
+      };
+    }
+
+    function setLaunchDockPosition(left, top, persist = true) {
+      const position = clampLaunchDockPosition(left, top);
+      launchDock.classList.remove("free-corner", "docked");
+      launchDock.style.left = `${position.left}px`;
+      launchDock.style.top = `${position.top}px`;
+      launchDock.style.right = "auto";
+      launchDock.style.bottom = "auto";
+      if (persist) localStorage.setItem(STORAGE_KEYS.launchDockPosition, JSON.stringify(position));
+    }
+
+    function clearLaunchDockPosition(removeSaved = true) {
+      if (removeSaved) localStorage.removeItem(STORAGE_KEYS.launchDockPosition);
+      launchDock.style.left = "";
+      launchDock.style.top = "";
+      launchDock.style.right = "";
+      launchDock.style.bottom = "";
+      launchDock.classList.add("docked");
+      launchDock.classList.toggle("free-corner", isFreeMode());
+    }
+
+    function restoreLaunchDockPosition() {
+      const raw = localStorage.getItem(STORAGE_KEYS.launchDockPosition);
+      if (!raw || window.matchMedia("(max-width: 760px)").matches) {
+        clearLaunchDockPosition(!raw);
+        return;
+      }
+      try {
+        const saved = JSON.parse(raw);
+        if (!Number.isFinite(saved.left) || !Number.isFinite(saved.top)) throw new Error("Bad position");
+        setLaunchDockPosition(saved.left, saved.top, false);
+      } catch {
+        clearLaunchDockPosition();
+      }
+    }
+
+    function setupLaunchDockDragging() {
+      let drag = null;
+
+      launchDock.addEventListener("pointerdown", (event) => {
+        if (window.matchMedia("(max-width: 760px)").matches) return;
+        if (event.target.closest("button")) return;
+        const rect = launchDock.getBoundingClientRect();
+        drag = {
+          pointerId: event.pointerId,
+          offsetX: event.clientX - rect.left,
+          offsetY: event.clientY - rect.top,
+          moved: false
+        };
+        launchDock.setPointerCapture(event.pointerId);
+        launchDock.classList.add("dragging");
+        event.preventDefault();
+      });
+
+      launchDock.addEventListener("pointermove", (event) => {
+        if (!drag || event.pointerId !== drag.pointerId) return;
+        drag.moved = true;
+        setLaunchDockPosition(event.clientX - drag.offsetX, event.clientY - drag.offsetY, false);
+      });
+
+      function finishDrag(event) {
+        if (!drag || event.pointerId !== drag.pointerId) return;
+        const rect = launchDock.getBoundingClientRect();
+        setLaunchDockPosition(rect.left, rect.top, true);
+        if (launchDock.hasPointerCapture(event.pointerId)) launchDock.releasePointerCapture(event.pointerId);
+        launchDock.classList.remove("dragging");
+        drag = null;
+      }
+
+      launchDock.addEventListener("pointerup", finishDrag);
+      launchDock.addEventListener("pointercancel", finishDrag);
+      launchDock.addEventListener("dblclick", (event) => {
+        if (event.target.closest("button")) return;
+        clearLaunchDockPosition();
+      });
+      window.addEventListener("resize", restoreLaunchDockPosition);
+    }
+
     function updateResetButtonVisibility() {
       const showReset = isFreeMode() || (isChallengeMode() && cheatToggle.checked);
       resetBtn.classList.toggle("hidden", !showReset);
@@ -4742,6 +4843,7 @@
 
     fillPlayers();
     AchievementManager.evaluate();
+    setupLaunchDockDragging();
     applyLanguage();
     showLobby();
 
