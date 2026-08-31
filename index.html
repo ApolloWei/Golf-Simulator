@@ -1799,7 +1799,7 @@
         unlockBob: "完成 40% 成就解锁",
         unlockFutureCalvin: "成为支持者解锁",
         unlockHeartRecovery: "完成所有 + Only 成就解锁",
-        unlockLowVision: "完成所有 Bonus 和 + Only 成就解锁",
+        unlockLowVision: "完成所有基础、Bonus 和 + Only 成就解锁",
         unlockTommy: "完成 50% Bonus 成就解锁",
         unlockStephenCurry: "完成 80% Bonus 成就解锁",
         unlockXander: "完成 50% + Only 成就解锁",
@@ -1968,7 +1968,7 @@
         unlockBob: "Unlock at 40% achievements",
         unlockFutureCalvin: "Unlock as a Supporter",
         unlockHeartRecovery: "Unlock by completing every + Only achievement",
-        unlockLowVision: "Unlock by completing every Bonus and + Only achievement",
+        unlockLowVision: "Unlock by completing every base, Bonus, and + Only achievement",
         unlockTommy: "Unlock at 50% Bonus achievements",
         unlockStephenCurry: "Unlock at 80% Bonus achievements",
         unlockXander: "Unlock at 50% + Only achievements",
@@ -2201,7 +2201,7 @@
       if (hasSupporterMaxUnlock()) return true;
       if (name === "Future Calvin") return hasFutureSupporterUnlock();
       if (name === "Heart Recovery Player") return hasFutureSupporterUnlock() && allPlusAchievementsUnlocked();
-      if (name === "老花眼") return allBonusAchievementsUnlocked() && allPlusAchievementsUnlocked();
+      if (name === "老花眼") return allAchievementsUnlocked() && allBonusAchievementsUnlocked() && allPlusAchievementsUnlocked();
       if (name === "Pro (Tommy Fleetwood)") return achievementUnlockedCount(bonusAchievementDefinitions) >= bonusAchievementDefinitions.length * 0.5;
       if (name === "Stephen Curry") return achievementUnlockedCount(bonusAchievementDefinitions) >= bonusAchievementDefinitions.length * 0.8;
       if (name === "Pro (Xander Schauffele)") return achievementUnlockedCount(plusOnlyAchievementDefinitions) >= plusOnlyAchievementDefinitions.length * 0.5;
