@@ -1271,7 +1271,7 @@
         </div>
         <div class="player-unlock-progress" id="asceticAchievementProgress">
           <div class="player-unlock-head">
-            <span data-i18n="asceticAchievements">苦行僧修炼</span>
+            <span id="asceticAchievementLabel" data-i18n="asceticAchievements">苦行僧修炼</span>
             <span class="player-unlock-percent" id="asceticAchievementPercent">0%</span>
           </div>
           <div class="player-unlock-bar" aria-hidden="true"><span id="asceticAchievementBar"></span></div>
@@ -1557,6 +1557,11 @@
         ["9 Iron", 253], ["8 Iron", 258], ["7 Iron", 282], ["6 Iron", 299],
         ["5 Iron", 305], ["5 Wood", 380], ["3 Wood", 394], ["Driver", 422]
       ],
+      "苦行僧": [
+        ["60°", 155], ["56°", 185], ["50°", 210], ["45°", 232], ["PW", 246],
+        ["9 Iron", 270], ["8 Iron", 286], ["7 Iron", 305], ["6 Iron", 322],
+        ["5 Iron", 342], ["5 Wood", 405], ["3 Wood", 432], ["Driver", 462]
+      ],
       "Youtube Golfer": [
         ["60°", 101], ["56°", 125], ["52°", 148], ["PW", 165], ["9 Iron", 174],
         ["8 Iron", 194], ["7 Iron", 207], ["6 Iron", 216], ["5 Iron", 223],
@@ -1631,6 +1636,7 @@
       "老花眼": 4,
       "Heart Recovery Player": 4,
       "Future Calvin": 5,
+      "苦行僧": 6,
       "Youtube Golfer": 3,
       "Pro (Bryson DeChambeau)": 5,
       "Pro (Nelly Korda)": 5,
@@ -1650,6 +1656,7 @@
       "老花眼": { zh: "老花眼", en: "Presbyopia Player" },
       "Heart Recovery Player": { zh: "心脏手术后的专业球员", en: "Heart Recovery Pro Player" },
       "Future Calvin": { zh: "未来卡尔文", en: "Future Calvin" },
+      "苦行僧": { zh: "苦行僧", en: "Ascetic Monk" },
       "Youtube Golfer": { zh: "YouTube 高尔夫球手", en: "Youtube Golfer" },
       "Pro (Bryson DeChambeau)": { zh: "职业球员（布赖森·德尚博）", en: "Pro (Bryson DeChambeau)" },
       "Pro (Nelly Korda)": { zh: "职业球员（内莉·科达）", en: "Pro (Nelly Korda)" },
@@ -1675,6 +1682,7 @@
     const plusAchievementProgress = document.querySelector("#plusAchievementProgress");
     const plusAchievementPercent = document.querySelector("#plusAchievementPercent");
     const plusAchievementBar = document.querySelector("#plusAchievementBar");
+    const asceticAchievementLabel = document.querySelector("#asceticAchievementLabel");
     const asceticAchievementPercent = document.querySelector("#asceticAchievementPercent");
     const asceticAchievementBar = document.querySelector("#asceticAchievementBar");
     const playerUnlockList = document.querySelector("#playerUnlockList");
@@ -1813,6 +1821,7 @@
         supporterPrompt: "请输入支持者密码",
         supporterFuturePrompt: "请输入 Future Calvin 支持者密码",
         supporterMaxPrompt: "请输入 SupporterMax 密码",
+        supporterCreatorPrompt: "请输入 Supporter Creator 密码",
         supporterSuccess: "支持者已解锁！所有人物以后都会自动开放。",
         supporterFutureSuccess: "Future Calvin 已解锁！",
         supporterMaxSuccess: "SupporterMax 已解锁！所有人物已开放。",
@@ -1822,6 +1831,7 @@
         bonusAchievements: "奖励成就",
         plusOnlyAchievements: "Plus 专属成就",
         asceticAchievements: "苦行僧修炼",
+        asceticAchievementsLocked: "隐藏奖励：苦行僧修炼",
         supporterProgressLocked: "支持者解锁",
         plusProgressLocked: "Supporter+ 解锁",
         playerUnlocked: "已解锁",
@@ -1829,6 +1839,7 @@
         unlockCalvin: "初始可用",
         unlockBob: "完成 40% 成就解锁",
         unlockFutureCalvin: "成为支持者解锁",
+        unlockAsceticMonk: "完成所有苦行僧修炼成就解锁",
         unlockHeartRecovery: "完成所有 + Only 成就解锁",
         unlockLowVision: "完成所有基础、Bonus 和 + Only 成就解锁",
         unlockTommy: "完成 50% Bonus 成就解锁",
@@ -1986,6 +1997,7 @@
         supporterPrompt: "Enter supporter password",
         supporterFuturePrompt: "Enter Future Calvin supporter password",
         supporterMaxPrompt: "Enter SupporterMax password",
+        supporterCreatorPrompt: "Enter Supporter Creator password",
         supporterSuccess: "Supporter unlocked. All players will stay available.",
         supporterFutureSuccess: "Future Calvin unlocked.",
         supporterMaxSuccess: "SupporterMax unlocked. Every player is now available.",
@@ -1995,6 +2007,7 @@
         bonusAchievements: "Bonus Achievements",
         plusOnlyAchievements: "+ Only Achievements",
         asceticAchievements: "Ascetic Training",
+        asceticAchievementsLocked: "Hidden Reward: Ascetic Training",
         supporterProgressLocked: "Supporter locked",
         plusProgressLocked: "Supporter+ locked",
         playerUnlocked: "Unlocked",
@@ -2002,6 +2015,7 @@
         unlockCalvin: "Available from the start",
         unlockBob: "Unlock at 40% achievements",
         unlockFutureCalvin: "Unlock as a Supporter",
+        unlockAsceticMonk: "Unlock by completing every Ascetic Training achievement",
         unlockHeartRecovery: "Unlock by completing every + Only achievement",
         unlockLowVision: "Unlock by completing every base, Bonus, and + Only achievement",
         unlockTommy: "Unlock at 50% Bonus achievements",
@@ -2154,11 +2168,13 @@
       supporterUnlock: "golfSimulatorSupporterUnlock.v1",
       supporterFutureUnlock: "golfSimulatorSupporterFutureUnlock.v1",
       supporterMaxUnlock: "golfSimulatorSupporterMaxUnlock.v2",
+      supporterCreatorUnlock: "golfSimulatorSupporterCreatorUnlock.v1",
       launchDockPosition: "golfSimulatorLaunchDockPosition.v1"
     };
     const SUPPORTER_PASSWORD_HASH = "ea72c79594296e45b8c2a296644d988581f58cfac6601d122ed0a8bd7c02e8bf";
     const SUPPORTER_FUTURE_PASSWORD_HASH = "2dfcab3471c3a8bcea03ea7c0402547d9235998780a7e8c248b4da2a2b2a42c6";
     const SUPPORTER_MAX_PASSWORD_HASH = "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f";
+    const SUPPORTER_CREATOR_PASSWORD_HASH = "a43729edcece96240479409e5e66c0316e0ee893b18f644d0a93d771a7c6ae61";
 
     const CLUB_COLLECTION_TARGET = 13;
     const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
@@ -2207,6 +2223,11 @@
         && achievementUnlockedCount(plusOnlyAchievementDefinitions) >= plusOnlyAchievementDefinitions.length;
     }
 
+    function allAsceticAchievementsUnlocked() {
+      return asceticAchievementDefinitions.length > 0
+        && achievementUnlockedCount(asceticAchievementDefinitions) >= asceticAchievementDefinitions.length;
+    }
+
     function hasSupporterUnlock() {
       return localStorage.getItem(STORAGE_KEYS.supporterUnlock) === "true";
     }
@@ -2217,6 +2238,10 @@
 
     function hasSupporterMaxUnlock() {
       return localStorage.getItem(STORAGE_KEYS.supporterMaxUnlock) === "true";
+    }
+
+    function hasSupporterCreatorUnlock() {
+      return localStorage.getItem(STORAGE_KEYS.supporterCreatorUnlock) === "true";
     }
 
     function canUseAchievement(achievement) {
@@ -2236,6 +2261,7 @@
     }
 
     function isPlayerUnlocked(name) {
+      if (name === "苦行僧") return allAsceticAchievementsUnlocked() || hasSupporterCreatorUnlock();
       if (hasSupporterMaxUnlock()) return true;
       if (name === "Future Calvin") return hasFutureSupporterUnlock();
       if (name === "Heart Recovery Player") return hasFutureSupporterUnlock() && allPlusAchievementsUnlocked();
@@ -2263,6 +2289,7 @@
     function playerUnlockRequirementKey(name) {
       if (name === "Bob the Kid") return "unlockBob";
       if (name === "Future Calvin") return "unlockFutureCalvin";
+      if (name === "苦行僧") return "unlockAsceticMonk";
       if (name === "Heart Recovery Player") return "unlockHeartRecovery";
       if (name === "老花眼") return "unlockLowVision";
       if (name === "Pro (Tommy Fleetwood)") return "unlockTommy";
@@ -2872,6 +2899,14 @@
       return playerSelect.value === "老花眼";
     }
 
+    function isAsceticPlayer() {
+      return playerSelect.value === "苦行僧";
+    }
+
+    function isAsceticAimingMode() {
+      return isAsceticPlayer() && isChallengeMode();
+    }
+
     function hasClassicGreen() {
       return mode === "classic" && classicGreenRule === "green";
     }
@@ -2897,6 +2932,18 @@
       syncSwingValueInputs();
     }
 
+    function setSwingControlsLocked(locked) {
+      clubSelect.disabled = locked;
+      angleSlider.disabled = locked;
+      powerSlider.disabled = locked;
+      fields.angle.disabled = locked;
+      fields.power.disabled = locked;
+    }
+
+    function updateSwingControlLock() {
+      setSwingControlsLocked(isAsceticAimingMode());
+    }
+
     function fillPlayers() {
       const previousPlayer = playerSelect.value || "Calvin";
       const previousLobbyPlayer = lobbyPlayerSelect.value || previousPlayer;
@@ -2904,6 +2951,7 @@
       lobbyPlayerSelect.innerHTML = "";
       sortedPlayerNames().forEach((name) => {
         const unlocked = isPlayerUnlocked(name);
+        if (name === "苦行僧" && !unlocked) return;
         const label = `${unlocked ? "" : "🔒 "}${playerDisplayName(name)} ${ratingStars(name)}`;
         const option = document.createElement("option");
         option.value = name;
@@ -2932,8 +2980,10 @@
     function updateExtraAchievementProgress() {
       const canSeeBonus = hasSupporterUnlock() || hasFutureSupporterUnlock() || hasSupporterMaxUnlock();
       const canSeePlus = hasFutureSupporterUnlock() || hasSupporterMaxUnlock();
+      const asceticUnlocked = allAsceticAchievementsUnlocked() || hasSupporterCreatorUnlock();
       if (bonusAchievementProgress) bonusAchievementProgress.hidden = !canSeeBonus;
       if (plusAchievementProgress) plusAchievementProgress.hidden = !canSeePlus;
+      if (asceticAchievementLabel) asceticAchievementLabel.textContent = tr(asceticUnlocked ? "asceticAchievements" : "asceticAchievementsLocked");
       updateAchievementPoolBar(
         bonusAchievementPercent,
         bonusAchievementBar,
@@ -2979,6 +3029,7 @@
       playerUnlockList.innerHTML = "";
       sortedPlayerNames().forEach((name) => {
         const unlocked = isPlayerUnlocked(name);
+        if (name === "苦行僧" && !unlocked) return;
         const item = document.createElement("div");
         item.className = `player-unlock-item${unlocked ? "" : " locked"}`;
         item.innerHTML = `
@@ -2998,14 +3049,18 @@
       const choice = window.prompt(tr("supporterChoicePrompt"), hasSupporterMaxUnlock() ? "3" : (hasSupporterUnlock() ? "2" : "1"));
       if (choice == null) return;
       const normalizedChoice = choice.trim();
-      const unlocksMax = normalizedChoice === "3";
+      const unlocksCreator = normalizedChoice === "5";
+      const unlocksMax = normalizedChoice === "3" || unlocksCreator;
       const unlocksFuture = normalizedChoice === "2" || unlocksMax;
       const unlocksNormal = normalizedChoice === "1" || unlocksFuture;
       if (!unlocksNormal) return;
-      const entered = window.prompt(tr(unlocksMax ? "supporterMaxPrompt" : (unlocksFuture ? "supporterFuturePrompt" : "supporterPrompt")));
+      const promptKey = unlocksCreator ? "supporterCreatorPrompt" : (unlocksMax ? "supporterMaxPrompt" : (unlocksFuture ? "supporterFuturePrompt" : "supporterPrompt"));
+      const entered = window.prompt(tr(promptKey));
       if (entered == null) return;
       const enteredHash = await sha256Hex(entered.trim());
-      const expectedHash = unlocksMax
+      const expectedHash = unlocksCreator
+        ? SUPPORTER_CREATOR_PASSWORD_HASH
+        : unlocksMax
         ? SUPPORTER_MAX_PASSWORD_HASH
         : (unlocksFuture ? SUPPORTER_FUTURE_PASSWORD_HASH : SUPPORTER_PASSWORD_HASH);
       if (enteredHash !== expectedHash) {
@@ -3015,6 +3070,7 @@
       if (unlocksNormal) localStorage.setItem(STORAGE_KEYS.supporterUnlock, "true");
       if (unlocksFuture) localStorage.setItem(STORAGE_KEYS.supporterFutureUnlock, "true");
       if (unlocksMax) localStorage.setItem(STORAGE_KEYS.supporterMaxUnlock, "true");
+      if (unlocksCreator) localStorage.setItem(STORAGE_KEYS.supporterCreatorUnlock, "true");
       AchievementManager.evaluate();
       refreshPlayerUnlocks();
       window.alert(tr(unlocksMax ? "supporterMaxSuccess" : (unlocksFuture ? "supporterFutureSuccess" : "supporterSuccess")));
@@ -3087,6 +3143,7 @@
       homeBtn.classList.remove("show");
       playerControl.classList.remove("hidden");
       playerSelect.disabled = false;
+      setSwingControlsLocked(false);
       fields.gameInfo.classList.remove("show");
       updateLifeHud();
       previousTrails = [];
@@ -3129,6 +3186,7 @@
         gameFinished = false;
         resetShot("ready");
       }
+      updateSwingControlLock();
     }
 
     function startGame(nextMode = mode) {
@@ -3157,6 +3215,7 @@
       trail = [];
       powerSlider.value = DEFAULT_POWER_PERCENT;
       fillClubs({ reset: false });
+      applyAsceticAutoAim();
       updateWindHud();
       const readyKey = mode === "precision"
         ? (isLowVisionPlayer() ? "lowVisionReady" : "precisionReady")
@@ -3202,6 +3261,7 @@
       angleSlider.value = PUTTER_ANGLE;
       powerSlider.value = DEFAULT_POWER_PERCENT;
       shot = getShot();
+      applyAsceticAutoAim();
       resetShot("puttingPracticeReady", { remaining: Math.round(gameRemainingYards) });
     }
 
@@ -3274,6 +3334,7 @@
       gameViewTargetMaxX = gameViewMaxX;
       gameViewMaxY = Math.max(90, Math.ceil((Math.max(referenceShot.maxHeightYards, maxObstacleY) * 1.35) / 25) * 25);
       gameViewTargetMaxY = gameViewMaxY;
+      applyAsceticAutoAim();
       resetShot("obstacleReady");
     }
 
@@ -3336,6 +3397,7 @@
       angleSlider.value = PUTTER_ANGLE;
       powerSlider.value = DEFAULT_POWER_PERCENT;
       shot = getShot();
+      applyAsceticAutoAim();
       startGreenZoom();
       updateGameInfo();
       updateText("puttingReady");
@@ -3371,6 +3433,66 @@
       clubSelect.value = hasPreviousClub ? previousClub : clubs.at(-1)[0];
       if (!preserveSwing) angleSlider.value = defaultAngles[clubSelect.value] || 18;
       if (reset) resetShot("ready");
+    }
+
+    function applyAsceticAutoAim() {
+      if (!isAsceticAimingMode() || gameFinished || animation) {
+        updateSwingControlLock();
+        return;
+      }
+      if (isObstacleMode() && obstacleCourse) {
+        clubSelect.value = obstacleCourse.referenceClub;
+        angleSlider.value = obstacleCourse.referenceAngle;
+        powerSlider.value = obstacleCourse.referencePower;
+        syncSwingValueInputs();
+        shot = getShot();
+        updateSwingControlLock();
+        return;
+      }
+      const targetDistance = Math.max(0.5, gameRemainingYards);
+      if (gameOnGreen && (hasClassicGreen() || isPuttingPracticeMode())) {
+        clubSelect.value = "Putter";
+        angleSlider.value = PUTTER_ANGLE;
+        powerSlider.value = clampNumber(Math.sqrt(targetDistance / PUTTER_DISTANCE_YARDS) * DEFAULT_POWER_PERCENT, 4, 100, DEFAULT_POWER_PERCENT);
+        syncSwingValueInputs();
+        shot = getShot();
+        updateSwingControlLock();
+        return;
+      }
+
+      const options = [];
+      const clubs = players[playerSelect.value] || [];
+      clubs.forEach(([club]) => {
+        const baseAngle = defaultAngles[club] || DEFAULT_LAUNCH_ANGLE;
+        for (let i = 0; i < 36; i += 1) {
+          const angle = clampNumber(baseAngle + (Math.random() * 22 - 11), 1, 55, baseAngle);
+          const power = clampNumber(35 + Math.random() * 65, 1, 100, DEFAULT_POWER_PERCENT);
+          const candidate = calculateShot({
+            player: playerSelect.value,
+            club,
+            angleDeg: angle,
+            powerPercent: power
+          });
+          options.push({
+            club,
+            angle,
+            power,
+            error: Math.abs(candidate.finalDistanceYards - targetDistance)
+          });
+        }
+      });
+
+      options.sort((a, b) => a.error - b.error);
+      const bestPool = options.slice(0, Math.min(8, options.length));
+      const selected = bestPool[Math.floor(Math.random() * bestPool.length)];
+      if (selected) {
+        clubSelect.value = selected.club;
+        angleSlider.value = selected.angle;
+        powerSlider.value = selected.power;
+        syncSwingValueInputs();
+        shot = getShot();
+      }
+      updateSwingControlLock();
     }
 
     function calculateShot({ player, club, angleDeg, powerPercent }) {
@@ -4765,6 +4887,7 @@
             setLaunchButton(gameFinished ? "relaunch" : "launch", gameFinished);
             if (landedOnGreen) {
               enterPuttingMode();
+              if (isAsceticAimingMode() && !gameFinished) applyAsceticAutoAim();
             } else {
               if (isClassicMode() && gameFinished) {
                 gameBallYards = gameTargetYards;
@@ -4786,6 +4909,7 @@
                 score
               });
               updateGameInfo();
+              if (isAsceticAimingMode() && !gameFinished) applyAsceticAutoAim();
             }
             if (mode === "precision") {
               showRoundCompleteModal("precisionCompleteTitle", isLowVisionPlayer() ? "lowVisionPrecisionCompleteText" : "precisionCompleteText", {
@@ -4826,6 +4950,11 @@
       return achievement[key][currentLang] || achievement[key].en;
     }
 
+    function achievementCategoryText(achievement) {
+      if (achievement.tier === "ascetic") return tr("asceticAchievements");
+      return achievement.category;
+    }
+
     function formatYards(value, digits = 0) {
       return value == null ? "-" : `${Number(value).toFixed(digits)} yd`;
     }
@@ -4853,7 +4982,7 @@
           <div>
             <div class="achievement-title">
               <span>${achievementText(achievement, "name")}</span>
-              <span class="achievement-category">${achievement.category}</span>
+              <span class="achievement-category">${achievementCategoryText(achievement)}</span>
             </div>
             <div class="achievement-desc">${achievementText(achievement, "desc")}</div>
             <div class="progress-bar"><span style="width:${percent}%"></span></div>
