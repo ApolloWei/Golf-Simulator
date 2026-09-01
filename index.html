@@ -1356,9 +1356,9 @@
         <div class="control">
           <label for="power" data-i18n="power">力度</label>
           <div class="range-row">
-            <input id="power" type="range" min="0" max="100" step="1" value="80" />
+            <input id="power" type="range" min="0" max="100" step="0.1" value="80" />
             <span class="value-box" data-unit="%">
-              <input class="value-pill" id="powerValue" type="number" min="0" max="100" step="1" value="80" aria-label="Power percent" />
+              <input class="value-pill" id="powerValue" type="number" min="0" max="100" step="0.1" value="80" aria-label="Power percent" />
             </span>
           </div>
         </div>
@@ -2921,6 +2921,13 @@
       return Math.min(max, Math.max(min, Math.round(number)));
     }
 
+    function clampDecimal(value, min, max, fallback, decimals = 1) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return fallback;
+      const factor = Math.pow(10, decimals);
+      return Math.min(max, Math.max(min, Math.round(number * factor) / factor));
+    }
+
     function syncSwingValueInputs() {
       fields.angle.value = angleSlider.value;
       fields.power.value = powerSlider.value;
@@ -3449,50 +3456,63 @@
         updateSwingControlLock();
         return;
       }
-      const targetDistance = Math.max(0.5, gameRemainingYards);
+      const finalWindOffset = windOffsetForProgress(1);
+      const signedTarget = gameTargetYards - gameBallYards - finalWindOffset;
+      const targetDistance = Math.max(0.5, Math.abs(signedTarget));
       if (gameOnGreen && (hasClassicGreen() || isPuttingPracticeMode())) {
         clubSelect.value = "Putter";
         angleSlider.value = PUTTER_ANGLE;
-        powerSlider.value = clampNumber(Math.sqrt(targetDistance / PUTTER_DISTANCE_YARDS) * DEFAULT_POWER_PERCENT, 4, 100, DEFAULT_POWER_PERCENT);
+        powerSlider.value = clampDecimal(Math.sqrt(targetDistance / PUTTER_DISTANCE_YARDS) * DEFAULT_POWER_PERCENT, 1, 100, DEFAULT_POWER_PERCENT);
         syncSwingValueInputs();
         shot = getShot();
         updateSwingControlLock();
         return;
       }
 
-      const options = [];
-      const clubs = players[playerSelect.value] || [];
-      clubs.forEach(([club]) => {
-        const baseAngle = defaultAngles[club] || DEFAULT_LAUNCH_ANGLE;
-        for (let i = 0; i < 36; i += 1) {
-          const angle = clampNumber(baseAngle + (Math.random() * 22 - 11), 1, 55, baseAngle);
-          const power = clampNumber(35 + Math.random() * 65, 1, 100, DEFAULT_POWER_PERCENT);
-          const candidate = calculateShot({
-            player: playerSelect.value,
-            club,
-            angleDeg: angle,
-            powerPercent: power
-          });
-          options.push({
-            club,
-            angle,
-            power,
-            error: Math.abs(candidate.finalDistanceYards - targetDistance)
-          });
-        }
-      });
-
-      options.sort((a, b) => a.error - b.error);
-      const bestPool = options.slice(0, Math.min(8, options.length));
-      const selected = bestPool[Math.floor(Math.random() * bestPool.length)];
+      const selected = findAsceticShotForDistance(targetDistance);
       if (selected) {
         clubSelect.value = selected.club;
         angleSlider.value = selected.angle;
-        powerSlider.value = selected.power;
+        powerSlider.value = clampDecimal(selected.power, 0, 100, DEFAULT_POWER_PERCENT);
         syncSwingValueInputs();
         shot = getShot();
       }
       updateSwingControlLock();
+    }
+
+    function findAsceticShotForDistance(targetDistance) {
+      let best = null;
+      const clubs = players[playerSelect.value] || [];
+      clubs.forEach(([club]) => {
+        for (let angle = 1; angle <= 55; angle += 1) {
+          let low = 0;
+          let high = 100;
+          for (let i = 0; i < 24; i += 1) {
+            const mid = (low + high) / 2;
+            const candidate = calculateShot({
+              player: playerSelect.value,
+              club,
+              angleDeg: angle,
+              powerPercent: mid
+            });
+            if (candidate.finalDistanceYards < targetDistance) low = mid;
+            else high = mid;
+          }
+          [low, high].forEach((power) => {
+            const candidate = calculateShot({
+              player: playerSelect.value,
+              club,
+              angleDeg: angle,
+              powerPercent: power
+            });
+            const error = Math.abs(candidate.finalDistanceYards - targetDistance);
+            if (!best || error < best.error) {
+              best = { club, angle, power, error };
+            }
+          });
+        }
+      });
+      return best;
     }
 
     function calculateShot({ player, club, angleDeg, powerPercent }) {
@@ -5087,11 +5107,11 @@
     });
     fields.power.addEventListener("input", () => {
       if (fields.power.value === "") return;
-      powerSlider.value = clampNumber(fields.power.value, 0, 100, Number(powerSlider.value));
+      powerSlider.value = clampDecimal(fields.power.value, 0, 100, Number(powerSlider.value));
       adjustShotSettings("powerChanged");
     });
     fields.power.addEventListener("change", () => {
-      powerSlider.value = clampNumber(fields.power.value, 0, 100, Number(powerSlider.value));
+      powerSlider.value = clampDecimal(fields.power.value, 0, 100, Number(powerSlider.value));
       syncSwingValueInputs();
       adjustShotSettings("powerChanged");
     });
