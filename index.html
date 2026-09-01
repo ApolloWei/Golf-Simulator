@@ -1269,6 +1269,13 @@
           </div>
           <div class="player-unlock-bar" aria-hidden="true"><span id="plusAchievementBar"></span></div>
         </div>
+        <div class="player-unlock-progress" id="asceticAchievementProgress">
+          <div class="player-unlock-head">
+            <span data-i18n="asceticAchievements">苦行僧修炼</span>
+            <span class="player-unlock-percent" id="asceticAchievementPercent">0%</span>
+          </div>
+          <div class="player-unlock-bar" aria-hidden="true"><span id="asceticAchievementBar"></span></div>
+        </div>
         <div class="player-unlock-list" id="playerUnlockList"></div>
       </div>
       <div class="mode-grid">
@@ -1668,6 +1675,8 @@
     const plusAchievementProgress = document.querySelector("#plusAchievementProgress");
     const plusAchievementPercent = document.querySelector("#plusAchievementPercent");
     const plusAchievementBar = document.querySelector("#plusAchievementBar");
+    const asceticAchievementPercent = document.querySelector("#asceticAchievementPercent");
+    const asceticAchievementBar = document.querySelector("#asceticAchievementBar");
     const playerUnlockList = document.querySelector("#playerUnlockList");
     const supporterBtn = document.querySelector("#supporterBtn");
     const startGameBtn = document.querySelector("#startGameBtn");
@@ -1812,6 +1821,7 @@
         playerUnlockProgress: "角色解锁进度",
         bonusAchievements: "奖励成就",
         plusOnlyAchievements: "Plus 专属成就",
+        asceticAchievements: "苦行僧修炼",
         supporterProgressLocked: "支持者解锁",
         plusProgressLocked: "Supporter+ 解锁",
         playerUnlocked: "已解锁",
@@ -1984,6 +1994,7 @@
         playerUnlockProgress: "Player Unlock Progress",
         bonusAchievements: "Bonus Achievements",
         plusOnlyAchievements: "+ Only Achievements",
+        asceticAchievements: "Ascetic Training",
         supporterProgressLocked: "Supporter locked",
         plusProgressLocked: "Supporter+ locked",
         playerUnlocked: "Unlocked",
@@ -2468,10 +2479,34 @@
       extraAchievement("plus", "plus_hard_8", "🧱", "Obstacle", 8, "Plus Hard 8", "Plus 困难 8", "Clear 8 Hard Obstacle sets.", "通过 8 组困难障碍。", (s) => s.hardObstacleCompletions)
     ];
 
+    const asceticAchievementDefinitions = [
+      extraAchievement("ascetic", "ten_thousand_swings", "📿", "General", 10000, "Ten Thousand Swings", "万杆入门", "Play 10,000 total shots.", "累计打出 10,000 杆。", (s) => s.totalShots),
+      extraAchievement("ascetic", "twenty_five_thousand_swings", "📿", "General", 25000, "Twenty-Five Thousand Swings", "两万五千杆", "Play 25,000 total shots.", "累计打出 25,000 杆。", (s) => s.totalShots),
+      extraAchievement("ascetic", "fifty_thousand_swings", "📿", "General", 50000, "Fifty Thousand Swings", "五万杆苦修", "Play 50,000 total shots.", "累计打出 50,000 杆。", (s) => s.totalShots),
+      extraAchievement("ascetic", "hundred_thousand_swings", "📿", "General", 100000, "Hundred Thousand Swings", "十万杆修炼", "Play 100,000 total shots.", "累计打出 100,000 杆。", (s) => s.totalShots),
+      extraAchievement("ascetic", "two_million_yards", "🛣️", "Distance", 2000000, "Two Million Yards", "两百万码远征", "Accumulate 2,000,000 yards of total distance.", "累计飞行距离达到 2,000,000 码。", (s) => s.totalDistance),
+      extraAchievement("ascetic", "five_million_yards", "🛣️", "Distance", 5000000, "Five Million Yards", "五百万码远征", "Accumulate 5,000,000 yards of total distance.", "累计飞行距离达到 5,000,000 码。", (s) => s.totalDistance),
+      extraAchievement("ascetic", "ten_million_yards", "🛣️", "Distance", 10000000, "Ten Million Yards", "一千万码飞行", "Accumulate 10,000,000 yards of total distance.", "累计飞行距离达到 10,000,000 码。", (s) => s.totalDistance),
+      extraAchievement("ascetic", "thousand_driver_bombs", "💣", "Distance", 1000, "Thousand Driver Bombs", "千次重炮", "Hit 1,000 drives of 300+ yards.", "用 Driver 打出 1,000 次 300 码以上。", (s) => s.driver300Shots),
+      extraAchievement("ascetic", "five_hundred_aces", "🥇", "Classic", 500, "Five Hundred Aces", "五百次一杆进洞", "Make 500 total holes-in-one.", "累计完成 500 次一杆进洞。", (s) => s.holeInOnes),
+      extraAchievement("ascetic", "thousand_aces", "🥇", "Classic", 1000, "Thousand Aces", "千次一杆进洞", "Make 1,000 total holes-in-one.", "累计完成 1,000 次一杆进洞。", (s) => s.holeInOnes),
+      extraAchievement("ascetic", "two_thousand_aces", "🥇", "Classic", 2000, "Two Thousand Aces", "两千次一杆进洞", "Make 2,000 total holes-in-one.", "累计完成 2,000 次一杆进洞。", (s) => s.holeInOnes),
+      extraAchievement("ascetic", "three_thousand_aces", "🥇", "Classic", 3000, "Three Thousand Aces", "三千次一杆进洞", "Make 3,000 total holes-in-one.", "累计完成 3,000 次一杆进洞。", (s) => s.holeInOnes),
+      extraAchievement("ascetic", "four_thousand_two_stroke", "🏛️", "Classic", 4000, "Four Thousand Two-Stroke Holes", "四千次两杆以内", "Complete 4,000 Classic holes in two strokes or fewer.", "累计 4,000 次在经典模式中两杆以内进洞。", (s) => s.twoStrokeOrBetterHoles),
+      extraAchievement("ascetic", "six_thousand_two_stroke", "🏛️", "Classic", 6000, "Six Thousand Two-Stroke Holes", "六千次两杆以内", "Complete 6,000 Classic holes in two strokes or fewer.", "累计 6,000 次在经典模式中两杆以内进洞。", (s) => s.twoStrokeOrBetterHoles),
+      extraAchievement("ascetic", "two_thousand_classic_holes", "🏁", "Classic", 2000, "Two Thousand Classic Holes", "两千经典洞", "Complete 2,000 Classic holes.", "完成 2,000 个经典模式球洞。", (s) => s.holesCompleted),
+      extraAchievement("ascetic", "five_thousand_classic_holes", "🏁", "Classic", 5000, "Five Thousand Classic Holes", "五千经典洞", "Complete 5,000 Classic holes.", "完成 5,000 个经典模式球洞。", (s) => s.holesCompleted),
+      extraAchievement("ascetic", "five_thousand_putts", "⛳", "Putting", 5000, "Five Thousand Putts", "五千次推进", "Sink 5,000 putts.", "累计推进 5,000 次。", (s) => s.successfulPutts),
+      extraAchievement("ascetic", "ten_thousand_putts", "⛳", "Putting", 10000, "Ten Thousand Putts", "一万次推进", "Sink 10,000 putts.", "累计推进 10,000 次。", (s) => s.successfulPutts),
+      extraAchievement("ascetic", "two_thousand_gates", "🚪", "Obstacle", 2000, "Two Thousand Gates", "两千障碍门", "Pass 2,000 obstacle gates.", "累计穿过 2,000 个障碍门。", (s) => s.obstacleGatesPassed),
+      extraAchievement("ascetic", "thousand_clean_runs", "🏆", "Obstacle", 1000, "Thousand Clean Runs", "千次无失误障碍", "Complete 1,000 clean obstacle sets.", "累计无失误通过 1,000 组障碍。", (s) => s.cleanObstacleRuns)
+    ];
+
     const allAchievementDefinitions = [
       ...achievementDefinitions,
       ...bonusAchievementDefinitions,
-      ...plusOnlyAchievementDefinitions
+      ...plusOnlyAchievementDefinitions,
+      ...asceticAchievementDefinitions
     ];
 
     const defaultStats = {
@@ -2914,6 +2949,14 @@
         achievementUnlockedCount(plusOnlyAchievementDefinitions),
         canSeePlus,
         "plusProgressLocked"
+      );
+      updateAchievementPoolBar(
+        asceticAchievementPercent,
+        asceticAchievementBar,
+        asceticAchievementDefinitions,
+        achievementUnlockedCount(asceticAchievementDefinitions),
+        true,
+        "playerUnlocked"
       );
     }
 
