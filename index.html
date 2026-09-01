@@ -1581,6 +1581,16 @@
         ["8 Iron", 175], ["7 Iron", 190], ["6 Iron", 205], ["5 Iron", 220],
         ["4 Iron", 238], ["UW", 255], ["3 Wood", 280], ["Driver", 310]
       ],
+      "Average Tour Pro": [
+        ["60°", 102], ["56°", 115], ["51°", 133], ["PW", 146], ["9 Iron", 159],
+        ["8 Iron", 173], ["7 Iron", 187], ["6 Iron", 206], ["5 Iron", 220],
+        ["4 Iron", 235], ["Hybrid", 253], ["3 Wood", 273], ["Driver", 318]
+      ],
+      "Youtube (Ben Kruper)": [
+        ["60°", 98], ["54°", 113], ["50°", 128], ["PW", 143], ["9 Iron", 157],
+        ["8 Iron", 170], ["7 Iron", 184], ["6 Iron", 198], ["5 Iron", 210],
+        ["4 Iron", 225], ["2 Iron", 247], ["3 Wood", 268], ["Driver", 296]
+      ],
       "Fred Couples": [
         ["62°", 80], ["54°", 110], ["50°", 120], ["PW", 130], ["9 Iron", 150],
         ["8 Iron", 160], ["7 Iron", 170], ["6 Hybrid", 180], ["5 Hybrid", 190],
@@ -1600,9 +1610,9 @@
     };
 
     const defaultAngles = {
-      "62°": 35, "60°": 34, "58°": 33, "56°": 32, "54°": 31, "52°": 30, "50°": 28,
+      "62°": 35, "60°": 34, "58°": 33, "56°": 32, "54°": 31, "52°": 30, "51°": 29, "50°": 28,
       "48°": 27, "45°": 25, "PW": 24, "10 Iron": 23, "9 Iron": 22, "8 Iron": 20,
-      "7 Iron": 18, "6 Iron": 16, "5 Iron": 14, "4 Iron": 13,
+      "7 Iron": 18, "6 Iron": 16, "5 Iron": 14, "4 Iron": 13, "2 Iron": 11,
       "3 Iron": 12, "6 Hybrid": 14, "5 Hybrid": 14, "4 Hybrid": 13, "3 Hybrid": 13, "Hybrid": 13, "7 Wood": 12,
       "6 Wood": 12, "5 Wood": 11, "3 Wood": 10, "GW": 26, "UW": 13,
       "SW": 31, "LW": 34, "Driver": 12, "Putter": PUTTER_ANGLE
@@ -1620,6 +1630,8 @@
       "Pro (Scottie Scheffler)": 5,
       "Pro (Tommy Fleetwood)": 5,
       "Pro (Xander Schauffele)": 5,
+      "Average Tour Pro": 3,
+      "Youtube (Ben Kruper)": 3,
       "Fred Couples": 5,
       "Stephen Curry": 4,
       "大爷": 1
@@ -1637,6 +1649,8 @@
       "Pro (Scottie Scheffler)": { zh: "职业球员（斯科蒂·舍夫勒）", en: "Pro (Scottie Scheffler)" },
       "Pro (Tommy Fleetwood)": { zh: "职业球员（汤米·弗利特伍德）", en: "Pro (Tommy Fleetwood)" },
       "Pro (Xander Schauffele)": { zh: "职业球员（赞德·谢奥菲勒）", en: "Pro (Xander Schauffele)" },
+      "Average Tour Pro": { zh: "巡回赛平均职业球员", en: "Average Tour Pro" },
+      "Youtube (Ben Kruper)": { zh: "YouTube 球手（Ben Kruper）", en: "Youtube (Ben Kruper)" },
       "Fred Couples": { zh: "弗雷德·卡波斯", en: "Fred Couples" },
       "Stephen Curry": { zh: "斯蒂芬·库里", en: "Stephen Curry" },
       "大爷": { zh: "大爷", en: "Your Grandfather" }
@@ -1810,6 +1824,8 @@
         unlockTommy: "完成 50% Bonus 成就解锁",
         unlockStephenCurry: "完成 80% Bonus 成就解锁",
         unlockXander: "完成 50% + Only 成就解锁",
+        unlockAverageTourPro: "完成 80% + Only 成就解锁",
+        unlockBenKruper: "完成 60% + Only 成就解锁",
         unlockFredCouples: "完成“百次一杆进洞”成就解锁",
         unlockNelly: "完成 60% 成就解锁",
         unlockScottie: "完成 75% 成就解锁",
@@ -1980,6 +1996,8 @@
         unlockTommy: "Unlock at 50% Bonus achievements",
         unlockStephenCurry: "Unlock at 80% Bonus achievements",
         unlockXander: "Unlock at 50% + Only achievements",
+        unlockAverageTourPro: "Unlock at 80% + Only achievements",
+        unlockBenKruper: "Unlock at 60% + Only achievements",
         unlockFredCouples: "Unlock by completing Ace Century",
         unlockNelly: "Unlock at 60% achievements",
         unlockScottie: "Unlock at 75% achievements",
@@ -2214,6 +2232,8 @@
       if (name === "Pro (Tommy Fleetwood)") return achievementUnlockedCount(bonusAchievementDefinitions) >= bonusAchievementDefinitions.length * 0.5;
       if (name === "Stephen Curry") return achievementUnlockedCount(bonusAchievementDefinitions) >= bonusAchievementDefinitions.length * 0.8;
       if (name === "Pro (Xander Schauffele)") return achievementUnlockedCount(plusOnlyAchievementDefinitions) >= plusOnlyAchievementDefinitions.length * 0.5;
+      if (name === "Average Tour Pro") return achievementUnlockedCount(plusOnlyAchievementDefinitions) >= plusOnlyAchievementDefinitions.length * 0.8;
+      if (name === "Youtube (Ben Kruper)") return achievementUnlockedCount(plusOnlyAchievementDefinitions) >= plusOnlyAchievementDefinitions.length * 0.6;
       if (name === "Fred Couples") return AchievementManager.isUnlocked("ace_century") || (StatsManager.data.holeInOnes || 0) >= 100;
       if (hasSupporterUnlock()) return true;
       if (name === "Calvin") return true;
@@ -2237,6 +2257,8 @@
       if (name === "Pro (Tommy Fleetwood)") return "unlockTommy";
       if (name === "Stephen Curry") return "unlockStephenCurry";
       if (name === "Pro (Xander Schauffele)") return "unlockXander";
+      if (name === "Average Tour Pro") return "unlockAverageTourPro";
+      if (name === "Youtube (Ben Kruper)") return "unlockBenKruper";
       if (name === "Fred Couples") return "unlockFredCouples";
       if (name === "Pro (Nelly Korda)") return "unlockNelly";
       if (name === "Pro (Scottie Scheffler)") return "unlockScottie";
