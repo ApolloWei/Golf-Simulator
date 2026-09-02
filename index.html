@@ -1575,6 +1575,8 @@
   <div class="achievement-toasts" id="achievementToasts" aria-live="polite"></div>
 
   <script>
+    const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
+    const SOURCE_INTEGRITY_HASH = "99456af7";
     const YARD_TO_METER = 0.9144;
     const METER_TO_YARD = 1 / YARD_TO_METER;
     const G = 9.81;
@@ -2280,6 +2282,21 @@
         hash = Math.imul(hash, 16777619);
       }
       return (hash >>> 0).toString(16).padStart(8, "0");
+    }
+
+    function normalizeIntegrityText(value) {
+      return String(value)
+        .replace(/const SOURCE_INTEGRITY_HASH = ".*?";/, 'const SOURCE_INTEGRITY_HASH = "__SOURCE_HASH__";')
+        .replace(/const BODY_TEMPLATE_INTEGRITY_HASH = ".*?";/, 'const BODY_TEMPLATE_INTEGRITY_HASH = "__BODY_HASH__";');
+    }
+
+    function sourceIntegrityValue() {
+      return stableHash(normalizeIntegrityText(BOOT_SCRIPT_TEXT));
+    }
+
+    function hasExpectedSourceIntegrity() {
+      return sourceIntegrityValue() === SOURCE_INTEGRITY_HASH
+        && document.scripts.length === 1;
     }
 
     function creatorProofValue() {
@@ -4715,7 +4732,9 @@
         "findAsceticShotForDistance",
         "checkSiteIntegrity",
         "forceBrowserStartPage",
-        "startMutationGuard"
+        "startMutationGuard",
+        "hasExpectedSourceIntegrity",
+        "hasUnexpectedInjectedContent"
       ].forEach((name) => {
         const value = window[name];
         if (typeof value !== "function") return;
@@ -4760,6 +4779,14 @@
         && flightSpeedOptions.every((speed, index) => speed === [0.5, 1, 1.5, 2, 3, 5][index]);
     }
 
+    function hasUnexpectedInjectedContent() {
+      if (document.querySelectorAll("script").length !== 1) return true;
+      if (document.querySelector("iframe, object, embed")) return true;
+      return Array.from(document.querySelectorAll("*")).some((node) =>
+        Array.from(node.attributes || []).some((attribute) => attribute.name.toLowerCase().startsWith("on"))
+      );
+    }
+
     function checkSiteIntegrity() {
       if (integrityFailed) return false;
       const requiredNodes = [
@@ -4789,8 +4816,10 @@
         && Boolean(translations.en.holeCompleteText)
         && Boolean(translations.zh.achievementUnlocked)
         && Boolean(translations.en.achievementUnlocked);
+      const sourceOk = hasExpectedSourceIntegrity();
+      const injectedOk = !hasUnexpectedInjectedContent();
       const speedOk = hasExpectedFlightSpeeds();
-      if (!domOk || !functionsOk || !textOk || !speedOk) {
+      if (!domOk || !functionsOk || !textOk || !sourceOk || !injectedOk || !speedOk) {
         forceBrowserStartPage();
         return false;
       }
