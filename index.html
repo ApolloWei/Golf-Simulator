@@ -1576,7 +1576,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "99456af7";
+    const SOURCE_INTEGRITY_HASH = "7136a896";
     const YARD_TO_METER = 0.9144;
     const METER_TO_YARD = 1 / YARD_TO_METER;
     const G = 9.81;
@@ -1841,7 +1841,7 @@
     let ballHidden = false;
     let audioContext = null;
     let audioPrimed = false;
-    const flightSpeedOptions = Object.freeze([0.5, 1, 1.5, 2, 3, 5]);
+    const flightSpeedOptions = Object.freeze([0.5, 1, 1.5, 2, 3, 5, 10]);
     let flightSpeedIndex = 1;
     let gameTargetYards = 0;
     let gameRemainingYards = 0;
@@ -3424,6 +3424,7 @@
       }
       AchievementManager.evaluate();
       refreshPlayerUnlocks();
+      updateFlightSpeedControl();
       window.alert(tr(unlocksMax ? "supporterMaxSuccess" : (unlocksFuture ? "supporterFutureSuccess" : "supporterSuccess")));
     }
 
@@ -4702,6 +4703,8 @@
 
     function updateFlightSpeedControl() {
       trustDomMutation();
+      const maxIndex = maxFlightSpeedIndex();
+      if (flightSpeedIndex > maxIndex) flightSpeedIndex = maxIndex;
       const speed = flightSpeedOptions[flightSpeedIndex];
       if (flightSpeedText) flightSpeedText.textContent = `${speed}x`;
       if (slowerBtn) {
@@ -4709,15 +4712,19 @@
         slowerBtn.title = tr("flightSpeedSlow");
       }
       if (fasterBtn) {
-        fasterBtn.disabled = flightSpeedIndex === flightSpeedOptions.length - 1;
+        fasterBtn.disabled = flightSpeedIndex === maxIndex;
         fasterBtn.title = tr("flightSpeedFast");
       }
+    }
+
+    function maxFlightSpeedIndex() {
+      return hasSupporterCreatorUnlock() ? flightSpeedOptions.length - 1 : flightSpeedOptions.indexOf(5);
     }
 
     function changeFlightSpeed(direction) {
       if (!checkSiteIntegrity()) return;
       flightSpeedIndex = Math.min(
-        flightSpeedOptions.length - 1,
+        maxFlightSpeedIndex(),
         Math.max(0, flightSpeedIndex + direction)
       );
       updateFlightSpeedControl();
@@ -4734,7 +4741,8 @@
         "forceBrowserStartPage",
         "startMutationGuard",
         "hasExpectedSourceIntegrity",
-        "hasUnexpectedInjectedContent"
+        "hasUnexpectedInjectedContent",
+        "maxFlightSpeedIndex"
       ].forEach((name) => {
         const value = window[name];
         if (typeof value !== "function") return;
@@ -4775,8 +4783,8 @@
 
     function hasExpectedFlightSpeeds() {
       return Array.isArray(flightSpeedOptions)
-        && flightSpeedOptions.length === 6
-        && flightSpeedOptions.every((speed, index) => speed === [0.5, 1, 1.5, 2, 3, 5][index]);
+        && flightSpeedOptions.length === 7
+        && flightSpeedOptions.every((speed, index) => speed === [0.5, 1, 1.5, 2, 3, 5, 10][index]);
     }
 
     function hasUnexpectedInjectedContent() {
@@ -5243,6 +5251,7 @@
       if (!checkSiteIntegrity()) return;
       if (!ensureSelectedPlayerUnlocked()) return;
       if (!updateAfkLaunchActivity()) return;
+      updateFlightSpeedControl();
       clearHoleAdvanceTimer();
       hideHoleModal();
       playLaunchSound();
