@@ -1879,7 +1879,7 @@
     let clickGuardLastTime = 0;
     let clickGuardCooldownUntil = 0;
     let afkActiveStartedAt = 0;
-    let afkLastShotAt = 0;
+    let afkLastLaunchAt = 0;
     let afkChallenge = null;
     let afkTimerId = null;
     let integrityTimerId = null;
@@ -2899,7 +2899,7 @@
 
     function resetAfkWatch() {
       afkActiveStartedAt = 0;
-      afkLastShotAt = 0;
+      afkLastLaunchAt = 0;
       hideAfkChallenge();
     }
 
@@ -2973,7 +2973,7 @@
     function passAfkChallenge() {
       hideAfkChallenge();
       afkActiveStartedAt = performance.now();
-      afkLastShotAt = afkActiveStartedAt;
+      afkLastLaunchAt = afkActiveStartedAt;
     }
 
     function failAfkChallenge() {
@@ -3015,13 +3015,17 @@
       afkTimerId = setInterval(updateAfkTimer, 250);
     }
 
-    function updateAfkActivity() {
+    function updateAfkLaunchActivity() {
       const now = performance.now();
-      if (!afkActiveStartedAt || now - afkLastShotAt > 45000) {
+      if (!afkActiveStartedAt || now - afkLastLaunchAt > 10000) {
         afkActiveStartedAt = now;
       }
-      afkLastShotAt = now;
-      if (now - afkActiveStartedAt >= 10 * 60 * 1000) showAfkChallenge();
+      afkLastLaunchAt = now;
+      if (now - afkActiveStartedAt >= 3 * 60 * 1000) {
+        showAfkChallenge();
+        return false;
+      }
+      return true;
     }
 
     function afkCanvasPoint(event) {
@@ -3453,7 +3457,7 @@
       hideAfkChallenge();
       resetClickGuard();
       afkActiveStartedAt = 0;
-      afkLastShotAt = 0;
+      afkLastLaunchAt = 0;
       mode = "lobby";
       app.classList.add("hidden");
       launchDock.classList.add("hidden");
@@ -4987,7 +4991,6 @@
     }
 
     function recordCompletedShot(extra = {}) {
-      updateAfkActivity();
       StatsManager.recordShot({
         mode,
         player: shot.player,
@@ -5140,6 +5143,7 @@
       if (isChallengeMode() && gameFinished) return;
       if (!checkSiteIntegrity()) return;
       if (!ensureSelectedPlayerUnlocked()) return;
+      if (!updateAfkLaunchActivity()) return;
       clearHoleAdvanceTimer();
       hideHoleModal();
       playLaunchSound();
