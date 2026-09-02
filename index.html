@@ -1576,7 +1576,10 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "7136a896";
+    const SOURCE_INTEGRITY_HASH = "4c2da19c";
+    const PLAYER_DATA_INTEGRITY_HASH = "1df944ae";
+    const PLAYER_RATING_INTEGRITY_HASH = "f4870e8a";
+    const DEFAULT_ANGLE_INTEGRITY_HASH = "cbacfbd3";
     const YARD_TO_METER = 0.9144;
     const METER_TO_YARD = 1 / YARD_TO_METER;
     const G = 9.81;
@@ -2274,6 +2277,26 @@
 
     const CLUB_COLLECTION_TARGET = 13;
     const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
+    const EXPECTED_DOM_IDS = Object.freeze([
+      "lobby", "supporterBtn", "lobbyAchievementsBtn", "lobbyLanguageBtn", "lobbyPlayer",
+      "playerUnlockPanel", "playerUnlockPercent", "playerUnlockBar", "bonusAchievementProgress",
+      "bonusAchievementPercent", "bonusAchievementBar", "plusAchievementProgress", "plusAchievementPercent",
+      "plusAchievementBar", "asceticAchievementProgress", "asceticAchievementLabel",
+      "asceticAchievementPercent", "asceticAchievementBar", "playerUnlockList", "startGameBtn",
+      "classicEasyBtn", "classicHardBtn", "classicGreenBtn", "classicNoGreenBtn", "startFreeBtn",
+      "startObstacleBtn", "obstacleEasyBtn", "obstacleMediumBtn", "obstacleHardBtn", "startPrecisionBtn",
+      "startPuttingBtn", "app", "homeBtn", "lifeHud", "achievementsBtn", "languageBtn",
+      "gameInfo", "playerControl", "player", "club", "angle", "angleValue", "power", "powerValue",
+      "bounceToggle", "trajectoryToggle", "trajectoryOnlyControl", "trajectoryOnlyToggle", "soundToggle",
+      "cheatToggle", "targetDistanceLabel", "distanceText", "liveDistanceText", "speedText",
+      "currentSpeedText", "horizontalSpeedText", "verticalSpeedText", "timeText", "phaseText",
+      "message", "clubChips", "stage", "trajectoryCanvas", "windHud", "windText", "windArrow",
+      "launchDock", "resetBtn", "slowerBtn", "flightSpeedText", "fasterBtn", "launchBtn",
+      "holeModal", "holeModalTitle", "holeModalText", "achievementPanel", "achievementPanelTitle",
+      "achievementCloseBtn", "achievementUnlockedText", "achievementCompletionText", "achievementLongestText",
+      "achievementStreakText", "achievementList", "statisticsList", "afkPanel", "afkCard",
+      "afkTitle", "afkCanvas", "afkTimer", "achievementToasts"
+    ]);
 
     function stableHash(value) {
       let hash = 2166136261;
@@ -2287,6 +2310,9 @@
     function normalizeIntegrityText(value) {
       return String(value)
         .replace(/const SOURCE_INTEGRITY_HASH = ".*?";/, 'const SOURCE_INTEGRITY_HASH = "__SOURCE_HASH__";')
+        .replace(/const PLAYER_DATA_INTEGRITY_HASH = ".*?";/, 'const PLAYER_DATA_INTEGRITY_HASH = "__PLAYER_DATA_HASH__";')
+        .replace(/const PLAYER_RATING_INTEGRITY_HASH = ".*?";/, 'const PLAYER_RATING_INTEGRITY_HASH = "__PLAYER_RATING_HASH__";')
+        .replace(/const DEFAULT_ANGLE_INTEGRITY_HASH = ".*?";/, 'const DEFAULT_ANGLE_INTEGRITY_HASH = "__DEFAULT_ANGLE_HASH__";')
         .replace(/const BODY_TEMPLATE_INTEGRITY_HASH = ".*?";/, 'const BODY_TEMPLATE_INTEGRITY_HASH = "__BODY_HASH__";');
     }
 
@@ -2297,6 +2323,12 @@
     function hasExpectedSourceIntegrity() {
       return sourceIntegrityValue() === SOURCE_INTEGRITY_HASH
         && document.scripts.length === 1;
+    }
+
+    function hasExpectedDataIntegrity() {
+      return stableHash(JSON.stringify(players)) === PLAYER_DATA_INTEGRITY_HASH
+        && stableHash(JSON.stringify(playerRatings)) === PLAYER_RATING_INTEGRITY_HASH
+        && stableHash(JSON.stringify(defaultAngles)) === DEFAULT_ANGLE_INTEGRITY_HASH;
     }
 
     function creatorProofValue() {
@@ -4741,6 +4773,8 @@
         "forceBrowserStartPage",
         "startMutationGuard",
         "hasExpectedSourceIntegrity",
+        "hasExpectedDataIntegrity",
+        "hasExpectedDomShape",
         "hasUnexpectedInjectedContent",
         "maxFlightSpeedIndex"
       ].forEach((name) => {
@@ -4795,6 +4829,17 @@
       );
     }
 
+    function hasExpectedDomShape() {
+      const expectedIds = new Set(EXPECTED_DOM_IDS);
+      const actualIds = Array.from(document.querySelectorAll("[id]")).map((node) => node.id);
+      if (actualIds.length !== EXPECTED_DOM_IDS.length) return false;
+      if (!actualIds.every((id) => expectedIds.has(id))) return false;
+      if (!EXPECTED_DOM_IDS.every((id) => document.getElementById(id))) return false;
+      return Array.from(document.querySelectorAll("button, input, select, canvas, textarea, a[href]")).every((node) =>
+        Boolean(node.id) && expectedIds.has(node.id)
+      );
+    }
+
     function checkSiteIntegrity() {
       if (integrityFailed) return false;
       const requiredNodes = [
@@ -4825,9 +4870,11 @@
         && Boolean(translations.zh.achievementUnlocked)
         && Boolean(translations.en.achievementUnlocked);
       const sourceOk = hasExpectedSourceIntegrity();
+      const dataOk = hasExpectedDataIntegrity();
+      const shapeOk = hasExpectedDomShape();
       const injectedOk = !hasUnexpectedInjectedContent();
       const speedOk = hasExpectedFlightSpeeds();
-      if (!domOk || !functionsOk || !textOk || !sourceOk || !injectedOk || !speedOk) {
+      if (!domOk || !functionsOk || !textOk || !sourceOk || !dataOk || !shapeOk || !injectedOk || !speedOk) {
         forceBrowserStartPage();
         return false;
       }
