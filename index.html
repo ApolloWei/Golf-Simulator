@@ -1839,7 +1839,7 @@
     let ballHidden = false;
     let audioContext = null;
     let audioPrimed = false;
-    const flightSpeedOptions = [0.5, 1, 1.5, 2, 3, 5];
+    const flightSpeedOptions = Object.freeze([0.5, 1, 1.5, 2, 3, 5]);
     let flightSpeedIndex = 1;
     let gameTargetYards = 0;
     let gameRemainingYards = 0;
@@ -1882,6 +1882,8 @@
     let afkLastShotAt = 0;
     let afkChallenge = null;
     let afkTimerId = null;
+    let integrityTimerId = null;
+    let integrityFailed = false;
 
     const translations = {
       zh: {
@@ -3059,6 +3061,7 @@
     }
 
     function showRoundCompleteModal(titleKey, textKey, vars = {}) {
+      if (!checkSiteIntegrity()) return;
       clearHoleAdvanceTimer();
       modalTitleKey = titleKey;
       modalTextKey = textKey;
@@ -4660,6 +4663,7 @@
     }
 
     function changeFlightSpeed(direction) {
+      if (!checkSiteIntegrity()) return;
       flightSpeedIndex = Math.min(
         flightSpeedOptions.length - 1,
         Math.max(0, flightSpeedIndex + direction)
@@ -4687,6 +4691,68 @@
           // Browser hardening is best-effort in a static client-only game.
         }
       });
+    }
+
+    function forceBrowserStartPage() {
+      if (integrityFailed) return;
+      integrityFailed = true;
+      cancelActiveAnimation();
+      clearHoleAdvanceTimer();
+      hideAfkChallenge();
+      if (integrityTimerId) clearInterval(integrityTimerId);
+      try {
+        window.location.replace("about:blank");
+      } catch {
+        window.location.href = "about:blank";
+      }
+    }
+
+    function hasExpectedFlightSpeeds() {
+      return Array.isArray(flightSpeedOptions)
+        && flightSpeedOptions.length === 6
+        && flightSpeedOptions.every((speed, index) => speed === [0.5, 1, 1.5, 2, 3, 5][index]);
+    }
+
+    function checkSiteIntegrity() {
+      if (integrityFailed) return false;
+      const requiredNodes = [
+        app,
+        lobby,
+        launchDock,
+        launchBtn,
+        achievementPanel,
+        achievementList,
+        statisticsList,
+        holeModal,
+        afkPanel,
+        afkCanvas
+      ];
+      const requiredFunctions = [
+        showRoundCompleteModal,
+        showHoleCompleteModal,
+        renderAchievements,
+        launch,
+        recordCompletedShot,
+        calculateShot,
+        updateFlightSpeedControl
+      ];
+      const domOk = requiredNodes.every((node) => node && document.documentElement.contains(node));
+      const functionsOk = requiredFunctions.every((fn) => typeof fn === "function");
+      const textOk = Boolean(translations.zh.holeCompleteText)
+        && Boolean(translations.en.holeCompleteText)
+        && Boolean(translations.zh.achievementUnlocked)
+        && Boolean(translations.en.achievementUnlocked);
+      const speedOk = hasExpectedFlightSpeeds();
+      if (!domOk || !functionsOk || !textOk || !speedOk) {
+        forceBrowserStartPage();
+        return false;
+      }
+      return true;
+    }
+
+    function startIntegrityMonitor() {
+      checkSiteIntegrity();
+      integrityTimerId = setInterval(checkSiteIntegrity, 1200);
     }
 
     function resetClickGuard() {
@@ -5072,6 +5138,7 @@
     function launch() {
       cancelActiveAnimation();
       if (isChallengeMode() && gameFinished) return;
+      if (!checkSiteIntegrity()) return;
       if (!ensureSelectedPlayerUnlocked()) return;
       clearHoleAdvanceTimer();
       hideHoleModal();
@@ -5356,6 +5423,7 @@
     }
 
     function renderAchievements() {
+      if (!checkSiteIntegrity()) return;
       if (!achievementList || !statisticsList) return;
       const visibleDefinitions = visibleAchievementDefinitions();
       const unlockedCount = achievementUnlockedCount(visibleDefinitions);
@@ -5419,6 +5487,7 @@
     }
 
     function toggleAchievementPanel(show) {
+      if (!checkSiteIntegrity()) return;
       achievementPanel.classList.toggle("hidden", !show);
       if (show) renderAchievements();
     }
@@ -5457,6 +5526,7 @@
     setupLaunchDockDragging();
     protectCriticalGlobals();
     document.addEventListener("pointerdown", detectAbnormalClicking, true);
+    startIntegrityMonitor();
     afkCanvas.addEventListener("pointerdown", handleAfkPointerDown);
     afkCanvas.addEventListener("pointermove", handleAfkPointerMove);
     afkCanvas.addEventListener("pointerup", handleAfkPointerEnd);
