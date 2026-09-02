@@ -823,6 +823,57 @@
       backdrop-filter: blur(8px);
     }
 
+    .afk-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 45;
+      background: rgba(23, 36, 29, 0.28);
+      backdrop-filter: blur(4px);
+    }
+
+    .afk-card {
+      position: absolute;
+      width: min(360px, calc(100vw - 32px));
+      padding: 18px;
+      border: 1px solid rgba(205, 219, 209, 0.95);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 20px 56px rgba(30, 56, 39, 0.28);
+      user-select: none;
+    }
+
+    .afk-card h2 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .afk-card p {
+      margin: 8px 0 12px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .afk-track {
+      width: 100%;
+      height: 150px;
+      display: block;
+      touch-action: none;
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(36, 120, 183, 0.06), rgba(45, 139, 87, 0.08)),
+        #f6faf7;
+      border: 1px solid rgba(205, 219, 209, 0.72);
+    }
+
+    .afk-timer {
+      margin-top: 10px;
+      font-weight: 800;
+      color: var(--orange);
+      text-align: right;
+    }
+
     .achievement-card {
       width: min(980px, 100%);
       max-height: min(86vh, 760px);
@@ -1512,6 +1563,15 @@
     </div>
   </div>
 
+  <div class="afk-panel hidden" id="afkPanel" role="dialog" aria-modal="true" aria-labelledby="afkTitle">
+    <div class="afk-card" id="afkCard">
+      <h2 id="afkTitle" data-i18n="afkTitle">AFK 检测</h2>
+      <p data-i18n="afkPrompt">请在 60 秒内把小球拖到终点，否则会自动返回大厅。</p>
+      <canvas class="afk-track" id="afkCanvas" width="324" height="150"></canvas>
+      <div class="afk-timer" id="afkTimer">60s</div>
+    </div>
+  </div>
+
   <div class="achievement-toasts" id="achievementToasts" aria-live="polite"></div>
 
   <script>
@@ -1713,6 +1773,10 @@
     const achievementList = document.querySelector("#achievementList");
     const statisticsList = document.querySelector("#statisticsList");
     const achievementToasts = document.querySelector("#achievementToasts");
+    const afkPanel = document.querySelector("#afkPanel");
+    const afkCard = document.querySelector("#afkCard");
+    const afkCanvas = document.querySelector("#afkCanvas");
+    const afkTimer = document.querySelector("#afkTimer");
     const playerControl = document.querySelector("#playerControl");
     const playerSelect = document.querySelector("#player");
     const clubSelect = document.querySelector("#club");
@@ -1814,6 +1878,10 @@
     let clickGuardRapidStreak = 0;
     let clickGuardLastTime = 0;
     let clickGuardCooldownUntil = 0;
+    let afkActiveStartedAt = 0;
+    let afkLastShotAt = 0;
+    let afkChallenge = null;
+    let afkTimerId = null;
 
     const translations = {
       zh: {
@@ -1858,6 +1926,10 @@
         unlockFredCouples: "完成“百次一杆进洞”成就解锁",
         lockedPlayerBlocked: "这个人物还没有合法解锁，已切回 Calvin。",
         abnormalClickExit: "检测到异常点击速度，已自动退出当前游戏。",
+        afkTitle: "AFK 检测",
+        afkPrompt: "请在 60 秒内把小球拖到终点，否则会自动返回大厅。",
+        afkTimer: "剩余 {seconds}s",
+        afkFailed: "AFK 检测未完成，已返回大厅。",
         unlockNelly: "完成 60% 成就解锁",
         unlockScottie: "完成 75% 成就解锁",
         unlockBryson: "完成 80% 成就解锁",
@@ -2036,6 +2108,10 @@
         unlockFredCouples: "Unlock by completing Ace Century",
         lockedPlayerBlocked: "This player is not legitimately unlocked. Switched back to Calvin.",
         abnormalClickExit: "Abnormal click speed detected. Current game exited automatically.",
+        afkTitle: "AFK Check",
+        afkPrompt: "Drag the ball to the finish within 60 seconds or you will return to the lobby.",
+        afkTimer: "{seconds}s left",
+        afkFailed: "AFK check failed. Returned to the lobby.",
         unlockNelly: "Unlock at 60% achievements",
         unlockScottie: "Unlock at 75% achievements",
         unlockBryson: "Unlock at 80% achievements",
@@ -2812,6 +2888,176 @@
       holeModal.classList.add("hidden");
     }
 
+    function hideAfkChallenge() {
+      if (afkTimerId) clearInterval(afkTimerId);
+      afkTimerId = null;
+      afkChallenge = null;
+      afkPanel.classList.add("hidden");
+    }
+
+    function resetAfkWatch() {
+      afkActiveStartedAt = 0;
+      afkLastShotAt = 0;
+      hideAfkChallenge();
+    }
+
+    function afkPointAt(progress) {
+      const w = afkCanvas.width;
+      const h = afkCanvas.height;
+      const x = 28 + (w - 56) * progress;
+      const y = h * 0.52
+        + Math.sin(progress * Math.PI * 1.35) * 30
+        - Math.sin(progress * Math.PI * 3.1) * 13;
+      return { x, y };
+    }
+
+    function nearestAfkProgress(x, y) {
+      let best = { progress: 0, distance: Infinity };
+      for (let i = 0; i <= 120; i += 1) {
+        const progress = i / 120;
+        const point = afkPointAt(progress);
+        const distance = Math.hypot(point.x - x, point.y - y);
+        if (distance < best.distance) best = { progress, distance };
+      }
+      return best;
+    }
+
+    function drawAfkChallenge() {
+      if (!afkChallenge) return;
+      const afkCtx = afkCanvas.getContext("2d");
+      afkCtx.clearRect(0, 0, afkCanvas.width, afkCanvas.height);
+      afkCtx.save();
+      afkCtx.lineCap = "round";
+      afkCtx.lineJoin = "round";
+      afkCtx.strokeStyle = "rgba(45, 139, 87, 0.18)";
+      afkCtx.lineWidth = 22;
+      afkCtx.beginPath();
+      for (let i = 0; i <= 100; i += 1) {
+        const point = afkPointAt(i / 100);
+        if (i === 0) afkCtx.moveTo(point.x, point.y);
+        else afkCtx.lineTo(point.x, point.y);
+      }
+      afkCtx.stroke();
+      afkCtx.strokeStyle = "rgba(36, 120, 183, 0.72)";
+      afkCtx.lineWidth = 5;
+      afkCtx.setLineDash([8, 8]);
+      afkCtx.stroke();
+      afkCtx.setLineDash([]);
+
+      const end = afkPointAt(1);
+      afkCtx.fillStyle = "rgba(216, 115, 50, 0.16)";
+      afkCtx.strokeStyle = "#d87332";
+      afkCtx.lineWidth = 3;
+      afkCtx.beginPath();
+      afkCtx.arc(end.x, end.y, 15, 0, Math.PI * 2);
+      afkCtx.fill();
+      afkCtx.stroke();
+
+      const ball = afkPointAt(afkChallenge.progress);
+      const gradient = afkCtx.createRadialGradient(ball.x - 4, ball.y - 5, 2, ball.x, ball.y, 11);
+      gradient.addColorStop(0, "#ffffff");
+      gradient.addColorStop(0.72, "#e8efea");
+      gradient.addColorStop(1, "#9daf9f");
+      afkCtx.fillStyle = gradient;
+      afkCtx.beginPath();
+      afkCtx.arc(ball.x, ball.y, 11, 0, Math.PI * 2);
+      afkCtx.fill();
+      afkCtx.strokeStyle = "rgba(88, 104, 94, 0.36)";
+      afkCtx.lineWidth = 1.5;
+      afkCtx.stroke();
+      afkCtx.restore();
+    }
+
+    function passAfkChallenge() {
+      hideAfkChallenge();
+      afkActiveStartedAt = performance.now();
+      afkLastShotAt = afkActiveStartedAt;
+    }
+
+    function failAfkChallenge() {
+      hideAfkChallenge();
+      showLobby();
+      window.alert(tr("afkFailed"));
+    }
+
+    function updateAfkTimer() {
+      if (!afkChallenge) return;
+      const remaining = Math.max(0, Math.ceil((afkChallenge.expiresAt - performance.now()) / 1000));
+      afkTimer.textContent = tr("afkTimer", { seconds: remaining });
+      if (remaining <= 0) failAfkChallenge();
+    }
+
+    function positionAfkCard() {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const width = Math.min(360, Math.max(280, vw - 32));
+      const height = 260;
+      const maxLeft = Math.max(16, vw - width - 16);
+      const maxTop = Math.max(16, vh - height - 16);
+      afkCard.style.left = `${16 + Math.random() * Math.max(0, maxLeft - 16)}px`;
+      afkCard.style.top = `${16 + Math.random() * Math.max(0, maxTop - 16)}px`;
+    }
+
+    function showAfkChallenge() {
+      if (afkChallenge || mode === "lobby") return;
+      clearHoleAdvanceTimer();
+      positionAfkCard();
+      afkChallenge = {
+        progress: 0,
+        dragging: false,
+        expiresAt: performance.now() + 60000
+      };
+      afkPanel.classList.remove("hidden");
+      updateAfkTimer();
+      drawAfkChallenge();
+      afkTimerId = setInterval(updateAfkTimer, 250);
+    }
+
+    function updateAfkActivity() {
+      const now = performance.now();
+      if (!afkActiveStartedAt || now - afkLastShotAt > 45000) {
+        afkActiveStartedAt = now;
+      }
+      afkLastShotAt = now;
+      if (now - afkActiveStartedAt >= 10 * 60 * 1000) showAfkChallenge();
+    }
+
+    function afkCanvasPoint(event) {
+      const rect = afkCanvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * (afkCanvas.width / rect.width),
+        y: (event.clientY - rect.top) * (afkCanvas.height / rect.height)
+      };
+    }
+
+    function handleAfkPointerDown(event) {
+      if (!afkChallenge) return;
+      const pointer = afkCanvasPoint(event);
+      const ball = afkPointAt(afkChallenge.progress);
+      if (Math.hypot(pointer.x - ball.x, pointer.y - ball.y) > 24) return;
+      afkChallenge.dragging = true;
+      afkCanvas.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    }
+
+    function handleAfkPointerMove(event) {
+      if (!afkChallenge?.dragging) return;
+      const pointer = afkCanvasPoint(event);
+      const nearest = nearestAfkProgress(pointer.x, pointer.y);
+      if (nearest.distance <= 34) {
+        afkChallenge.progress = Math.max(afkChallenge.progress, nearest.progress);
+        drawAfkChallenge();
+        if (afkChallenge.progress >= 0.965) passAfkChallenge();
+      }
+      event.preventDefault();
+    }
+
+    function handleAfkPointerEnd(event) {
+      if (!afkChallenge) return;
+      afkChallenge.dragging = false;
+      if (afkCanvas.hasPointerCapture(event.pointerId)) afkCanvas.releasePointerCapture(event.pointerId);
+    }
+
     function showRoundCompleteModal(titleKey, textKey, vars = {}) {
       clearHoleAdvanceTimer();
       modalTitleKey = titleKey;
@@ -3201,7 +3447,10 @@
       cancelActiveAnimation();
       clearHoleAdvanceTimer();
       hideHoleModal();
+      hideAfkChallenge();
       resetClickGuard();
+      afkActiveStartedAt = 0;
+      afkLastShotAt = 0;
       mode = "lobby";
       app.classList.add("hidden");
       launchDock.classList.add("hidden");
@@ -4459,6 +4708,7 @@
 
     function detectAbnormalClicking(event) {
       const now = performance.now();
+      if (afkChallenge) return;
       if (mode === "lobby") {
         resetClickGuard();
         return;
@@ -4671,6 +4921,7 @@
     }
 
     function recordCompletedShot(extra = {}) {
+      updateAfkActivity();
       StatsManager.recordShot({
         mode,
         player: shot.player,
@@ -5206,6 +5457,10 @@
     setupLaunchDockDragging();
     protectCriticalGlobals();
     document.addEventListener("pointerdown", detectAbnormalClicking, true);
+    afkCanvas.addEventListener("pointerdown", handleAfkPointerDown);
+    afkCanvas.addEventListener("pointermove", handleAfkPointerMove);
+    afkCanvas.addEventListener("pointerup", handleAfkPointerEnd);
+    afkCanvas.addEventListener("pointercancel", handleAfkPointerEnd);
     applyLanguage();
     showLobby();
 
