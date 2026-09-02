@@ -1884,6 +1884,8 @@
     let afkTimerId = null;
     let integrityTimerId = null;
     let integrityFailed = false;
+    let trustedDomMutationUntil = 0;
+    let siteMutationObserver = null;
 
     const translations = {
       zh: {
@@ -2849,6 +2851,7 @@
       },
       showNext() {
         if (this.showing || this.queue.length === 0) return;
+        trustDomMutation(900);
         this.showing = true;
         const achievement = this.queue.shift();
         const toast = document.createElement("div");
@@ -2860,6 +2863,7 @@
         `;
         achievementToasts.appendChild(toast);
         setTimeout(() => {
+          trustDomMutation();
           toast.remove();
           this.showing = false;
           this.showNext();
@@ -2887,10 +2891,12 @@
     }
 
     function hideHoleModal() {
+      trustDomMutation();
       holeModal.classList.add("hidden");
     }
 
     function hideAfkChallenge() {
+      trustDomMutation();
       if (afkTimerId) clearInterval(afkTimerId);
       afkTimerId = null;
       afkChallenge = null;
@@ -2984,6 +2990,7 @@
 
     function updateAfkTimer() {
       if (!afkChallenge) return;
+      trustDomMutation();
       const remaining = Math.max(0, Math.ceil((afkChallenge.expiresAt - performance.now()) / 1000));
       afkTimer.textContent = tr("afkTimer", { seconds: remaining });
       if (remaining <= 0) failAfkChallenge();
@@ -3002,6 +3009,7 @@
 
     function showAfkChallenge() {
       if (afkChallenge || mode === "lobby") return;
+      trustDomMutation();
       clearHoleAdvanceTimer();
       positionAfkCard();
       afkChallenge = {
@@ -3066,6 +3074,7 @@
 
     function showRoundCompleteModal(titleKey, textKey, vars = {}) {
       if (!checkSiteIntegrity()) return;
+      trustDomMutation();
       clearHoleAdvanceTimer();
       modalTitleKey = titleKey;
       modalTextKey = textKey;
@@ -3081,6 +3090,7 @@
     }
 
     function updateHoleModalText() {
+      trustDomMutation();
       fields.holeModalTitle.textContent = tr(modalTitleKey, modalVars);
       fields.holeModalText.textContent = tr(modalTextKey, modalVars);
     }
@@ -3159,6 +3169,7 @@
     }
 
     function updateWindHud() {
+      trustDomMutation();
       const show = isClassicHardMode() && mode !== "lobby";
       windHud.classList.toggle("show", show);
       if (!show) return;
@@ -3167,6 +3178,7 @@
     }
 
     function updateTrajectoryControls() {
+      trustDomMutation();
       const showTrajectoryOnly = isFreeMode();
       trajectoryOnlyControl.classList.toggle("hidden", !showTrajectoryOnly);
       if (!showTrajectoryOnly) trajectoryOnlyToggle.checked = false;
@@ -3260,6 +3272,7 @@
     }
 
     function fillPlayers() {
+      trustDomMutation(700);
       const previousPlayer = playerSelect.value || "Calvin";
       const previousLobbyPlayer = lobbyPlayerSelect.value || previousPlayer;
       playerSelect.innerHTML = "";
@@ -3287,12 +3300,14 @@
 
     function updateAchievementPoolBar(percentNode, barNode, definitions, unlocked, available, lockedKey) {
       if (!percentNode || !barNode) return;
+      trustDomMutation();
       const percent = definitions.length === 0 ? 0 : Math.round((unlocked / definitions.length) * 100);
       percentNode.textContent = available ? `${unlocked} / ${definitions.length} · ${percent}%` : tr(lockedKey);
       barNode.style.width = available ? `${Math.min(100, percent)}%` : "0%";
     }
 
     function updateExtraAchievementProgress() {
+      trustDomMutation();
       const canSeeBonus = hasSupporterUnlock() || hasFutureSupporterUnlock() || hasSupporterMaxUnlock();
       const canSeePlus = hasFutureSupporterUnlock() || hasSupporterMaxUnlock();
       const asceticUnlocked = allAsceticProgressEarned() || hasSupporterCreatorUnlock();
@@ -3326,6 +3341,7 @@
     }
 
     function renderPlayerUnlocks() {
+      trustDomMutation(700);
       const percent = Math.round(achievementCompletionRatio() * 100);
       if (playerUnlockPercent) playerUnlockPercent.textContent = `${percent}%`;
       if (playerUnlockBar) playerUnlockBar.style.width = `${Math.min(100, percent)}%`;
@@ -3395,6 +3411,7 @@
     }
 
     function setClassicDifficulty(value) {
+      trustDomMutation();
       classicDifficulty = value === "hard" ? "hard" : "easy";
       classicEasyBtn.classList.toggle("active", classicDifficulty === "easy");
       classicHardBtn.classList.toggle("active", classicDifficulty === "hard");
@@ -3405,6 +3422,7 @@
     }
 
     function setClassicGreenRule(value) {
+      trustDomMutation();
       classicGreenRule = value === "none" ? "none" : "green";
       classicGreenBtn.classList.toggle("active", classicGreenRule === "green");
       classicNoGreenBtn.classList.toggle("active", classicGreenRule === "none");
@@ -3415,6 +3433,7 @@
     }
 
     function setObstacleDifficulty(value) {
+      trustDomMutation();
       obstacleDifficulty = value === "hard" ? "hard" : (value === "medium" ? "medium" : "easy");
       obstacleEasyBtn.classList.toggle("active", obstacleDifficulty === "easy");
       obstacleMediumBtn.classList.toggle("active", obstacleDifficulty === "medium");
@@ -3451,6 +3470,7 @@
     }
 
     function showLobby() {
+      trustDomMutation(900);
       cancelActiveAnimation();
       clearHoleAdvanceTimer();
       hideHoleModal();
@@ -3481,6 +3501,7 @@
     }
 
     function showSimulator(nextMode) {
+      trustDomMutation(900);
       fillPlayers();
       if (!isPlayerUnlocked(lobbyPlayerSelect.value)) lobbyPlayerSelect.value = "Calvin";
       const challengeMode = nextMode === "classic" || nextMode === "obstacle" || nextMode === "precision" || nextMode === "putting";
@@ -3512,6 +3533,7 @@
     }
 
     function startGame(nextMode = mode) {
+      trustDomMutation(900);
       clearHoleAdvanceTimer();
       hideHoleModal();
       mode = nextMode;
@@ -3550,6 +3572,7 @@
     }
 
     function startPuttingPractice() {
+      trustDomMutation(900);
       clearHoleAdvanceTimer();
       hideHoleModal();
       mode = "putting";
@@ -3595,6 +3618,7 @@
     }
 
     function startObstacleCourse({ newRound = true } = {}) {
+      trustDomMutation(900);
       clearHoleAdvanceTimer();
       hideHoleModal();
       mode = "obstacle";
@@ -3662,6 +3686,7 @@
 
     function updateGameInfo() {
       if (!isChallengeMode()) return;
+      trustDomMutation();
       let infoKey = "gameInfo";
       if (isLowVisionPlayer() && (mode === "classic" || mode === "precision" || mode === "putting")) infoKey = "lowVisionGameInfo";
       else if (mode === "precision") infoKey = "precisionInfo";
@@ -3685,6 +3710,7 @@
 
     function updateLifeHud() {
       if (!lifeHud) return;
+      trustDomMutation();
       const show = isObstacleMode() && mode !== "lobby";
       lifeHud.classList.toggle("show", show);
       if (!show) {
@@ -3697,6 +3723,7 @@
     }
 
     function updateTargetDistanceLabel() {
+      trustDomMutation();
       const key = isClassicHardMode() ? "targetDistanceWithoutBounce" : "targetDistanceWithBounce";
       fields.targetDistanceLabel.textContent = tr(key);
     }
@@ -3708,6 +3735,7 @@
     function enterPuttingMode() {
       if (!hasClassicGreen()) return;
       if (gameOnGreen) return;
+      trustDomMutation(900);
       gameOnGreen = true;
       showLandingMarker = false;
       clubSelect.innerHTML = "";
@@ -3742,6 +3770,7 @@
     }
 
     function fillClubs({ reset = true, preserveSwing = false } = {}) {
+      trustDomMutation(700);
       const clubs = gameOnGreen && hasClassicGreen() ? [["Putter", PUTTER_DISTANCE_YARDS]] : players[playerSelect.value];
       const previousClub = clubSelect.value;
       clubSelect.innerHTML = "";
@@ -4647,6 +4676,7 @@
     }
 
     function setLaunchButton(key, disabled = false) {
+      trustDomMutation();
       launchButtonKey = key;
       launchBtn.disabled = disabled;
       launchBtn.innerHTML = `<span class="ball-dot" aria-hidden="true"></span>${tr(key)}`;
@@ -4654,6 +4684,7 @@
     }
 
     function updateFlightSpeedControl() {
+      trustDomMutation();
       const speed = flightSpeedOptions[flightSpeedIndex];
       if (flightSpeedText) flightSpeedText.textContent = `${speed}x`;
       if (slowerBtn) {
@@ -4681,7 +4712,10 @@
         "allAsceticProgressEarned",
         "hasSupporterCreatorUnlock",
         "applyAsceticAutoAim",
-        "findAsceticShotForDistance"
+        "findAsceticShotForDistance",
+        "checkSiteIntegrity",
+        "forceBrowserStartPage",
+        "startMutationGuard"
       ].forEach((name) => {
         const value = window[name];
         if (typeof value !== "function") return;
@@ -4704,11 +4738,20 @@
       clearHoleAdvanceTimer();
       hideAfkChallenge();
       if (integrityTimerId) clearInterval(integrityTimerId);
+      if (siteMutationObserver) siteMutationObserver.disconnect();
       try {
         window.location.replace("about:blank");
       } catch {
         window.location.href = "about:blank";
       }
+    }
+
+    function trustDomMutation(duration = 450) {
+      trustedDomMutationUntil = Math.max(trustedDomMutationUntil, performance.now() + duration);
+    }
+
+    function isTrustedDomMutation() {
+      return performance.now() <= trustedDomMutationUntil;
     }
 
     function hasExpectedFlightSpeeds() {
@@ -4757,6 +4800,25 @@
     function startIntegrityMonitor() {
       checkSiteIntegrity();
       integrityTimerId = setInterval(checkSiteIntegrity, 1200);
+    }
+
+    function startMutationGuard() {
+      if (siteMutationObserver) siteMutationObserver.disconnect();
+      siteMutationObserver = new MutationObserver((mutations) => {
+        if (integrityFailed || isTrustedDomMutation()) return;
+        const suspicious = mutations.some((mutation) => {
+          if (mutation.target === afkCanvas || mutation.target === canvas) return false;
+          if (mutation.type === "attributes" && mutation.attributeName?.startsWith("data-")) return false;
+          return true;
+        });
+        if (suspicious) forceBrowserStartPage();
+      });
+      siteMutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true
+      });
     }
 
     function resetClickGuard() {
@@ -4813,6 +4875,7 @@
     }
 
     function setLaunchDockPosition(left, top, persist = true) {
+      trustDomMutation();
       const position = clampLaunchDockPosition(left, top);
       launchDock.classList.remove("free-corner", "docked");
       launchDock.style.left = `${position.left}px`;
@@ -4823,6 +4886,7 @@
     }
 
     function clearLaunchDockPosition(removeSaved = true) {
+      trustDomMutation();
       if (removeSaved) localStorage.removeItem(STORAGE_KEYS.launchDockPosition);
       launchDock.style.left = "";
       launchDock.style.top = "";
@@ -4861,6 +4925,7 @@
           moved: false
         };
         launchDock.setPointerCapture(event.pointerId);
+        trustDomMutation();
         launchDock.classList.add("dragging");
         event.preventDefault();
       });
@@ -4876,6 +4941,7 @@
         const rect = launchDock.getBoundingClientRect();
         setLaunchDockPosition(rect.left, rect.top, true);
         if (launchDock.hasPointerCapture(event.pointerId)) launchDock.releasePointerCapture(event.pointerId);
+        trustDomMutation();
         launchDock.classList.remove("dragging");
         drag = null;
       }
@@ -4890,6 +4956,7 @@
     }
 
     function updateResetButtonVisibility() {
+      trustDomMutation();
       const showReset = isFreeMode() || (isChallengeMode() && cheatToggle.checked);
       resetBtn.classList.toggle("hidden", !showReset);
     }
@@ -4916,6 +4983,7 @@
     }
 
     function updateText(messageKey = currentMessageKey, vars = currentMessageVars) {
+      trustDomMutation();
       currentMessageKey = messageKey;
       currentMessageVars = vars;
       const t = ballPosition.time || 0;
@@ -4954,6 +5022,7 @@
     }
 
     function resetFlightStats(messageKey = "preparing", vars = {}) {
+      trustDomMutation();
       currentMessageKey = messageKey;
       currentMessageVars = vars;
       syncSwingValueInputs();
@@ -4971,6 +5040,7 @@
     }
 
     function resetShot(messageKey, vars = {}) {
+      trustDomMutation(700);
       cancelActiveAnimation();
       clearHoleAdvanceTimer();
       hideHoleModal();
@@ -5429,6 +5499,7 @@
     function renderAchievements() {
       if (!checkSiteIntegrity()) return;
       if (!achievementList || !statisticsList) return;
+      trustDomMutation(900);
       const visibleDefinitions = visibleAchievementDefinitions();
       const unlockedCount = achievementUnlockedCount(visibleDefinitions);
       const total = visibleDefinitions.length;
@@ -5492,11 +5563,13 @@
 
     function toggleAchievementPanel(show) {
       if (!checkSiteIntegrity()) return;
+      trustDomMutation();
       achievementPanel.classList.toggle("hidden", !show);
       if (show) renderAchievements();
     }
 
     function applyLanguage() {
+      trustDomMutation(900);
       document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
       document.title = tr("docTitle");
       languageBtn.textContent = tr("languageButton");
@@ -5530,13 +5603,14 @@
     setupLaunchDockDragging();
     protectCriticalGlobals();
     document.addEventListener("pointerdown", detectAbnormalClicking, true);
-    startIntegrityMonitor();
     afkCanvas.addEventListener("pointerdown", handleAfkPointerDown);
     afkCanvas.addEventListener("pointermove", handleAfkPointerMove);
     afkCanvas.addEventListener("pointerup", handleAfkPointerEnd);
     afkCanvas.addEventListener("pointercancel", handleAfkPointerEnd);
     applyLanguage();
     showLobby();
+    startIntegrityMonitor();
+    startMutationGuard();
 
     playerSelect.addEventListener("change", () => {
       if (mode === "free") fillClubs({ preserveSwing: true });
