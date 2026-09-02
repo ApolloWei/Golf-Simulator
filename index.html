@@ -4459,6 +4459,10 @@
 
     function detectAbnormalClicking(event) {
       const now = performance.now();
+      if (mode === "lobby") {
+        resetClickGuard();
+        return;
+      }
       if (now < clickGuardCooldownUntil) return;
 
       if (!event.isTrusted) {
@@ -5201,7 +5205,7 @@
     AchievementManager.evaluate();
     setupLaunchDockDragging();
     protectCriticalGlobals();
-    document.addEventListener("click", detectAbnormalClicking, true);
+    document.addEventListener("pointerdown", detectAbnormalClicking, true);
     applyLanguage();
     showLobby();
 
