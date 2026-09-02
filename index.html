@@ -46,7 +46,7 @@
     header {
       position: relative;
       margin-bottom: 18px;
-      padding-right: 286px;
+      padding-right: 332px;
     }
 
     h1 {
@@ -85,7 +85,7 @@
     .home-button {
       position: absolute;
       top: 2px;
-      right: 126px;
+      right: 170px;
       display: none;
       width: 38px;
       height: 38px;
@@ -107,7 +107,7 @@
     .life-hud {
       position: absolute;
       top: 2px;
-      right: 172px;
+      right: 216px;
       display: none;
       min-width: 96px;
       height: 38px;
@@ -129,10 +129,11 @@
       display: inline-flex;
     }
 
-    .achievements-button {
+    .achievements-button,
+    .training-button {
       position: absolute;
       top: 2px;
-      right: 82px;
+      right: 126px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -147,7 +148,12 @@
       box-shadow: 0 8px 22px rgba(30, 56, 39, 0.1);
     }
 
-    .achievements-button:hover {
+    .training-button {
+      right: 82px;
+    }
+
+    .achievements-button:hover,
+    .training-button:hover {
       filter: brightness(1.04);
     }
 
@@ -162,6 +168,7 @@
 
     .lobby-actions .language-button,
     .lobby-actions .achievements-button,
+    .lobby-actions .training-button,
     .lobby-actions .supporter-button {
       position: static;
       margin: 0;
@@ -823,6 +830,121 @@
       backdrop-filter: blur(8px);
     }
 
+    .training-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 36;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(23, 36, 29, 0.42);
+      backdrop-filter: blur(8px);
+    }
+
+    .training-card {
+      width: min(860px, 100%);
+      max-height: min(84vh, 720px);
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      border: 1px solid rgba(205, 219, 209, 0.95);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 24px 70px rgba(30, 56, 39, 0.28);
+      overflow: hidden;
+    }
+
+    .training-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .training-head h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .training-tools {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      background: #f6faf6;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .training-tools label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .training-tools select {
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 0 10px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .training-list {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      overflow: auto;
+      align-content: start;
+    }
+
+    .training-record {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .training-record strong {
+      display: block;
+      font-size: 15px;
+    }
+
+    .training-record span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .training-replay-button,
+    .training-close {
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8faf7;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .training-replay-button {
+      padding: 0 12px;
+    }
+
+    .training-close {
+      width: 36px;
+      font-size: 20px;
+    }
+
     .afk-panel {
       position: fixed;
       inset: 0;
@@ -872,6 +994,77 @@
       font-weight: 800;
       color: var(--orange);
       text-align: right;
+    }
+
+    .tutorial-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(23, 36, 29, 0.08), rgba(23, 36, 29, 0.34));
+      pointer-events: auto;
+    }
+
+    .tutorial-panel.pass-through {
+      pointer-events: none;
+    }
+
+    .tutorial-card {
+      width: min(520px, 100%);
+      padding: 20px;
+      border: 1px solid rgba(205, 219, 209, 0.95);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 24px 70px rgba(30, 56, 39, 0.28);
+      pointer-events: auto;
+    }
+
+    .tutorial-kicker {
+      color: var(--fairway-dark);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .tutorial-card h2 {
+      margin: 6px 0 0;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .tutorial-card p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .tutorial-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .tutorial-button {
+      height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8faf7;
+      color: var(--ink);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .tutorial-button.primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--fairway), var(--blue));
+      color: #fff;
     }
 
     .achievement-card {
@@ -1194,7 +1387,8 @@
         margin-bottom: 12px;
       }
 
-      .achievements-button {
+      .achievements-button,
+      .training-button {
         position: static;
         margin-right: 8px;
         margin-bottom: 12px;
@@ -1218,6 +1412,7 @@
 
       .lobby-actions .language-button,
       .lobby-actions .achievements-button,
+      .lobby-actions .training-button,
       .lobby-actions .supporter-button {
         margin: 0;
       }
@@ -1249,6 +1444,10 @@
       .achievement-summary,
       .achievement-content,
       .achievement-list {
+        grid-template-columns: 1fr;
+      }
+
+      .training-record {
         grid-template-columns: 1fr;
       }
 
@@ -1287,6 +1486,7 @@
       <div class="lobby-actions">
         <button class="supporter-button" id="supporterBtn" type="button" data-i18n="supporterButton">支持者</button>
         <button class="achievements-button" id="lobbyAchievementsBtn" type="button" title="Achievements">🏆</button>
+        <button class="training-button" id="lobbyTrainingBtn" type="button" title="Training Records">📋</button>
         <button class="language-button" id="lobbyLanguageBtn" type="button">English</button>
       </div>
       <h1 data-i18n="lobbyTitle">高尔夫模拟器</h1>
@@ -1375,6 +1575,7 @@
       <button class="home-button" id="homeBtn" type="button" title="Home">⌂</button>
       <div class="life-hud" id="lifeHud" aria-live="polite"></div>
       <button class="achievements-button" id="achievementsBtn" type="button" title="Achievements">🏆</button>
+      <button class="training-button" id="trainingBtn" type="button" title="Training Records">📋</button>
       <button class="language-button" id="languageBtn" type="button">English</button>
       <h1 data-i18n="title">二维高尔夫飞行模拟器</h1>
       <p class="subtitle" data-i18n="subtitle">选择球员和球杆，调整发射角度，然后点击右下角的发射按钮。小球会先被击出，再沿着飞行轨迹前进，轨迹会跟着飞行过程逐步画出来。</p>
@@ -1563,6 +1764,27 @@
     </div>
   </div>
 
+  <div class="training-panel hidden" id="trainingPanel" role="dialog" aria-modal="true" aria-labelledby="trainingPanelTitle">
+    <div class="training-card">
+      <div class="training-head">
+        <h2 id="trainingPanelTitle" data-i18n="trainingTitle">训练记录</h2>
+        <button class="training-close" id="trainingCloseBtn" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="training-tools">
+        <label for="trainingReplaySpeed" data-i18n="trainingReplaySpeed">回放倍速</label>
+        <select id="trainingReplaySpeed">
+          <option value="0.5">0.5x</option>
+          <option value="1" selected>1x</option>
+          <option value="1.5">1.5x</option>
+          <option value="2">2x</option>
+          <option value="3">3x</option>
+          <option value="5">5x</option>
+        </select>
+      </div>
+      <div class="training-list" id="trainingRecordList"></div>
+    </div>
+  </div>
+
   <div class="afk-panel hidden" id="afkPanel" role="dialog" aria-modal="true" aria-labelledby="afkTitle">
     <div class="afk-card" id="afkCard">
       <h2 id="afkTitle" data-i18n="afkTitle">AFK 检测</h2>
@@ -1572,11 +1794,23 @@
     </div>
   </div>
 
+  <div class="tutorial-panel hidden" id="tutorialPanel" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+    <div class="tutorial-card" id="tutorialCard">
+      <div class="tutorial-kicker" id="tutorialKicker">Tutorial</div>
+      <h2 id="tutorialTitle">新手教程</h2>
+      <p id="tutorialBody">欢迎来到高尔夫模拟器。</p>
+      <div class="tutorial-actions">
+        <button class="tutorial-button" id="tutorialSkipBtn" type="button">跳过</button>
+        <button class="tutorial-button primary" id="tutorialNextBtn" type="button">下一步</button>
+      </div>
+    </div>
+  </div>
+
   <div class="achievement-toasts" id="achievementToasts" aria-live="polite"></div>
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "4c2da19c";
+    const SOURCE_INTEGRITY_HASH = "8afe0141";
     const PLAYER_DATA_INTEGRITY_HASH = "1df944ae";
     const PLAYER_RATING_INTEGRITY_HASH = "f4870e8a";
     const DEFAULT_ANGLE_INTEGRITY_HASH = "cbacfbd3";
@@ -1773,15 +2007,27 @@
     const homeBtn = document.querySelector("#homeBtn");
     const lifeHud = document.querySelector("#lifeHud");
     const achievementsBtn = document.querySelector("#achievementsBtn");
+    const trainingBtn = document.querySelector("#trainingBtn");
+    const lobbyTrainingBtn = document.querySelector("#lobbyTrainingBtn");
     const achievementPanel = document.querySelector("#achievementPanel");
     const achievementCloseBtn = document.querySelector("#achievementCloseBtn");
     const achievementList = document.querySelector("#achievementList");
     const statisticsList = document.querySelector("#statisticsList");
     const achievementToasts = document.querySelector("#achievementToasts");
+    const trainingPanel = document.querySelector("#trainingPanel");
+    const trainingCloseBtn = document.querySelector("#trainingCloseBtn");
+    const trainingRecordList = document.querySelector("#trainingRecordList");
+    const trainingReplaySpeed = document.querySelector("#trainingReplaySpeed");
     const afkPanel = document.querySelector("#afkPanel");
     const afkCard = document.querySelector("#afkCard");
     const afkCanvas = document.querySelector("#afkCanvas");
     const afkTimer = document.querySelector("#afkTimer");
+    const tutorialPanel = document.querySelector("#tutorialPanel");
+    const tutorialKicker = document.querySelector("#tutorialKicker");
+    const tutorialTitle = document.querySelector("#tutorialTitle");
+    const tutorialBody = document.querySelector("#tutorialBody");
+    const tutorialSkipBtn = document.querySelector("#tutorialSkipBtn");
+    const tutorialNextBtn = document.querySelector("#tutorialNextBtn");
     const playerControl = document.querySelector("#playerControl");
     const playerSelect = document.querySelector("#player");
     const clubSelect = document.querySelector("#club");
@@ -1891,6 +2137,8 @@
     let integrityFailed = false;
     let trustedDomMutationUntil = 0;
     let siteMutationObserver = null;
+    let tutorialState = { active: false, step: "idle" };
+    let replayState = null;
 
     const translations = {
       zh: {
@@ -1939,6 +2187,28 @@
         afkPrompt: "请在 60 秒内把小球拖到终点，否则会自动返回大厅。",
         afkTimer: "剩余 {seconds}s",
         afkFailed: "AFK 检测未完成，已返回大厅。",
+        tutorialKicker: "新手教程",
+        tutorialSkip: "跳过",
+        tutorialNext: "下一步",
+        tutorialStart: "开始练习",
+        tutorialLaunch: "去发射",
+        tutorialFreeTitle: "先从自由模式开始",
+        tutorialFreeBody: "这里可以自由选择球员和球杆。左侧的角度会改变球飞得高不高，力度会改变球飞得远不远；右侧数值框也可以直接输入精确数字。",
+        tutorialControlsTitle: "调整力度和角度",
+        tutorialControlsBody: "先试着把力度调到 80%，角度调到 12°。力度越大，初速度越高；角度越高，球会更向上飞，但距离不一定更远。",
+        tutorialFreeShotTitle: "打出第一杆",
+        tutorialFreeShotBody: "现在点击右下角的发射按钮。小球飞行时会逐步画出蓝色轨迹，你可以观察速度、飞行时间和落点距离。",
+        tutorialClassicEasyTitle: "进入 Classic Easy",
+        tutorialClassicEasyBody: "经典简单模式会给你一个目标洞位。你可以看到比较完整的信息，目标是用尽量少的杆数把球打进洞。",
+        tutorialClassicEasyShotTitle: "打一杆简单经典",
+        tutorialClassicEasyShotBody: "根据旗杆位置选择球杆、角度和力度，然后发射。第一杆不一定要进洞，先感受剩余距离会如何更新。",
+        tutorialClassicHardTitle: "进入 Classic Hard",
+        tutorialClassicHardBody: "困难经典会隐藏更精确的距离，只保留粗略刻度和风向提示。你需要根据刻度、旗杆位置和风的偏差来估算。",
+        tutorialClassicHardShotTitle: "试一杆困难经典",
+        tutorialClassicHardShotBody: "现在再发射一杆。注意右上角风向，以及 100 码刻度；困难模式更像真正的目测判断。",
+        tutorialDoneTitle: "教程完成",
+        tutorialDoneBody: "还有更多的玩法和人物等你探索！",
+        tutorialWaitingButton: "完成当前击球",
         unlockNelly: "完成 60% 成就解锁",
         unlockScottie: "完成 75% 成就解锁",
         unlockBryson: "完成 80% 成就解锁",
@@ -1965,6 +2235,15 @@
         homeTitle: "返回大厅",
         achievementsTitle: "成就与统计",
         achievementsButtonTitle: "成就",
+        trainingButtonTitle: "训练记录",
+        trainingTitle: "训练记录",
+        trainingReplaySpeed: "回放倍速",
+        trainingEmpty: "还没有训练记录。打一杆后这里会保存最近 20 杆。",
+        trainingReplay: "查看回放",
+        trainingHoled: "进洞",
+        trainingNotHoled: "未进洞",
+        trainingRecordLine: "{mode}｜{player}｜{club}｜{angle}°｜{power}%｜{distance} yd｜{time}s｜{hole}",
+        replayingTraining: "正在回放第 {index} 杆训练记录。",
         achievementUnlocked: "已解锁",
         achievementCompletion: "完成度",
         achievementBestShot: "最远一杆",
@@ -2121,6 +2400,28 @@
         afkPrompt: "Drag the ball to the finish within 60 seconds or you will return to the lobby.",
         afkTimer: "{seconds}s left",
         afkFailed: "AFK check failed. Returned to the lobby.",
+        tutorialKicker: "Tutorial",
+        tutorialSkip: "Skip",
+        tutorialNext: "Next",
+        tutorialStart: "Start",
+        tutorialLaunch: "Launch",
+        tutorialFreeTitle: "Start in Free Mode",
+        tutorialFreeBody: "Free Mode lets you choose any unlocked player and club. The angle controls how high the ball launches, and power controls how far it wants to travel. You can also type exact numbers in the value boxes.",
+        tutorialControlsTitle: "Adjust Power and Angle",
+        tutorialControlsBody: "Try 80% power and 12° first. More power raises launch speed; more angle sends the ball higher, but it does not always mean more distance.",
+        tutorialFreeShotTitle: "Hit Your First Shot",
+        tutorialFreeShotBody: "Press the Launch button in the lower-right corner. The blue trail is drawn while the ball flies, so you can watch speed, time, and final distance update.",
+        tutorialClassicEasyTitle: "Enter Classic Easy",
+        tutorialClassicEasyBody: "Classic Easy gives you a target hole. You get clearer information, and the goal is to hole out in as few shots as possible.",
+        tutorialClassicEasyShotTitle: "Play One Easy Classic Shot",
+        tutorialClassicEasyShotBody: "Read the flag, choose a club, angle, and power, then launch. The first shot does not have to go in; notice how remaining distance updates.",
+        tutorialClassicHardTitle: "Enter Classic Hard",
+        tutorialClassicHardBody: "Classic Hard hides exact target distance and gives only coarse marks plus wind direction. Judge the shot from the scale, flag position, and wind offset.",
+        tutorialClassicHardShotTitle: "Try One Hard Classic Shot",
+        tutorialClassicHardShotBody: "Launch one more shot. Watch the wind in the upper-right and use the 100-yard marks; this mode is much more about feel.",
+        tutorialDoneTitle: "Tutorial Complete",
+        tutorialDoneBody: "More modes and players are waiting for you to explore!",
+        tutorialWaitingButton: "Finish this shot",
         unlockNelly: "Unlock at 60% achievements",
         unlockScottie: "Unlock at 75% achievements",
         unlockBryson: "Unlock at 80% achievements",
@@ -2147,6 +2448,15 @@
         homeTitle: "Back to Lobby",
         achievementsTitle: "Achievements & Stats",
         achievementsButtonTitle: "Achievements",
+        trainingButtonTitle: "Training Records",
+        trainingTitle: "Training Records",
+        trainingReplaySpeed: "Replay Speed",
+        trainingEmpty: "No training records yet. Your latest 20 shots will appear here.",
+        trainingReplay: "Replay",
+        trainingHoled: "Holed",
+        trainingNotHoled: "Not holed",
+        trainingRecordLine: "{mode} | {player} | {club} | {angle}° | {power}% | {distance} yd | {time}s | {hole}",
+        replayingTraining: "Replaying training shot #{index}.",
         achievementUnlocked: "Unlocked",
         achievementCompletion: "Completion",
         achievementBestShot: "Longest Shot",
@@ -2267,7 +2577,9 @@
       supporterMaxUnlock: "golfSimulatorSupporterMaxUnlock.v2",
       supporterCreatorUnlock: "golfSimulatorSupporterCreatorUnlock.v1",
       supporterCreatorProof: "golfSimulatorSupporterCreatorProof.v1",
-      launchDockPosition: "golfSimulatorLaunchDockPosition.v1"
+      launchDockPosition: "golfSimulatorLaunchDockPosition.v1",
+      tutorialComplete: "golfSimulatorTutorialComplete.v1",
+      trainingRecords: "golfSimulatorTrainingRecords.v1"
     };
     const SUPPORTER_PASSWORD_HASH = "ea72c79594296e45b8c2a296644d988581f58cfac6601d122ed0a8bd7c02e8bf";
     const SUPPORTER_FUTURE_PASSWORD_HASH = "2dfcab3471c3a8bcea03ea7c0402547d9235998780a7e8c248b4da2a2b2a42c6";
@@ -2278,14 +2590,14 @@
     const CLUB_COLLECTION_TARGET = 13;
     const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
     const EXPECTED_DOM_IDS = Object.freeze([
-      "lobby", "supporterBtn", "lobbyAchievementsBtn", "lobbyLanguageBtn", "lobbyPlayer",
+      "lobby", "supporterBtn", "lobbyAchievementsBtn", "lobbyTrainingBtn", "lobbyLanguageBtn", "lobbyPlayer",
       "playerUnlockPanel", "playerUnlockPercent", "playerUnlockBar", "bonusAchievementProgress",
       "bonusAchievementPercent", "bonusAchievementBar", "plusAchievementProgress", "plusAchievementPercent",
       "plusAchievementBar", "asceticAchievementProgress", "asceticAchievementLabel",
       "asceticAchievementPercent", "asceticAchievementBar", "playerUnlockList", "startGameBtn",
       "classicEasyBtn", "classicHardBtn", "classicGreenBtn", "classicNoGreenBtn", "startFreeBtn",
       "startObstacleBtn", "obstacleEasyBtn", "obstacleMediumBtn", "obstacleHardBtn", "startPrecisionBtn",
-      "startPuttingBtn", "app", "homeBtn", "lifeHud", "achievementsBtn", "languageBtn",
+      "startPuttingBtn", "app", "homeBtn", "lifeHud", "achievementsBtn", "trainingBtn", "languageBtn",
       "gameInfo", "playerControl", "player", "club", "angle", "angleValue", "power", "powerValue",
       "bounceToggle", "trajectoryToggle", "trajectoryOnlyControl", "trajectoryOnlyToggle", "soundToggle",
       "cheatToggle", "targetDistanceLabel", "distanceText", "liveDistanceText", "speedText",
@@ -2294,8 +2606,10 @@
       "launchDock", "resetBtn", "slowerBtn", "flightSpeedText", "fasterBtn", "launchBtn",
       "holeModal", "holeModalTitle", "holeModalText", "achievementPanel", "achievementPanelTitle",
       "achievementCloseBtn", "achievementUnlockedText", "achievementCompletionText", "achievementLongestText",
-      "achievementStreakText", "achievementList", "statisticsList", "afkPanel", "afkCard",
-      "afkTitle", "afkCanvas", "afkTimer", "achievementToasts"
+      "achievementStreakText", "achievementList", "statisticsList", "trainingPanel", "trainingPanelTitle",
+      "trainingCloseBtn", "trainingReplaySpeed", "trainingRecordList", "afkPanel", "afkCard",
+      "afkTitle", "afkCanvas", "afkTimer", "tutorialPanel", "tutorialCard", "tutorialKicker",
+      "tutorialTitle", "tutorialBody", "tutorialSkipBtn", "tutorialNextBtn", "achievementToasts"
     ]);
 
     function stableHash(value) {
@@ -2771,6 +3085,15 @@
       }
     }
 
+    function safeLoadArray(key) {
+      try {
+        const value = JSON.parse(localStorage.getItem(key));
+        return Array.isArray(value) ? value : [];
+      } catch {
+        return [];
+      }
+    }
+
     function saveJson(key, value) {
       localStorage.setItem(key, JSON.stringify(value));
     }
@@ -2779,6 +3102,73 @@
       if (!value) return tr("achievementNever");
       return new Date(value).toLocaleDateString(currentLang === "zh" ? "zh-CN" : "en-US");
     }
+
+    function modeDisplayName(value) {
+      const keys = {
+        classic: "classicMode",
+        obstacle: "obstacleMode",
+        precision: "precisionMode",
+        putting: "puttingMode",
+        free: "freeMode"
+      };
+      return tr(keys[value] || "freeMode");
+    }
+
+    function sampledTrailPoints() {
+      const source = [...trail, ballPosition].filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+      const baseX = source[0]?.x || 0;
+      if (source.length <= 90) {
+        return source.map((point) => ({
+          x: Math.round((point.x - baseX) * 100) / 100,
+          y: Math.round(point.y * 100) / 100,
+          time: Math.round((point.time || 0) * 100) / 100
+        }));
+      }
+      const sampled = [];
+      for (let i = 0; i < 90; i += 1) {
+        const index = Math.round((i / 89) * (source.length - 1));
+        const point = source[index];
+        sampled.push({
+          x: Math.round((point.x - baseX) * 100) / 100,
+          y: Math.round(point.y * 100) / 100,
+          time: Math.round((point.time || 0) * 100) / 100
+        });
+      }
+      return sampled;
+    }
+
+    const TrainingRecordManager = {
+      records: safeLoadArray(STORAGE_KEYS.trainingRecords),
+      save() {
+        saveJson(STORAGE_KEYS.trainingRecords, this.records);
+      },
+      record(result) {
+        const points = sampledTrailPoints();
+        if (points.length < 2) return;
+        const holed = Boolean(result.classicComplete || result.puttSunk);
+        const record = {
+          id: `${Date.now()}-${Math.round(Math.random() * 100000)}`,
+          at: new Date().toISOString(),
+          mode,
+          player: shot.player,
+          club: shot.club,
+          angle: Math.round(shot.angleDeg * 10) / 10,
+          power: Math.round(shot.powerPercent * 10) / 10,
+          distance: Math.round((result.distance || shot.finalDistanceYards || 0) * 10) / 10,
+          time: Math.round((shot.duration || 0) * 10) / 10,
+          holed,
+          strokes: result.shots || gameShots || 0,
+          points,
+          shotSnapshot: {
+            ...shot,
+            bounceSegments: [...(shot.bounceSegments || [])]
+          }
+        };
+        this.records = [record, ...this.records].slice(0, 20);
+        this.save();
+        renderTrainingRecords();
+      }
+    };
 
     const StatsManager = {
       data: safeLoad(STORAGE_KEYS.stats, defaultStats),
@@ -2872,6 +3262,7 @@
         AchievementManager.evaluate();
         renderAchievements();
         refreshPlayerUnlocks();
+        handleTutorialShotCompleted(result);
       }
     };
 
@@ -2923,6 +3314,99 @@
     function tr(key, vars = {}) {
       const template = translations[currentLang][key] || translations.zh[key] || key;
       return template.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
+    }
+
+    function tutorialStepConfig(step = tutorialState.step) {
+      const waiting = step === "freeShot" || step === "classicEasyShot" || step === "classicHardShot";
+      const map = {
+        freeIntro: { title: "tutorialFreeTitle", body: "tutorialFreeBody", button: "tutorialNext" },
+        controls: { title: "tutorialControlsTitle", body: "tutorialControlsBody", button: "tutorialNext" },
+        freeShot: { title: "tutorialFreeShotTitle", body: "tutorialFreeShotBody", button: "tutorialWaitingButton", waiting: true },
+        classicEasyIntro: { title: "tutorialClassicEasyTitle", body: "tutorialClassicEasyBody", button: "tutorialStart" },
+        classicEasyShot: { title: "tutorialClassicEasyShotTitle", body: "tutorialClassicEasyShotBody", button: "tutorialWaitingButton", waiting: true },
+        classicHardIntro: { title: "tutorialClassicHardTitle", body: "tutorialClassicHardBody", button: "tutorialStart" },
+        classicHardShot: { title: "tutorialClassicHardShotTitle", body: "tutorialClassicHardShotBody", button: "tutorialWaitingButton", waiting: true },
+        done: { title: "tutorialDoneTitle", body: "tutorialDoneBody", button: "tutorialNext" }
+      };
+      return map[step] || { title: "tutorialFreeTitle", body: "tutorialFreeBody", button: "tutorialNext", waiting };
+    }
+
+    function renderTutorial() {
+      if (!tutorialPanel) return;
+      trustDomMutation(700);
+      const config = tutorialStepConfig();
+      tutorialKicker.textContent = tr("tutorialKicker");
+      tutorialTitle.textContent = tr(config.title);
+      tutorialBody.textContent = tr(config.body);
+      tutorialSkipBtn.textContent = tr("tutorialSkip");
+      tutorialNextBtn.textContent = tr(config.button);
+      tutorialNextBtn.disabled = Boolean(config.waiting);
+      tutorialPanel.classList.toggle("pass-through", Boolean(config.waiting));
+      tutorialPanel.classList.toggle("hidden", !tutorialState.active);
+    }
+
+    function completeTutorial() {
+      trustDomMutation(700);
+      tutorialState = { active: false, step: "idle" };
+      tutorialPanel.classList.add("hidden");
+      tutorialPanel.classList.remove("pass-through");
+      localStorage.setItem(STORAGE_KEYS.tutorialComplete, "true");
+    }
+
+    function setTutorialStep(step) {
+      tutorialState = { active: true, step };
+      renderTutorial();
+    }
+
+    function beginTutorialIfNeeded() {
+      if (localStorage.getItem(STORAGE_KEYS.tutorialComplete) === "true") return;
+      if (tutorialState.active) return;
+      lobbyPlayerSelect.value = isPlayerUnlocked(lobbyPlayerSelect.value) ? lobbyPlayerSelect.value : "Calvin";
+      showSimulator("free");
+      setTutorialStep("freeIntro");
+    }
+
+    function advanceTutorial() {
+      if (!tutorialState.active) return;
+      if (tutorialState.step === "freeIntro") {
+        setTutorialStep("controls");
+        return;
+      }
+      if (tutorialState.step === "controls") {
+        powerSlider.value = DEFAULT_POWER_PERCENT;
+        angleSlider.value = DEFAULT_LAUNCH_ANGLE;
+        adjustShotSettings("powerChanged");
+        setTutorialStep("freeShot");
+        return;
+      }
+      if (tutorialState.step === "classicEasyIntro") {
+        classicDifficulty = "easy";
+        setClassicDifficulty("easy");
+        showSimulator("classic");
+        setTutorialStep("classicEasyShot");
+        return;
+      }
+      if (tutorialState.step === "classicHardIntro") {
+        classicDifficulty = "hard";
+        setClassicDifficulty("hard");
+        showSimulator("classic");
+        setTutorialStep("classicHardShot");
+        return;
+      }
+      if (tutorialState.step === "done") {
+        completeTutorial();
+      }
+    }
+
+    function handleTutorialShotCompleted(result) {
+      if (!tutorialState.active) return;
+      if (tutorialState.step === "freeShot" && result.mode === "free") {
+        setTimeout(() => setTutorialStep("classicEasyIntro"), 650);
+      } else if (tutorialState.step === "classicEasyShot" && result.mode === "classic" && classicDifficulty === "easy") {
+        setTimeout(() => setTutorialStep("classicHardIntro"), 650);
+      } else if (tutorialState.step === "classicHardShot" && result.mode === "classic" && classicDifficulty === "hard") {
+        setTimeout(() => setTutorialStep("done"), 650);
+      }
     }
 
     function detectInitialLanguage() {
@@ -3496,6 +3980,7 @@
     }
 
     function cancelActiveAnimation() {
+      replayState = null;
       if (!animation) return;
       if (typeof animation === "object") {
         cancelAnimationFrame(animation.rafId);
@@ -3522,6 +4007,7 @@
     function showLobby() {
       trustDomMutation(900);
       cancelActiveAnimation();
+      replayState = null;
       clearHoleAdvanceTimer();
       hideHoleModal();
       hideAfkChallenge();
@@ -4776,7 +5262,9 @@
         "hasExpectedDataIntegrity",
         "hasExpectedDomShape",
         "hasUnexpectedInjectedContent",
-        "maxFlightSpeedIndex"
+        "maxFlightSpeedIndex",
+        "renderTrainingRecords",
+        "startTrainingReplay"
       ].forEach((name) => {
         const value = window[name];
         if (typeof value !== "function") return;
@@ -4836,7 +5324,9 @@
       if (!actualIds.every((id) => expectedIds.has(id))) return false;
       if (!EXPECTED_DOM_IDS.every((id) => document.getElementById(id))) return false;
       return Array.from(document.querySelectorAll("button, input, select, canvas, textarea, a[href]")).every((node) =>
-        Boolean(node.id) && expectedIds.has(node.id)
+        (Boolean(node.id) && expectedIds.has(node.id))
+          || (node.matches("button[data-training-replay][data-dynamic-control='training']")
+            && trainingRecordList.contains(node))
       );
     }
 
@@ -4850,6 +5340,8 @@
         achievementPanel,
         achievementList,
         statisticsList,
+        trainingPanel,
+        trainingRecordList,
         holeModal,
         afkPanel,
         afkCanvas
@@ -4868,7 +5360,9 @@
       const textOk = Boolean(translations.zh.holeCompleteText)
         && Boolean(translations.en.holeCompleteText)
         && Boolean(translations.zh.achievementUnlocked)
-        && Boolean(translations.en.achievementUnlocked);
+        && Boolean(translations.en.achievementUnlocked)
+        && Boolean(translations.zh.trainingTitle)
+        && Boolean(translations.en.trainingTitle);
       const sourceOk = hasExpectedSourceIntegrity();
       const dataOk = hasExpectedDataIntegrity();
       const shapeOk = hasExpectedDomShape();
@@ -5126,6 +5620,7 @@
     function resetShot(messageKey, vars = {}) {
       trustDomMutation(700);
       cancelActiveAnimation();
+      replayState = null;
       clearHoleAdvanceTimer();
       hideHoleModal();
       shot = getShot();
@@ -5145,7 +5640,7 @@
     }
 
     function recordCompletedShot(extra = {}) {
-      StatsManager.recordShot({
+      const result = {
         mode,
         player: shot.player,
         club: shot.club,
@@ -5156,7 +5651,9 @@
         postBounceDistance: Math.max(0, shot.finalDistanceYards - shot.distanceYards),
         windYards: currentWind.yards,
         ...extra
-      });
+      };
+      TrainingRecordManager.record(result);
+      StatsManager.recordShot(result);
     }
 
     function isActivePuttingShot() {
@@ -5294,6 +5791,7 @@
 
     function launch() {
       cancelActiveAnimation();
+      replayState = null;
       if (isChallengeMode() && gameFinished) return;
       if (!checkSiteIntegrity()) return;
       if (!ensureSelectedPlayerUnlocked()) return;
@@ -5362,7 +5860,7 @@
               shotX: Math.max(0, localPoint.x + gameShotDirection * windOffset)
             }
           : { ...localPoint, shotX: localPoint.x };
-        trail.push({ x: ballPosition.x, y: ballPosition.y });
+        trail.push({ x: ballPosition.x, y: ballPosition.y, time: ballPosition.time, shotX: ballPosition.shotX });
 
         if (carryHoleInPlan && !carryHoleInResolved && flightProgress >= carryHoleInPlan.progress) {
           carryHoleInResolved = true;
@@ -5581,6 +6079,98 @@
       return value == null ? "-" : `${Number(value).toFixed(digits)} yd`;
     }
 
+    function renderTrainingRecords() {
+      if (!trainingRecordList) return;
+      trustDomMutation(900);
+      trainingRecordList.innerHTML = "";
+      if (TrainingRecordManager.records.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "training-record";
+        empty.textContent = tr("trainingEmpty");
+        trainingRecordList.appendChild(empty);
+        return;
+      }
+      TrainingRecordManager.records.forEach((record, index) => {
+        const item = document.createElement("article");
+        item.className = "training-record";
+        const title = `${index + 1}. ${new Date(record.at).toLocaleString(currentLang === "zh" ? "zh-CN" : "en-US")}`;
+        const details = tr("trainingRecordLine", {
+          mode: modeDisplayName(record.mode),
+          player: playerDisplayName(record.player),
+          club: record.club,
+          angle: record.angle,
+          power: record.power,
+          distance: record.distance,
+          time: record.time,
+          hole: record.holed ? tr("trainingHoled") : tr("trainingNotHoled")
+        });
+        item.innerHTML = `
+          <div>
+            <strong>${title}</strong>
+            <span>${details}</span>
+          </div>
+          <button class="training-replay-button" type="button" data-training-replay="${record.id}" data-dynamic-control="training">${tr("trainingReplay")}</button>
+        `;
+        trainingRecordList.appendChild(item);
+      });
+    }
+
+    function toggleTrainingPanel(show) {
+      if (!checkSiteIntegrity()) return;
+      trustDomMutation(900);
+      trainingPanel.classList.toggle("hidden", !show);
+      if (show) renderTrainingRecords();
+    }
+
+    function startTrainingReplay(recordId) {
+      const record = TrainingRecordManager.records.find((item) => item.id === recordId);
+      if (!record || !record.points || record.points.length < 2) return;
+      toggleTrainingPanel(false);
+      cancelActiveAnimation();
+      if (mode === "lobby") showSimulator("free");
+      replayState = { recordId, active: true };
+      mode = "free";
+      playerControl.classList.remove("hidden");
+      fields.gameInfo.classList.remove("show");
+      playerSelect.disabled = false;
+      shot = record.shotSnapshot || shot;
+      previousTrails = [];
+      trail = [];
+      landed = false;
+      showLandingMarker = false;
+      ballHidden = false;
+      ballSinking = false;
+      flightProgress = 0;
+      const points = record.points;
+      const speed = Math.max(0.25, Number(trainingReplaySpeed.value) || 1);
+      const replayMs = Math.max(700, (record.time || 2) * 1000 / speed);
+      const started = performance.now();
+      setLaunchButton("flying", true);
+      updateText("replayingTraining", { index: TrainingRecordManager.records.findIndex((item) => item.id === recordId) + 1 });
+
+      function replayFrame(now) {
+        const u = Math.min(1, (now - started) / replayMs);
+        const pointIndex = Math.min(points.length - 1, Math.floor(u * (points.length - 1)));
+        trail = points.slice(0, pointIndex + 1);
+        ballPosition = points[pointIndex];
+        flightProgress = u;
+        drawScene();
+        if (u < 1) {
+          animation = scheduleAnimationFrame(replayFrame);
+          return;
+        }
+        landed = true;
+        showLandingMarker = true;
+        replayState = null;
+        setLaunchButton("relaunch", false);
+        updateText("replayingTraining", { index: TrainingRecordManager.records.findIndex((item) => item.id === recordId) + 1 });
+        drawScene();
+        animation = null;
+      }
+
+      animation = scheduleAnimationFrame(replayFrame);
+    }
+
     function renderAchievements() {
       if (!checkSiteIntegrity()) return;
       if (!achievementList || !statisticsList) return;
@@ -5663,6 +6253,8 @@
       homeBtn.title = tr("homeTitle");
       achievementsBtn.title = tr("achievementsButtonTitle");
       lobbyAchievementsBtn.title = tr("achievementsButtonTitle");
+      trainingBtn.title = tr("trainingButtonTitle");
+      lobbyTrainingBtn.title = tr("trainingButtonTitle");
       updateFlightSpeedControl();
       stage.setAttribute("aria-label", tr("stageLabel"));
       document.querySelectorAll("[data-i18n]").forEach((node) => {
@@ -5679,6 +6271,8 @@
       updateTrajectoryControls();
       fillPlayers();
       renderAchievements();
+      renderTrainingRecords();
+      renderTutorial();
       updateGameInfo();
       if (mode !== "lobby") drawScene();
     }
@@ -5694,6 +6288,7 @@
     afkCanvas.addEventListener("pointercancel", handleAfkPointerEnd);
     applyLanguage();
     showLobby();
+    beginTutorialIfNeeded();
     startIntegrityMonitor();
     startMutationGuard();
 
@@ -5811,9 +6406,26 @@
     [achievementsBtn, lobbyAchievementsBtn].forEach((button) => {
       button.addEventListener("click", () => toggleAchievementPanel(true));
     });
+    [trainingBtn, lobbyTrainingBtn].forEach((button) => {
+      button.addEventListener("click", () => toggleTrainingPanel(true));
+    });
     achievementCloseBtn.addEventListener("click", () => toggleAchievementPanel(false));
     achievementPanel.addEventListener("click", (event) => {
       if (event.target === achievementPanel) toggleAchievementPanel(false);
+    });
+    trainingCloseBtn.addEventListener("click", () => toggleTrainingPanel(false));
+    trainingPanel.addEventListener("click", (event) => {
+      if (event.target === trainingPanel) toggleTrainingPanel(false);
+    });
+    trainingRecordList.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-training-replay]");
+      if (!button) return;
+      startTrainingReplay(button.dataset.trainingReplay);
+    });
+    tutorialNextBtn.addEventListener("click", advanceTutorial);
+    tutorialSkipBtn.addEventListener("click", completeTutorial);
+    tutorialPanel.addEventListener("click", (event) => {
+      if (event.target === tutorialPanel) completeTutorial();
     });
     [languageBtn, lobbyLanguageBtn].forEach((button) => button.addEventListener("click", () => {
       currentLang = currentLang === "zh" ? "en" : "zh";
@@ -5822,6 +6434,9 @@
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !achievementPanel.classList.contains("hidden")) {
         toggleAchievementPanel(false);
+      }
+      if (event.key === "Escape" && !trainingPanel.classList.contains("hidden")) {
+        toggleTrainingPanel(false);
       }
     });
     window.addEventListener("resize", () => {
