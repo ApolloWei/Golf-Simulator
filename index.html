@@ -1670,6 +1670,10 @@
       "大爷": { zh: "大爷", en: "Your Grandfather" }
     };
 
+    deepFreeze(players);
+    deepFreeze(playerRatings);
+    deepFreeze(playerDisplayNames);
+
     const app = document.querySelector("#app");
     const lobby = document.querySelector("#lobby");
     const launchDock = document.querySelector("#launchDock");
@@ -1806,6 +1810,10 @@
     let currentMessageKey = "ready";
     let currentMessageVars = {};
     let launchButtonKey = "launch";
+    let clickGuardTimes = [];
+    let clickGuardRapidStreak = 0;
+    let clickGuardLastTime = 0;
+    let clickGuardCooldownUntil = 0;
 
     const translations = {
       zh: {
@@ -1848,6 +1856,8 @@
         unlockAverageTourPro: "完成 80% + Only 成就解锁",
         unlockBenKruper: "完成 60% + Only 成就解锁",
         unlockFredCouples: "完成“百次一杆进洞”成就解锁",
+        lockedPlayerBlocked: "这个人物还没有合法解锁，已切回 Calvin。",
+        abnormalClickExit: "检测到异常点击速度，已自动退出当前游戏。",
         unlockNelly: "完成 60% 成就解锁",
         unlockScottie: "完成 75% 成就解锁",
         unlockBryson: "完成 80% 成就解锁",
@@ -2024,6 +2034,8 @@
         unlockAverageTourPro: "Unlock at 80% + Only achievements",
         unlockBenKruper: "Unlock at 60% + Only achievements",
         unlockFredCouples: "Unlock by completing Ace Century",
+        lockedPlayerBlocked: "This player is not legitimately unlocked. Switched back to Calvin.",
+        abnormalClickExit: "Abnormal click speed detected. Current game exited automatically.",
         unlockNelly: "Unlock at 60% achievements",
         unlockScottie: "Unlock at 75% achievements",
         unlockBryson: "Unlock at 80% achievements",
@@ -2169,15 +2181,40 @@
       supporterFutureUnlock: "golfSimulatorSupporterFutureUnlock.v1",
       supporterMaxUnlock: "golfSimulatorSupporterMaxUnlock.v2",
       supporterCreatorUnlock: "golfSimulatorSupporterCreatorUnlock.v1",
+      supporterCreatorProof: "golfSimulatorSupporterCreatorProof.v1",
       launchDockPosition: "golfSimulatorLaunchDockPosition.v1"
     };
     const SUPPORTER_PASSWORD_HASH = "ea72c79594296e45b8c2a296644d988581f58cfac6601d122ed0a8bd7c02e8bf";
     const SUPPORTER_FUTURE_PASSWORD_HASH = "2dfcab3471c3a8bcea03ea7c0402547d9235998780a7e8c248b4da2a2b2a42c6";
     const SUPPORTER_MAX_PASSWORD_HASH = "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f";
     const SUPPORTER_CREATOR_PASSWORD_HASH = "a43729edcece96240479409e5e66c0316e0ee893b18f644d0a93d771a7c6ae61";
+    const SUPPORTER_CREATOR_PROOF_SALT = "ascetic-monk-hidden-reward-2026-09";
 
     const CLUB_COLLECTION_TARGET = 13;
     const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
+
+    function stableHash(value) {
+      let hash = 2166136261;
+      for (let i = 0; i < value.length; i += 1) {
+        hash ^= value.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+      return (hash >>> 0).toString(16).padStart(8, "0");
+    }
+
+    function creatorProofValue() {
+      return stableHash(`${SUPPORTER_CREATOR_PASSWORD_HASH}|${SUPPORTER_CREATOR_PROOF_SALT}|苦行僧`);
+    }
+
+    function saveSupporterCreatorProof() {
+      localStorage.setItem(STORAGE_KEYS.supporterCreatorProof, creatorProofValue());
+    }
+
+    function deepFreeze(value) {
+      if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+      Object.values(value).forEach(deepFreeze);
+      return Object.freeze(value);
+    }
 
     function clubCollectionSlot(player, club) {
       if (!club || club === "Putter") return null;
@@ -2228,6 +2265,11 @@
         && achievementUnlockedCount(asceticAchievementDefinitions) >= asceticAchievementDefinitions.length;
     }
 
+    function allAsceticProgressEarned() {
+      return asceticAchievementDefinitions.length > 0
+        && asceticAchievementDefinitions.every((achievement) => achievement.progress(StatsManager.data) >= achievement.target);
+    }
+
     function hasSupporterUnlock() {
       return localStorage.getItem(STORAGE_KEYS.supporterUnlock) === "true";
     }
@@ -2241,7 +2283,10 @@
     }
 
     function hasSupporterCreatorUnlock() {
-      return localStorage.getItem(STORAGE_KEYS.supporterCreatorUnlock) === "true";
+      const hasFlag = localStorage.getItem(STORAGE_KEYS.supporterCreatorUnlock) === "true";
+      const hasProof = localStorage.getItem(STORAGE_KEYS.supporterCreatorProof) === creatorProofValue();
+      if (hasFlag && !hasProof) localStorage.removeItem(STORAGE_KEYS.supporterCreatorUnlock);
+      return hasFlag && hasProof;
     }
 
     function canUseAchievement(achievement) {
@@ -2261,7 +2306,7 @@
     }
 
     function isPlayerUnlocked(name) {
-      if (name === "苦行僧") return allAsceticAchievementsUnlocked() || hasSupporterCreatorUnlock();
+      if (name === "苦行僧") return allAsceticProgressEarned() || hasSupporterCreatorUnlock();
       if (hasSupporterMaxUnlock()) return true;
       if (name === "Future Calvin") return hasFutureSupporterUnlock();
       if (name === "Heart Recovery Player") return hasFutureSupporterUnlock() && allPlusAchievementsUnlocked();
@@ -2283,6 +2328,16 @@
           || (StatsManager.data.bestHoleInOneStreak || 0) >= 10;
       }
       if (name === "大爷") return allAchievementsUnlocked();
+      return false;
+    }
+
+    function ensureSelectedPlayerUnlocked() {
+      if (isPlayerUnlocked(playerSelect.value)) return true;
+      playerSelect.value = "Calvin";
+      if (lobbyPlayerSelect) lobbyPlayerSelect.value = "Calvin";
+      fillClubs({ reset: false });
+      updateText("lockedPlayerBlocked");
+      drawScene();
       return false;
     }
 
@@ -2987,7 +3042,7 @@
     function updateExtraAchievementProgress() {
       const canSeeBonus = hasSupporterUnlock() || hasFutureSupporterUnlock() || hasSupporterMaxUnlock();
       const canSeePlus = hasFutureSupporterUnlock() || hasSupporterMaxUnlock();
-      const asceticUnlocked = allAsceticAchievementsUnlocked() || hasSupporterCreatorUnlock();
+      const asceticUnlocked = allAsceticProgressEarned() || hasSupporterCreatorUnlock();
       if (bonusAchievementProgress) bonusAchievementProgress.hidden = !canSeeBonus;
       if (plusAchievementProgress) plusAchievementProgress.hidden = !canSeePlus;
       if (asceticAchievementLabel) asceticAchievementLabel.textContent = tr(asceticUnlocked ? "asceticAchievements" : "asceticAchievementsLocked");
@@ -3077,7 +3132,10 @@
       if (unlocksNormal) localStorage.setItem(STORAGE_KEYS.supporterUnlock, "true");
       if (unlocksFuture) localStorage.setItem(STORAGE_KEYS.supporterFutureUnlock, "true");
       if (unlocksMax) localStorage.setItem(STORAGE_KEYS.supporterMaxUnlock, "true");
-      if (unlocksCreator) localStorage.setItem(STORAGE_KEYS.supporterCreatorUnlock, "true");
+      if (unlocksCreator) {
+        localStorage.setItem(STORAGE_KEYS.supporterCreatorUnlock, "true");
+        saveSupporterCreatorProof();
+      }
       AchievementManager.evaluate();
       refreshPlayerUnlocks();
       window.alert(tr(unlocksMax ? "supporterMaxSuccess" : (unlocksFuture ? "supporterFutureSuccess" : "supporterSuccess")));
@@ -3143,6 +3201,7 @@
       cancelActiveAnimation();
       clearHoleAdvanceTimer();
       hideHoleModal();
+      resetClickGuard();
       mode = "lobby";
       app.classList.add("hidden");
       launchDock.classList.add("hidden");
@@ -4359,6 +4418,67 @@
       updateFlightSpeedControl();
     }
 
+    function protectCriticalGlobals() {
+      [
+        "isPlayerUnlocked",
+        "allAsceticProgressEarned",
+        "hasSupporterCreatorUnlock",
+        "applyAsceticAutoAim",
+        "findAsceticShotForDistance"
+      ].forEach((name) => {
+        const value = window[name];
+        if (typeof value !== "function") return;
+        try {
+          Object.defineProperty(window, name, {
+            value,
+            writable: false,
+            configurable: false
+          });
+        } catch {
+          // Browser hardening is best-effort in a static client-only game.
+        }
+      });
+    }
+
+    function resetClickGuard() {
+      clickGuardTimes = [];
+      clickGuardRapidStreak = 0;
+      clickGuardLastTime = 0;
+    }
+
+    function exitForAbnormalClicking(event) {
+      clickGuardCooldownUntil = performance.now() + 4000;
+      resetClickGuard();
+      if (event) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+      showLobby();
+      window.alert(tr("abnormalClickExit"));
+    }
+
+    function detectAbnormalClicking(event) {
+      const now = performance.now();
+      if (now < clickGuardCooldownUntil) return;
+
+      if (!event.isTrusted) {
+        exitForAbnormalClicking(event);
+        return;
+      }
+
+      const interval = clickGuardLastTime ? now - clickGuardLastTime : 9999;
+      clickGuardRapidStreak = interval > 0 && interval < 85 ? clickGuardRapidStreak + 1 : 0;
+      clickGuardLastTime = now;
+      clickGuardTimes = clickGuardTimes.filter((time) => now - time <= 1200);
+      clickGuardTimes.push(now);
+
+      const burstClicking = clickGuardTimes.length >= 11;
+      const mechanicalClicking = clickGuardRapidStreak >= 5;
+      if (burstClicking || mechanicalClicking) {
+        exitForAbnormalClicking(event);
+      }
+    }
+
     function clampLaunchDockPosition(left, top) {
       const rect = launchDock.getBoundingClientRect();
       const margin = 10;
@@ -4697,6 +4817,7 @@
     function launch() {
       cancelActiveAnimation();
       if (isChallengeMode() && gameFinished) return;
+      if (!ensureSelectedPlayerUnlocked()) return;
       clearHoleAdvanceTimer();
       hideHoleModal();
       playLaunchSound();
@@ -5079,6 +5200,8 @@
     fillPlayers();
     AchievementManager.evaluate();
     setupLaunchDockDragging();
+    protectCriticalGlobals();
+    document.addEventListener("click", detectAbnormalClicking, true);
     applyLanguage();
     showLobby();
 
