@@ -46,7 +46,7 @@
     header {
       position: relative;
       margin-bottom: 18px;
-      padding-right: 332px;
+      padding-right: 420px;
     }
 
     h1 {
@@ -107,7 +107,7 @@
     .life-hud {
       position: absolute;
       top: 2px;
-      right: 216px;
+      right: 260px;
       display: none;
       min-width: 96px;
       height: 38px;
@@ -130,6 +130,7 @@
     }
 
     .achievements-button,
+    .daily-button,
     .training-button {
       position: absolute;
       top: 2px;
@@ -152,7 +153,12 @@
       right: 82px;
     }
 
+    .daily-button {
+      right: 216px;
+    }
+
     .achievements-button:hover,
+    .daily-button:hover,
     .training-button:hover {
       filter: brightness(1.04);
     }
@@ -168,6 +174,7 @@
 
     .lobby-actions .language-button,
     .lobby-actions .achievements-button,
+    .lobby-actions .daily-button,
     .lobby-actions .training-button,
     .lobby-actions .coin-panel,
     .lobby-actions .supporter-button {
@@ -1371,6 +1378,27 @@
       line-height: 1.4;
     }
 
+    .daily-card {
+      width: min(760px, 100%);
+    }
+
+    .daily-summary {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .daily-list {
+      grid-template-columns: 1fr;
+    }
+
+    .daily-item {
+      min-height: 104px;
+    }
+
+    .daily-item.complete {
+      border-color: rgba(83, 163, 95, 0.38);
+      background: #f2fbf3;
+    }
+
     .progress-bar {
       height: 7px;
       margin-top: 8px;
@@ -1655,6 +1683,7 @@
           <strong id="coinBalanceText">0</strong>
         </div>
         <button class="supporter-button" id="supporterBtn" type="button" data-i18n="supporterButton">支持者</button>
+        <button class="daily-button" id="lobbyDailyBtn" type="button" title="每日任务">📅</button>
         <button class="achievements-button" id="lobbyAchievementsBtn" type="button" title="Achievements">🏆</button>
         <button class="training-button" id="lobbyTrainingBtn" type="button" title="Training Records">📋</button>
         <button class="language-button" id="lobbyLanguageBtn" type="button">English</button>
@@ -1744,6 +1773,7 @@
     <header>
       <button class="home-button" id="homeBtn" type="button" title="Home">⌂</button>
       <div class="life-hud" id="lifeHud" aria-live="polite"></div>
+      <button class="daily-button" id="dailyBtn" type="button" title="每日任务">📅</button>
       <button class="achievements-button" id="achievementsBtn" type="button" title="Achievements">🏆</button>
       <button class="training-button" id="trainingBtn" type="button" title="Training Records">📋</button>
       <button class="language-button" id="languageBtn" type="button">English</button>
@@ -1943,6 +1973,30 @@
     </div>
   </div>
 
+  <div class="achievement-panel hidden" id="dailyPanel" role="dialog" aria-modal="true" aria-labelledby="dailyPanelTitle">
+    <div class="achievement-card daily-card">
+      <div class="achievement-head">
+        <h2 id="dailyPanelTitle" data-i18n="dailyTitle">每日任务</h2>
+        <button class="achievement-close" id="dailyCloseBtn" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="achievement-summary daily-summary">
+        <div class="summary-tile">
+          <span data-i18n="dailyCompleted">今日完成</span>
+          <strong id="dailyCompletedText">0 / 3</strong>
+        </div>
+        <div class="summary-tile">
+          <span data-i18n="dailyReward">单个奖励</span>
+          <strong id="dailyRewardText">100</strong>
+        </div>
+        <div class="summary-tile">
+          <span data-i18n="dailyRefresh">刷新时间</span>
+          <strong id="dailyRefreshText">12:00</strong>
+        </div>
+      </div>
+      <div class="achievement-list daily-list" id="dailyTaskList"></div>
+    </div>
+  </div>
+
   <div class="training-panel hidden" id="trainingPanel" role="dialog" aria-modal="true" aria-labelledby="trainingPanelTitle">
     <div class="training-card">
       <div class="training-head">
@@ -1989,7 +2043,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "8b6967ae";
+    const SOURCE_INTEGRITY_HASH = "a1ae5d03";
     const PLAYER_DATA_INTEGRITY_HASH = "1df944ae";
     const PLAYER_RATING_INTEGRITY_HASH = "f4870e8a";
     const DEFAULT_ANGLE_INTEGRITY_HASH = "cbacfbd3";
@@ -2183,12 +2237,17 @@
     const obstacleMediumBtn = document.querySelector("#obstacleMediumBtn");
     const obstacleHardBtn = document.querySelector("#obstacleHardBtn");
     const lobbyLanguageBtn = document.querySelector("#lobbyLanguageBtn");
+    const lobbyDailyBtn = document.querySelector("#lobbyDailyBtn");
     const lobbyAchievementsBtn = document.querySelector("#lobbyAchievementsBtn");
     const homeBtn = document.querySelector("#homeBtn");
     const lifeHud = document.querySelector("#lifeHud");
+    const dailyBtn = document.querySelector("#dailyBtn");
     const achievementsBtn = document.querySelector("#achievementsBtn");
     const trainingBtn = document.querySelector("#trainingBtn");
     const lobbyTrainingBtn = document.querySelector("#lobbyTrainingBtn");
+    const dailyPanel = document.querySelector("#dailyPanel");
+    const dailyCloseBtn = document.querySelector("#dailyCloseBtn");
+    const dailyTaskList = document.querySelector("#dailyTaskList");
     const achievementPanel = document.querySelector("#achievementPanel");
     const achievementCloseBtn = document.querySelector("#achievementCloseBtn");
     const achievementList = document.querySelector("#achievementList");
@@ -2253,6 +2312,9 @@
       message: document.querySelector("#message"),
       chips: document.querySelector("#clubChips"),
       gameInfo: document.querySelector("#gameInfo"),
+      dailyCompleted: document.querySelector("#dailyCompletedText"),
+      dailyReward: document.querySelector("#dailyRewardText"),
+      dailyRefresh: document.querySelector("#dailyRefreshText"),
       achievementUnlocked: document.querySelector("#achievementUnlockedText"),
       achievementCompletion: document.querySelector("#achievementCompletionText"),
       achievementLongest: document.querySelector("#achievementLongestText"),
@@ -2352,6 +2414,18 @@
         upgradeSuccess: "{player} 已升级到 Lv.{level}！",
         upgradeNoCoins: "金币不足。升级需要 500 金币。",
         achievementCoinReward: "+{coins} 金币",
+        dailyTitle: "每日任务",
+        dailyButtonTitle: "每日任务",
+        dailyCompleted: "今日完成",
+        dailyReward: "单个奖励",
+        dailyRefresh: "刷新时间",
+        dailyRewardValue: "100 金币",
+        dailyProgress: "进度",
+        dailyComplete: "已完成",
+        dailyIncomplete: "进行中",
+        dailyTaskCompleteTitle: "📅 每日任务完成",
+        dailyTaskCoinReward: "+100 金币",
+        dailyRefreshLine: "每天 12:00 刷新",
         playerUnlockProgress: "角色解锁进度",
         bonusAchievements: "奖励成就",
         plusOnlyAchievements: "Plus 专属成就",
@@ -2583,6 +2657,18 @@
         upgradeSuccess: "{player} upgraded to Lv.{level}.",
         upgradeNoCoins: "Not enough coins. Upgrading costs 500 coins.",
         achievementCoinReward: "+{coins} coins",
+        dailyTitle: "Daily Tasks",
+        dailyButtonTitle: "Daily Tasks",
+        dailyCompleted: "Today",
+        dailyReward: "Reward Each",
+        dailyRefresh: "Refresh",
+        dailyRewardValue: "100 coins",
+        dailyProgress: "Progress",
+        dailyComplete: "Complete",
+        dailyIncomplete: "In progress",
+        dailyTaskCompleteTitle: "📅 DAILY TASK COMPLETE",
+        dailyTaskCoinReward: "+100 coins",
+        dailyRefreshLine: "Refreshes every day at 12:00",
         playerUnlockProgress: "Player Unlock Progress",
         bonusAchievements: "Bonus Achievements",
         plusOnlyAchievements: "+ Only Achievements",
@@ -2802,6 +2888,7 @@
       launchDockPosition: "golfSimulatorLaunchDockPosition.v1",
       tutorialComplete: "golfSimulatorTutorialComplete.v1",
       trainingRecords: "golfSimulatorTrainingRecords.v1",
+      dailyTasks: "golfSimulatorDailyTasks.v1",
       economy: "golfSimulatorEconomy.v1"
     };
     const SUPPORTER_PASSWORD_HASH = "ea72c79594296e45b8c2a296644d988581f58cfac6601d122ed0a8bd7c02e8bf";
@@ -2813,14 +2900,14 @@
     const CLUB_COLLECTION_TARGET = 13;
     const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
     const EXPECTED_DOM_IDS = Object.freeze([
-      "lobby", "supporterBtn", "lobbyAchievementsBtn", "lobbyTrainingBtn", "lobbyLanguageBtn", "lobbyPlayer",
+      "lobby", "supporterBtn", "lobbyDailyBtn", "lobbyAchievementsBtn", "lobbyTrainingBtn", "lobbyLanguageBtn", "lobbyPlayer",
       "playerUnlockPanel", "coinBalanceText", "playerUnlockPercent", "playerUnlockBar", "bonusAchievementProgress",
       "bonusAchievementPercent", "bonusAchievementBar", "plusAchievementProgress", "plusAchievementPercent",
       "plusAchievementBar", "asceticAchievementProgress", "asceticAchievementLabel",
       "asceticAchievementPercent", "asceticAchievementBar", "playerUnlockList", "startGameBtn",
       "classicEasyBtn", "classicHardBtn", "classicGreenBtn", "classicNoGreenBtn", "startFreeBtn",
       "startObstacleBtn", "obstacleEasyBtn", "obstacleMediumBtn", "obstacleHardBtn", "startPrecisionBtn",
-      "startPuttingBtn", "app", "homeBtn", "lifeHud", "achievementsBtn", "trainingBtn", "languageBtn",
+      "startPuttingBtn", "app", "homeBtn", "lifeHud", "dailyBtn", "achievementsBtn", "trainingBtn", "languageBtn",
       "gameInfo", "playerControl", "player", "club", "angle", "angleValue", "power", "powerValue",
       "bounceToggle", "trajectoryToggle", "trajectoryOnlyControl", "trajectoryOnlyToggle", "soundToggle",
       "cheatToggle", "targetDistanceLabel", "distanceText", "liveDistanceText", "speedText",
@@ -2828,7 +2915,8 @@
       "message", "clubChips", "stage", "trajectoryCanvas", "windHud", "windText", "windArrow",
       "launchDock", "resetBtn", "slowerBtn", "flightSpeedText", "fasterBtn", "launchBtn",
       "replayHud", "replayTitle", "replayMeta", "replayProgressBar", "replayCloseBtn",
-      "holeModal", "holeModalTitle", "holeModalText", "achievementPanel", "achievementPanelTitle",
+      "holeModal", "holeModalTitle", "holeModalText", "dailyPanel", "dailyPanelTitle", "dailyCloseBtn",
+      "dailyCompletedText", "dailyRewardText", "dailyRefreshText", "dailyTaskList", "achievementPanel", "achievementPanelTitle",
       "achievementCloseBtn", "achievementUnlockedText", "achievementCompletionText", "achievementLongestText",
       "achievementStreakText", "achievementList", "statisticsList", "trainingPanel", "trainingPanelTitle",
       "trainingCloseBtn", "trainingReplaySpeed", "trainingRecordList", "afkPanel", "afkCard",
@@ -3441,6 +3529,275 @@
       return `Lv.${EconomyManager.playerLevel(player)}`;
     }
 
+    function dailyTask(id, icon, category, target, enName, zhName, enDesc, zhDesc, progress) {
+      return {
+        id,
+        icon,
+        category,
+        target,
+        name: { en: enName, zh: zhName },
+        desc: { en: enDesc, zh: zhDesc },
+        progress
+      };
+    }
+
+    const defaultDailyStats = {
+      shots: 0,
+      freeShots: 0,
+      classicShots: 0,
+      precisionShots: 0,
+      puttingShots: 0,
+      obstacleShots: 0,
+      totalDistance: 0,
+      driverShots: 0,
+      woodShots: 0,
+      ironShots: 0,
+      wedgeShots: 0,
+      putterShots: 0,
+      shots200: 0,
+      shots250: 0,
+      shots300: 0,
+      apex80: 0,
+      apex100: 0,
+      lowPowerShots: 0,
+      highPowerShots: 0,
+      bounceShots: 0,
+      bounce20: 0,
+      accurate20: 0,
+      accurate10: 0,
+      accurate5: 0,
+      accurate3: 0,
+      accurate1: 0,
+      successfulPutts: 0,
+      longPutts: 0,
+      classicHoles: 0,
+      easyClassicHoles: 0,
+      hardClassicHoles: 0,
+      birdies: 0,
+      eagles: 0,
+      aces: 0,
+      obstacleGates: 0,
+      cleanObstacleRuns: 0,
+      hardObstacleRuns: 0,
+      clubsUsed: [],
+      playersUsed: [],
+      modesPlayed: []
+    };
+
+    const dailyTaskDefinitions = [
+      dailyTask("daily_5_shots", "🏌️", "General", 5, "Warm Up", "今日热身", "Hit 5 shots today.", "今天打出 5 杆。", (s) => s.shots),
+      dailyTask("daily_10_shots", "🏌️", "General", 10, "Ten Swings", "十次挥杆", "Hit 10 shots today.", "今天打出 10 杆。", (s) => s.shots),
+      dailyTask("daily_15_shots", "📈", "General", 15, "Practice Block", "练习小节", "Hit 15 shots today.", "今天打出 15 杆。", (s) => s.shots),
+      dailyTask("daily_25_shots", "📚", "General", 25, "Range Session", "练习场一轮", "Hit 25 shots today.", "今天打出 25 杆。", (s) => s.shots),
+      dailyTask("daily_free_3", "🧪", "General", 3, "Free Feel", "自由手感", "Hit 3 shots in Free Mode.", "在自由模式打出 3 杆。", (s) => s.freeShots),
+      dailyTask("daily_free_6", "🧪", "General", 6, "Free Study", "自由研究", "Hit 6 shots in Free Mode.", "在自由模式打出 6 杆。", (s) => s.freeShots),
+      dailyTask("daily_modes_2", "🧭", "General", 2, "Mode Hopper", "模式切换", "Play 2 different modes today.", "今天游玩 2 种不同模式。", (s) => s.modesPlayed.length),
+      dailyTask("daily_modes_3", "🧭", "General", 3, "Triple Tour", "三模式巡游", "Play 3 different modes today.", "今天游玩 3 种不同模式。", (s) => s.modesPlayed.length),
+      dailyTask("daily_clubs_3", "🎒", "General", 3, "Small Bag", "小球包", "Use 3 different clubs today.", "今天使用 3 根不同球杆。", (s) => s.clubsUsed.length),
+      dailyTask("daily_clubs_5", "🎒", "General", 5, "Mixed Bag", "混合球包", "Use 5 different clubs today.", "今天使用 5 根不同球杆。", (s) => s.clubsUsed.length),
+      dailyTask("daily_players_2", "👥", "General", 2, "Two Players", "双人体验", "Use 2 different players today.", "今天使用 2 个不同人物。", (s) => s.playersUsed.length),
+      dailyTask("daily_500_yards", "🛣️", "Distance", 500, "500 Yard Day", "五百码日", "Accumulate 500 yards today.", "今天累计飞行 500 码。", (s) => s.totalDistance),
+      dailyTask("daily_1000_yards", "🛣️", "Distance", 1000, "1,000 Yard Day", "千码日", "Accumulate 1,000 yards today.", "今天累计飞行 1,000 码。", (s) => s.totalDistance),
+      dailyTask("daily_2000_yards", "🛣️", "Distance", 2000, "2,000 Yard Day", "两千码日", "Accumulate 2,000 yards today.", "今天累计飞行 2,000 码。", (s) => s.totalDistance),
+      dailyTask("daily_200_plus", "💥", "Distance", 1, "One 200+", "一杆 200+", "Hit one 200+ yard shot.", "打出 1 杆 200 码以上。", (s) => s.shots200),
+      dailyTask("daily_250_plus", "💥", "Distance", 1, "One 250+", "一杆 250+", "Hit one 250+ yard shot.", "打出 1 杆 250 码以上。", (s) => s.shots250),
+      dailyTask("daily_300_plus", "🚀", "Distance", 1, "One 300+", "一杆 300+", "Hit one 300+ yard shot.", "打出 1 杆 300 码以上。", (s) => s.shots300),
+      dailyTask("daily_two_200", "💥", "Distance", 2, "Two 200s", "两次 200+", "Hit two 200+ yard shots.", "打出 2 杆 200 码以上。", (s) => s.shots200),
+      dailyTask("daily_driver_3", "🚗", "Distance", 3, "Driver Work", "一号木训练", "Hit 3 Driver shots.", "用 Driver 打出 3 杆。", (s) => s.driverShots),
+      dailyTask("daily_driver_5", "🚗", "Distance", 5, "Driver Rhythm", "一号木节奏", "Hit 5 Driver shots.", "用 Driver 打出 5 杆。", (s) => s.driverShots),
+      dailyTask("daily_woods_4", "🌲", "Distance", 4, "Wood Work", "木杆训练", "Hit 4 wood shots.", "用木杆打出 4 杆。", (s) => s.woodShots),
+      dailyTask("daily_irons_5", "🔩", "General", 5, "Iron Set", "铁杆组", "Hit 5 iron shots.", "用铁杆打出 5 杆。", (s) => s.ironShots),
+      dailyTask("daily_wedges_4", "🎯", "Accuracy", 4, "Wedge Touch", "挖起杆手感", "Hit 4 wedge shots.", "用挖起杆打出 4 杆。", (s) => s.wedgeShots),
+      dailyTask("daily_apex_80", "⛰️", "Distance", 1, "High Window", "高弹道窗口", "Hit a shot with 80+ yd apex.", "打出 1 杆最高点 80 码以上。", (s) => s.apex80),
+      dailyTask("daily_apex_100", "⛰️", "Distance", 1, "Sky Window", "天空窗口", "Hit a shot with 100+ yd apex.", "打出 1 杆最高点 100 码以上。", (s) => s.apex100),
+      dailyTask("daily_low_power", "🪶", "Accuracy", 3, "Soft Hands", "轻柔手感", "Hit 3 shots at 60% power or lower.", "用 60% 或更低力度打出 3 杆。", (s) => s.lowPowerShots),
+      dailyTask("daily_high_power", "💪", "Distance", 3, "Full Send", "大力挥杆", "Hit 3 shots at 95% power or higher.", "用 95% 或更高力度打出 3 杆。", (s) => s.highPowerShots),
+      dailyTask("daily_bounce", "🟢", "Distance", 2, "Let It Run", "让球滚起来", "Hit 2 shots with bounce enabled.", "开启弹跳打出 2 杆。", (s) => s.bounceShots),
+      dailyTask("daily_bounce_20", "🟢", "Distance", 1, "Extra Roll", "额外滚动", "Get 20+ yards after bounce once.", "单杆弹跳后多滚 20 码以上。", (s) => s.bounce20),
+      dailyTask("daily_within_20", "🎯", "Accuracy", 1, "Inside 20", "二十码内", "Finish within 20 yards of a target once.", "停在目标 20 码以内 1 次。", (s) => s.accurate20),
+      dailyTask("daily_within_10", "🎯", "Accuracy", 1, "Inside 10", "十码内", "Finish within 10 yards of a target once.", "停在目标 10 码以内 1 次。", (s) => s.accurate10),
+      dailyTask("daily_within_5", "📍", "Accuracy", 1, "Inside 5", "五码内", "Finish within 5 yards of a target once.", "停在目标 5 码以内 1 次。", (s) => s.accurate5),
+      dailyTask("daily_within_3", "📍", "Accuracy", 1, "Inside 3", "三码内", "Finish within 3 yards of a target once.", "停在目标 3 码以内 1 次。", (s) => s.accurate3),
+      dailyTask("daily_within_1", "🔒", "Accuracy", 1, "Inside 1", "一码内", "Finish within 1 yard of a target once.", "停在目标 1 码以内 1 次。", (s) => s.accurate1),
+      dailyTask("daily_classic_shots", "⛳", "Classic", 5, "Classic Shots", "经典挥杆", "Hit 5 shots in Classic Mode.", "在经典模式打出 5 杆。", (s) => s.classicShots),
+      dailyTask("daily_classic_hole", "🏁", "Classic", 1, "Finish a Hole", "完成一洞", "Complete 1 Classic hole.", "完成 1 个经典模式球洞。", (s) => s.classicHoles),
+      dailyTask("daily_easy_hole", "🌤️", "Classic", 1, "Easy Hole", "简单一洞", "Complete 1 Classic Easy hole.", "完成 1 个经典简单球洞。", (s) => s.easyClassicHoles),
+      dailyTask("daily_hard_hole", "🌬️", "Classic", 1, "Hard Hole", "困难一洞", "Complete 1 Classic Hard hole.", "完成 1 个经典困难球洞。", (s) => s.hardClassicHoles),
+      dailyTask("daily_birdie", "⭐", "Classic", 1, "Birdie Today", "今日小鸟", "Score birdie or better once.", "打出 1 次小鸟球或更好。", (s) => s.birdies),
+      dailyTask("daily_eagle", "💫", "Classic", 1, "Eagle Today", "今日老鹰", "Score eagle or better once.", "打出 1 次老鹰球或更好。", (s) => s.eagles),
+      dailyTask("daily_ace", "🥇", "Classic", 1, "Daily Ace", "每日一杆进洞", "Make 1 hole-in-one.", "完成 1 次一杆进洞。", (s) => s.aces),
+      dailyTask("daily_putting_3", "⛳", "Putting", 3, "Three Putts", "三次推进", "Sink 3 putts today.", "今天推进 3 次。", (s) => s.successfulPutts),
+      dailyTask("daily_putting_5", "⛳", "Putting", 5, "Five Putts", "五次推进", "Sink 5 putts today.", "今天推进 5 次。", (s) => s.successfulPutts),
+      dailyTask("daily_putting_mode", "🟩", "Putting", 5, "Green Practice", "果岭练习", "Hit 5 shots in Green Practice.", "在果岭练习打出 5 杆。", (s) => s.puttingShots),
+      dailyTask("daily_long_putt", "🔭", "Putting", 1, "Long Putt Touch", "长推手感", "Sink one putt from 5+ yards.", "推进 1 个 5 码以上的推杆。", (s) => s.longPutts),
+      dailyTask("daily_putter_8", "⛳", "Putting", 8, "Putter Reps", "推杆重复练习", "Use the putter 8 times.", "使用推杆 8 次。", (s) => s.putterShots),
+      dailyTask("daily_obstacle_shots", "🚪", "Obstacle", 4, "Gate Attempts", "障碍尝试", "Hit 4 shots in Obstacle Mode.", "在障碍物模式打出 4 杆。", (s) => s.obstacleShots),
+      dailyTask("daily_gate_1", "🚪", "Obstacle", 1, "Pass a Gate", "穿过一门", "Pass 1 obstacle gate.", "穿过 1 个障碍门。", (s) => s.obstacleGates),
+      dailyTask("daily_gate_3", "🚪", "Obstacle", 3, "Three Gates", "三道门", "Pass 3 obstacle gates.", "穿过 3 个障碍门。", (s) => s.obstacleGates),
+      dailyTask("daily_clean_obstacle", "🧼", "Obstacle", 1, "Clean Gate Set", "无失误障碍", "Complete 1 clean obstacle set.", "无失误通过 1 组障碍。", (s) => s.cleanObstacleRuns),
+      dailyTask("daily_hard_obstacle", "🧱", "Obstacle", 1, "Hard Gate Set", "困难障碍", "Clear 1 Hard Obstacle set.", "通过 1 组困难障碍。", (s) => s.hardObstacleRuns),
+      dailyTask("daily_precision_3", "🎯", "Accuracy", 3, "Precision Tries", "精准尝试", "Hit 3 shots in Precision Mode.", "在精准模式打出 3 杆。", (s) => s.precisionShots)
+    ];
+
+    function dailySlotKey(date = new Date()) {
+      const shifted = new Date(date.getTime() - 12 * 60 * 60 * 1000);
+      const year = shifted.getFullYear();
+      const month = String(shifted.getMonth() + 1).padStart(2, "0");
+      const day = String(shifted.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function dailySeed(slot) {
+      return Number.parseInt(stableHash(slot), 16) || 1;
+    }
+
+    function dailyTaskIdsForSlot(slot) {
+      let seed = dailySeed(slot);
+      const pool = [...dailyTaskDefinitions];
+      const selected = [];
+      while (selected.length < 3 && pool.length) {
+        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+        const index = seed % pool.length;
+        selected.push(pool.splice(index, 1)[0].id);
+      }
+      return selected;
+    }
+
+    function nextDailyRefreshText() {
+      const now = new Date();
+      const next = new Date(now);
+      next.setHours(12, 0, 0, 0);
+      if (now >= next) next.setDate(next.getDate() + 1);
+      return next.toLocaleTimeString(currentLang === "zh" ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    const DailyTaskManager = {
+      data: null,
+      load() {
+        const slot = dailySlotKey();
+        const saved = safeLoad(STORAGE_KEYS.dailyTasks, {});
+        const stats = { ...defaultDailyStats, ...(saved.stats || {}) };
+        ["clubsUsed", "playersUsed", "modesPlayed"].forEach((key) => {
+          if (!Array.isArray(stats[key])) stats[key] = [];
+        });
+        this.data = saved.slot === slot
+          ? {
+              slot,
+              taskIds: Array.isArray(saved.taskIds) ? saved.taskIds : dailyTaskIdsForSlot(slot),
+              stats,
+              completed: { ...(saved.completed || {}) }
+            }
+          : {
+              slot,
+              taskIds: dailyTaskIdsForSlot(slot),
+              stats: { ...defaultDailyStats },
+              completed: {}
+            };
+        this.save();
+      },
+      ensureCurrentDay() {
+        if (!this.data || this.data.slot !== dailySlotKey()) this.load();
+      },
+      save() {
+        saveJson(STORAGE_KEYS.dailyTasks, this.data);
+      },
+      activeTasks() {
+        this.ensureCurrentDay();
+        return this.data.taskIds
+          .map((id) => dailyTaskDefinitions.find((task) => task.id === id))
+          .filter(Boolean);
+      },
+      addUnique(key, value) {
+        if (!value || this.data.stats[key].includes(value)) return;
+        this.data.stats[key].push(value);
+      },
+      recordShot(result) {
+        this.ensureCurrentDay();
+        trustDomMutation(1600);
+        const stats = this.data.stats;
+        const distance = Math.max(0, result.distance || 0);
+        const remaining = result.remaining;
+        stats.shots += 1;
+        stats.totalDistance += distance;
+        if (result.mode === "free") stats.freeShots += 1;
+        if (result.mode === "classic") stats.classicShots += 1;
+        if (result.mode === "precision") stats.precisionShots += 1;
+        if (result.mode === "putting") stats.puttingShots += 1;
+        if (result.mode === "obstacle") stats.obstacleShots += 1;
+        if (result.club === "Driver") stats.driverShots += 1;
+        if (/Wood/i.test(result.club || "")) stats.woodShots += 1;
+        if (/Iron|Hybrid/i.test(result.club || "")) stats.ironShots += 1;
+        if (/W|°/.test(result.club || "")) stats.wedgeShots += 1;
+        if (result.club === "Putter") stats.putterShots += 1;
+        if (distance >= 200) stats.shots200 += 1;
+        if (distance >= 250) stats.shots250 += 1;
+        if (distance >= 300) stats.shots300 += 1;
+        if ((result.apex || 0) >= 80) stats.apex80 += 1;
+        if ((result.apex || 0) >= 100) stats.apex100 += 1;
+        if ((result.powerPercent || 0) <= 60) stats.lowPowerShots += 1;
+        if ((result.powerPercent || 0) >= 95) stats.highPowerShots += 1;
+        if ((result.postBounceDistance || 0) > 0) stats.bounceShots += 1;
+        if ((result.postBounceDistance || 0) >= 20) stats.bounce20 += 1;
+        if (remaining != null && remaining <= 20) stats.accurate20 += 1;
+        if (remaining != null && remaining <= 10) stats.accurate10 += 1;
+        if (remaining != null && remaining <= 5) stats.accurate5 += 1;
+        if (remaining != null && remaining <= 3) stats.accurate3 += 1;
+        if (remaining != null && remaining <= 1) stats.accurate1 += 1;
+        if (result.puttSunk) {
+          stats.successfulPutts += 1;
+          if (distance >= 5) stats.longPutts += 1;
+        }
+        if (result.classicComplete) {
+          const shots = result.shots || 0;
+          const underPar = 4 - shots;
+          stats.classicHoles += 1;
+          if (classicDifficulty === "easy") stats.easyClassicHoles += 1;
+          if (classicDifficulty === "hard") stats.hardClassicHoles += 1;
+          if (underPar >= 1) stats.birdies += 1;
+          if (underPar >= 2) stats.eagles += 1;
+          if (shots === 1) stats.aces += 1;
+        }
+        if (result.obstacleGatesPassed) stats.obstacleGates += result.obstacleGatesPassed;
+        if (result.obstaclePassed) {
+          stats.cleanObstacleRuns += 1;
+          if (result.obstacleDifficulty === "hard") stats.hardObstacleRuns += 1;
+        }
+        this.addUnique("clubsUsed", result.club);
+        this.addUnique("playersUsed", result.player);
+        this.addUnique("modesPlayed", result.mode);
+        this.evaluate();
+        this.save();
+        renderDailyTasks();
+      },
+      evaluate() {
+        trustDomMutation(1600);
+        this.activeTasks().forEach((task) => {
+          if (this.data.completed[task.id]) return;
+          const progress = Math.min(task.target, Math.max(0, task.progress(this.data.stats)));
+          if (progress < task.target) return;
+          this.data.completed[task.id] = new Date().toISOString();
+          EconomyManager.addCoins(100, `daily:${this.data.slot}:${task.id}`);
+          this.showToast(task);
+        });
+      },
+      showToast(task) {
+        trustDomMutation(900);
+        const toast = document.createElement("div");
+        toast.className = "achievement-toast";
+        toast.innerHTML = `
+          <div class="toast-kicker">${tr("dailyTaskCompleteTitle")}</div>
+          <strong>${task.name[currentLang]}</strong>
+          <p>${task.desc[currentLang]}</p>
+          <p>${tr("dailyTaskCoinReward")}</p>
+        `;
+        achievementToasts.appendChild(toast);
+        setTimeout(() => {
+          trustDomMutation();
+          toast.remove();
+        }, 3200);
+      }
+    };
+
     function maybeOfferPlayerUpgrade(player) {
       if (suppressUpgradePrompt || !player || !isPlayerUnlocked(player) || isReplayMode()) return;
       const ok = window.confirm(tr("upgradePrompt", {
@@ -3596,6 +3953,7 @@
         else if (result.streakSuccess === false) this.data.currentStreak = 0;
         this.data.bestStreak = Math.max(this.data.bestStreak, this.data.currentStreak);
         this.save();
+        DailyTaskManager.recordShot(result);
         AchievementManager.evaluate();
         renderAchievements();
         refreshPlayerUnlocks();
@@ -5762,6 +6120,8 @@
         lobby,
         launchDock,
         launchBtn,
+        dailyPanel,
+        dailyTaskList,
         achievementPanel,
         achievementList,
         statisticsList,
@@ -5795,6 +6155,8 @@
         && Boolean(translations.en.achievementUnlocked)
         && Boolean(translations.zh.trainingTitle)
         && Boolean(translations.en.trainingTitle)
+        && Boolean(translations.zh.dailyTitle)
+        && Boolean(translations.en.dailyTitle)
         && Boolean(translations.zh.replayTitle)
         && Boolean(translations.en.replayTitle);
       const sourceOk = hasExpectedSourceIntegrity();
@@ -6636,6 +6998,50 @@
       animation = scheduleAnimationFrame(replayFrame);
     }
 
+    function renderDailyTasks() {
+      if (!dailyTaskList) return;
+      DailyTaskManager.ensureCurrentDay();
+      trustDomMutation(900);
+      const tasks = DailyTaskManager.activeTasks();
+      const completedCount = tasks.filter((task) => DailyTaskManager.data.completed[task.id]).length;
+      fields.dailyCompleted.textContent = `${completedCount} / ${tasks.length}`;
+      fields.dailyReward.textContent = tr("dailyRewardValue");
+      fields.dailyRefresh.textContent = nextDailyRefreshText();
+      dailyTaskList.innerHTML = "";
+      tasks.forEach((task) => {
+        const completedAt = DailyTaskManager.data.completed[task.id];
+        const rawProgress = Math.max(0, task.progress(DailyTaskManager.data.stats));
+        const progress = Math.min(task.target, rawProgress);
+        const percent = task.target === 0 ? 100 : Math.min(100, (progress / task.target) * 100);
+        const item = document.createElement("article");
+        item.className = `achievement-item daily-item${completedAt ? " complete" : " locked"}`;
+        item.innerHTML = `
+          <div class="achievement-icon">${completedAt ? "✅" : task.icon}</div>
+          <div>
+            <div class="achievement-title">
+              <span>${task.name[currentLang]}</span>
+              <span class="achievement-category">${task.category}</span>
+            </div>
+            <div class="achievement-desc">${task.desc[currentLang]}</div>
+            <div class="progress-bar"><span style="width:${percent}%"></span></div>
+            <div class="achievement-meta">
+              ${tr("dailyProgress")}: ${Math.round(progress * 100) / 100} / ${task.target}
+              · ${completedAt ? tr("dailyComplete") : tr("dailyIncomplete")}
+              · ${tr("dailyTaskCoinReward")}
+            </div>
+          </div>
+        `;
+        dailyTaskList.appendChild(item);
+      });
+    }
+
+    function toggleDailyPanel(show) {
+      if (!checkSiteIntegrity()) return;
+      trustDomMutation();
+      dailyPanel.classList.toggle("hidden", !show);
+      if (show) renderDailyTasks();
+    }
+
     function renderAchievements() {
       if (!checkSiteIntegrity()) return;
       if (!achievementList || !statisticsList) return;
@@ -6719,6 +7125,8 @@
       homeBtn.title = tr("homeTitle");
       achievementsBtn.title = tr("achievementsButtonTitle");
       lobbyAchievementsBtn.title = tr("achievementsButtonTitle");
+      dailyBtn.title = tr("dailyButtonTitle");
+      lobbyDailyBtn.title = tr("dailyButtonTitle");
       trainingBtn.title = tr("trainingButtonTitle");
       lobbyTrainingBtn.title = tr("trainingButtonTitle");
       updateFlightSpeedControl();
@@ -6736,6 +7144,7 @@
       updateWindHud();
       updateTrajectoryControls();
       fillPlayers();
+      renderDailyTasks();
       renderAchievements();
       renderTrainingRecords();
       renderTutorial();
@@ -6748,6 +7157,7 @@
     }
 
     fillPlayers();
+    DailyTaskManager.load();
     AchievementManager.evaluate();
     EconomyManager.syncUnlockedAchievementRewards();
     fillPlayers();
@@ -6761,6 +7171,13 @@
     applyLanguage();
     showLobby();
     beginTutorialIfNeeded();
+    setInterval(() => {
+      const previousSlot = DailyTaskManager.data?.slot;
+      DailyTaskManager.ensureCurrentDay();
+      if (previousSlot !== DailyTaskManager.data.slot || !dailyPanel.classList.contains("hidden")) {
+        renderDailyTasks();
+      }
+    }, 60000);
     startIntegrityMonitor();
     startMutationGuard();
 
@@ -6883,8 +7300,15 @@
     [achievementsBtn, lobbyAchievementsBtn].forEach((button) => {
       button.addEventListener("click", () => toggleAchievementPanel(true));
     });
+    [dailyBtn, lobbyDailyBtn].forEach((button) => {
+      button.addEventListener("click", () => toggleDailyPanel(true));
+    });
     [trainingBtn, lobbyTrainingBtn].forEach((button) => {
       button.addEventListener("click", () => toggleTrainingPanel(true));
+    });
+    dailyCloseBtn.addEventListener("click", () => toggleDailyPanel(false));
+    dailyPanel.addEventListener("click", (event) => {
+      if (event.target === dailyPanel) toggleDailyPanel(false);
     });
     achievementCloseBtn.addEventListener("click", () => toggleAchievementPanel(false));
     achievementPanel.addEventListener("click", (event) => {
