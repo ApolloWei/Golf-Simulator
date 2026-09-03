@@ -2095,7 +2095,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "42f42422";
+    const SOURCE_INTEGRITY_HASH = "99f2f68d";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -6160,13 +6160,26 @@
         drawCloud(rect.width * 0.94, 116, 88, 0.54, "#edf3f4");
         return;
       }
+      if (currentWeather === "storm") {
+        const color = "#52616a";
+        drawCloud(rect.width * 0.02, 52, 92, 0.74, color);
+        drawCloud(rect.width * 0.16, 86, 108, 0.68, "#5e6c74");
+        drawCloud(rect.width * 0.31, 48, 98, 0.78, color);
+        drawCloud(rect.width * 0.48, 78, 116, 0.72, "#64727a");
+        drawCloud(rect.width * 0.64, 42, 104, 0.76, "#56656d");
+        drawCloud(rect.width * 0.8, 84, 112, 0.7, "#5c6a72");
+        drawCloud(rect.width * 0.96, 54, 96, 0.76, color);
+        drawCloud(rect.width * 0.2, 134, 88, 0.5, "#6c797f");
+        drawCloud(rect.width * 0.58, 128, 96, 0.46, "#6a777f");
+        drawCloud(rect.width * 0.88, 136, 84, 0.48, "#69767d");
+        return;
+      }
       const alpha = 0.62;
-      const color = currentWeather === "storm" ? "#5e6c74" : "#ffffff";
-      drawCloud(rect.width * 0.1, 62, 68, alpha, color);
-      drawCloud(rect.width * 0.32, 84, 76, alpha * 0.86, color);
-      drawCloud(rect.width * 0.56, 54, 66, alpha * 0.92, color);
-      drawCloud(rect.width * 0.78, 92, 82, alpha * 0.9, color);
-      drawCloud(rect.width * 0.92, 66, 70, alpha * 0.82, color);
+      drawCloud(rect.width * 0.1, 62, 68, alpha);
+      drawCloud(rect.width * 0.32, 84, 76, alpha * 0.86);
+      drawCloud(rect.width * 0.56, 54, 66, alpha * 0.92);
+      drawCloud(rect.width * 0.78, 92, 82, alpha * 0.9);
+      drawCloud(rect.width * 0.92, 66, 70, alpha * 0.82);
     }
 
     function drawStormEffects(rect) {
@@ -6191,18 +6204,18 @@
         const a = Math.abs(seedA);
         const b = Math.abs(seedB);
         const c = Math.abs(seedC);
-        const speed = 0.32 + a * 0.5;
-        const length = 18 + b * 28;
-        const slant = 7 + c * 15;
+        const speed = 0.18 + a * 0.28;
+        const length = 16 + b * 22;
+        const sway = (c - 0.5) * 1.6;
         const laneWidth = rect.width + 160;
         const laneHeight = rect.height + 120;
-        const x = ((i * 47 + now * speed * 0.45 + b * 95) % laneWidth) - 80;
-        const y = ((i * 31 + now * speed * 1.35 + a * 110) % laneHeight) - 70;
+        const x = ((i * 47 + b * 95) % laneWidth) - 80;
+        const y = ((i * 31 + now * speed * 0.85 + a * 110) % laneHeight) - 70;
         ctx.strokeStyle = `rgba(210, 231, 245, ${0.28 + c * 0.42})`;
         ctx.lineWidth = 0.7 + a * 1.1;
         ctx.beginPath();
         ctx.moveTo(x, y);
-        ctx.lineTo(x - slant, y + length);
+        ctx.lineTo(x + sway, y + length);
         ctx.stroke();
       }
       ctx.restore();
