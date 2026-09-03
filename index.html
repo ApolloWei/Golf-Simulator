@@ -2066,7 +2066,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "f28ec9f0";
+    const SOURCE_INTEGRITY_HASH = "a1408482";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2418,6 +2418,7 @@
     let replayState = null;
     let suppressUpgradePrompt = false;
     let protectedFunctionRefs = null;
+    let roundAdvanceAuthorized = false;
 
     const translations = {
       zh: {
@@ -4451,9 +4452,30 @@
       holeModal.classList.remove("hidden");
       holeAdvanceTimer = nativeSetTimeout.call(window, () => {
         holeAdvanceTimer = null;
-        if (isObstacleMode()) startObstacleCourse();
-        else if (isChallengeMode()) startGame(mode);
+        runAuthorizedRoundAdvance(() => {
+          if (isObstacleMode()) startObstacleCourse();
+          else if (isChallengeMode()) startGame(mode);
+        });
       }, 3000);
+    }
+
+    function isRoundCompleteModalVisible() {
+      return holeModal && !holeModal.classList.contains("hidden") && gameFinished;
+    }
+
+    function runAuthorizedRoundAdvance(callback) {
+      roundAdvanceAuthorized = true;
+      try {
+        callback();
+      } finally {
+        roundAdvanceAuthorized = false;
+      }
+    }
+
+    function rejectUnauthorizedRoundAdvance() {
+      if (!isRoundCompleteModalVisible() || roundAdvanceAuthorized) return false;
+      forceBrowserStartPage();
+      return true;
     }
 
     function updateHoleModalText() {
@@ -4922,6 +4944,7 @@
     }
 
     function startGame(nextMode = mode) {
+      if (rejectUnauthorizedRoundAdvance()) return;
       trustDomMutation(900);
       clearHoleAdvanceTimer();
       hideHoleModal();
@@ -5007,6 +5030,7 @@
     }
 
     function startObstacleCourse({ newRound = true } = {}) {
+      if (rejectUnauthorizedRoundAdvance()) return;
       trustDomMutation(900);
       clearHoleAdvanceTimer();
       hideHoleModal();
@@ -6110,6 +6134,12 @@
         "hasSupporterCreatorUnlock",
         "applyAsceticAutoAim",
         "findAsceticShotForDistance",
+        "getCarryHoleInPlan",
+        "finishHoleSinkAnimation",
+        "startGame",
+        "startObstacleCourse",
+        "runAuthorizedRoundAdvance",
+        "rejectUnauthorizedRoundAdvance",
         "showAfkChallenge",
         "hideAfkChallenge",
         "updateAfkLaunchActivity",
