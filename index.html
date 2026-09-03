@@ -834,6 +834,23 @@
       font-weight: 800;
     }
 
+    .replay-return {
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--fairway), var(--blue));
+      color: white;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .replay-return.hidden {
+      display: none;
+    }
+
     .flight-speed-control {
       display: inline-flex;
       align-items: center;
@@ -1959,6 +1976,7 @@
       <span id="replayMeta">1x</span>
     </div>
     <div class="replay-progress" aria-hidden="true"><span id="replayProgressBar"></span></div>
+    <button class="replay-return hidden" id="replayReturnBtn" type="button" data-i18n="replayReturnTournament">回到比赛</button>
     <button class="replay-close" id="replayCloseBtn" type="button" aria-label="Close">×</button>
   </div>
 
@@ -2077,7 +2095,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "8ad8c438";
+    const SOURCE_INTEGRITY_HASH = "254daf65";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2341,6 +2359,7 @@
     const replayTitle = document.querySelector("#replayTitle");
     const replayMeta = document.querySelector("#replayMeta");
     const replayProgressBar = document.querySelector("#replayProgressBar");
+    const replayReturnBtn = document.querySelector("#replayReturnBtn");
     const replayCloseBtn = document.querySelector("#replayCloseBtn");
     const holeModal = document.querySelector("#holeModal");
 
@@ -2622,6 +2641,7 @@
         replayMeta: "{mode}｜{player}｜{club}｜{speed}x｜{progress}%",
         replayComplete: "回放完成",
         replayClose: "关闭回放",
+        replayReturnTournament: "回到比赛",
         achievementUnlocked: "已解锁",
         achievementCompletion: "完成度",
         achievementBestShot: "最远一杆",
@@ -2892,6 +2912,7 @@
         replayMeta: "{mode} | {player} | {club} | {speed}x | {progress}%",
         replayComplete: "Replay complete",
         replayClose: "Close replay",
+        replayReturnTournament: "Back to Tournament",
         achievementUnlocked: "Unlocked",
         achievementCompletion: "Completion",
         achievementBestShot: "Longest Shot",
@@ -3050,7 +3071,7 @@
       "currentSpeedText", "horizontalSpeedText", "verticalSpeedText", "timeText", "phaseText",
       "message", "clubChips", "stage", "trajectoryCanvas", "windHud", "windText", "windArrow",
       "launchDock", "resetBtn", "slowerBtn", "flightSpeedText", "fasterBtn", "launchBtn",
-      "replayHud", "replayTitle", "replayMeta", "replayProgressBar", "replayCloseBtn",
+      "replayHud", "replayTitle", "replayMeta", "replayProgressBar", "replayReturnBtn", "replayCloseBtn",
       "holeModal", "holeModalTitle", "holeModalText", "dailyPanel", "dailyPanelTitle", "dailyCloseBtn",
       "dailyCompletedText", "dailyRewardText", "dailyRefreshText", "dailyCheckinBtn", "dailyTaskList", "achievementPanel", "achievementPanelTitle",
       "achievementCloseBtn", "achievementUnlockedText", "achievementCompletionText", "achievementLongestText",
@@ -6544,6 +6565,8 @@
         "renderTrainingRecords",
         "startTrainingReplay",
         "exitTrainingReplay",
+        "tournamentReplaySnapshot",
+        "restoreTournamentReplaySnapshot",
         "updateReplayHud"
       ];
       protectedFunctionRefs = Object.freeze(Object.fromEntries(
@@ -7527,16 +7550,135 @@
         progress: percent
       });
       replayProgressBar.style.width = `${percent}%`;
+      replayReturnBtn.classList.toggle("hidden", !replayState?.returnToTournament);
+      replayReturnBtn.textContent = tr("replayReturnTournament");
       replayCloseBtn.title = tr("replayClose");
+    }
+
+    function tournamentReplaySnapshot() {
+      return {
+        mode,
+        shot: shot ? { ...shot, bounceSegments: [...(shot.bounceSegments || [])] } : null,
+        trail: trail.map((point) => ({ ...point })),
+        previousTrails: previousTrails.map((line) => line.map((point) => ({ ...point }))),
+        ballPosition: { ...ballPosition },
+        landed,
+        showLandingMarker,
+        flightProgress,
+        ballSinking,
+        sinkProgress,
+        ballHidden,
+        currentMessageKey,
+        currentMessageVars: { ...currentMessageVars },
+        launchButtonKey,
+        launchButtonDisabled: launchBtn.disabled,
+        player: playerSelect.value,
+        club: clubSelect.value,
+        angle: angleSlider.value,
+        power: powerSlider.value,
+        gameTargetYards,
+        gameRemainingYards,
+        gameBallYards,
+        gameShotStartYards,
+        gameShotDirection,
+        gameGreenRadius,
+        gameOnGreen,
+        gameViewMinX,
+        gameViewTargetMinX,
+        gameViewMaxX,
+        gameViewTargetMaxX,
+        gameViewMaxY,
+        gameViewTargetMaxY,
+        greenZooming,
+        gameShots,
+        gameFinished,
+        classicDifficulty,
+        classicGreenRule,
+        currentWind: { ...currentWind },
+        tournamentState: { ...tournamentState }
+      };
+    }
+
+    function restoreTournamentReplaySnapshot(snapshot) {
+      if (!snapshot) {
+        showLobby();
+        return;
+      }
+      trustDomMutation(1200);
+      cancelActiveAnimation();
+      replayState = null;
+      app.classList.remove("replay-mode");
+      replayHud.classList.remove("show");
+      replayReturnBtn.classList.add("hidden");
+      lobby.classList.add("hidden");
+      app.classList.remove("hidden");
+      launchDock.classList.remove("hidden");
+      homeBtn.classList.add("show");
+
+      tournamentState = { ...snapshot.tournamentState, active: true };
+      mode = "tournament";
+      playerSelect.value = snapshot.player;
+      lobbyPlayerSelect.value = snapshot.player;
+      playerSelect.disabled = true;
+      playerControl.classList.add("hidden");
+      fields.gameInfo.classList.add("show");
+      classicDifficulty = snapshot.classicDifficulty;
+      classicGreenRule = snapshot.classicGreenRule;
+      fillClubs({ reset: false, preserveSwing: true });
+      clubSelect.value = snapshot.club;
+      angleSlider.value = snapshot.angle;
+      powerSlider.value = snapshot.power;
+
+      shot = snapshot.shot;
+      trail = snapshot.trail.map((point) => ({ ...point }));
+      previousTrails = snapshot.previousTrails.map((line) => line.map((point) => ({ ...point })));
+      ballPosition = { ...snapshot.ballPosition };
+      landed = snapshot.landed;
+      showLandingMarker = snapshot.showLandingMarker;
+      flightProgress = snapshot.flightProgress;
+      ballSinking = snapshot.ballSinking;
+      sinkProgress = snapshot.sinkProgress;
+      ballHidden = snapshot.ballHidden;
+      currentMessageKey = snapshot.currentMessageKey;
+      currentMessageVars = { ...snapshot.currentMessageVars };
+      gameTargetYards = snapshot.gameTargetYards;
+      gameRemainingYards = snapshot.gameRemainingYards;
+      gameBallYards = snapshot.gameBallYards;
+      gameShotStartYards = snapshot.gameShotStartYards;
+      gameShotDirection = snapshot.gameShotDirection;
+      gameGreenRadius = snapshot.gameGreenRadius;
+      gameOnGreen = snapshot.gameOnGreen;
+      gameViewMinX = snapshot.gameViewMinX;
+      gameViewTargetMinX = snapshot.gameViewTargetMinX;
+      gameViewMaxX = snapshot.gameViewMaxX;
+      gameViewTargetMaxX = snapshot.gameViewTargetMaxX;
+      gameViewMaxY = snapshot.gameViewMaxY;
+      gameViewTargetMaxY = snapshot.gameViewTargetMaxY;
+      greenZooming = snapshot.greenZooming;
+      gameShots = snapshot.gameShots;
+      gameFinished = snapshot.gameFinished;
+      currentWind = { ...snapshot.currentWind };
+
+      setLaunchButton(snapshot.launchButtonKey, snapshot.launchButtonDisabled);
+      updateSwingControlLock();
+      updateLifeHud();
+      updateWindHud();
+      updateTrajectoryControls();
+      updateText(snapshot.currentMessageKey, snapshot.currentMessageVars);
+      updateGameInfo();
+      drawScene();
     }
 
     function exitTrainingReplay() {
       trustDomMutation(900);
       cancelActiveAnimation();
+      const returnSnapshot = replayState?.returnToTournament;
       replayState = null;
       replayHud.classList.remove("show");
+      replayReturnBtn.classList.add("hidden");
       app.classList.remove("replay-mode");
-      showLobby();
+      if (returnSnapshot) restoreTournamentReplaySnapshot(returnSnapshot);
+      else showLobby();
     }
 
     function startTrainingReplay(recordId) {
@@ -7545,7 +7687,8 @@
       toggleTrainingPanel(false);
       cancelActiveAnimation();
       trustDomMutation(900);
-      replayState = { recordId, active: true };
+      const returnToTournament = isTournamentMode() ? tournamentReplaySnapshot() : null;
+      replayState = { recordId, active: true, returnToTournament };
       mode = "replay";
       lobby.classList.add("hidden");
       app.classList.remove("hidden");
@@ -7553,6 +7696,7 @@
       launchDock.classList.add("hidden");
       homeBtn.classList.remove("show");
       replayHud.classList.add("show");
+      replayReturnBtn.classList.toggle("hidden", !returnToTournament);
       shot = record.shotSnapshot || shot;
       previousTrails = [];
       trail = [];
@@ -7937,6 +8081,7 @@
       if (event.target === trainingPanel) toggleTrainingPanel(false);
     });
     replayCloseBtn.addEventListener("click", exitTrainingReplay);
+    replayReturnBtn.addEventListener("click", exitTrainingReplay);
     trainingRecordList.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-training-replay]");
       if (!button) return;
