@@ -2066,7 +2066,11 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "2c8e410b";
+    const SOURCE_INTEGRITY_HASH = "c3d983fb";
+    const nativeSetTimeout = window.setTimeout;
+    const nativeClearTimeout = window.clearTimeout;
+    const nativeSetInterval = window.setInterval;
+    const nativeClearInterval = window.clearInterval;
     const PLAYER_DATA_INTEGRITY_HASH = "1df944ae";
     const PLAYER_RATING_INTEGRITY_HASH = "f4870e8a";
     const DEFAULT_ANGLE_INTEGRITY_HASH = "cbacfbd3";
@@ -4248,7 +4252,7 @@
 
     function clearHoleAdvanceTimer() {
       if (!holeAdvanceTimer) return;
-      clearTimeout(holeAdvanceTimer);
+      nativeClearTimeout.call(window, holeAdvanceTimer);
       holeAdvanceTimer = null;
     }
 
@@ -4444,7 +4448,7 @@
       holeCompleteShots = vars.shots || 0;
       updateHoleModalText();
       holeModal.classList.remove("hidden");
-      holeAdvanceTimer = setTimeout(() => {
+      holeAdvanceTimer = nativeSetTimeout.call(window, () => {
         holeAdvanceTimer = null;
         if (isObstacleMode()) startObstacleCourse();
         else if (isChallengeMode()) startGame(mode);
@@ -4827,7 +4831,7 @@
       if (!animation) return;
       if (typeof animation === "object") {
         cancelAnimationFrame(animation.rafId);
-        clearTimeout(animation.timeoutId);
+        nativeClearTimeout.call(window, animation.timeoutId);
       } else {
         cancelAnimationFrame(animation);
       }
@@ -4839,11 +4843,11 @@
       const run = (timestamp) => {
         if (handle.done) return;
         handle.done = true;
-        clearTimeout(handle.timeoutId);
+        nativeClearTimeout.call(window, handle.timeoutId);
         callback(timestamp);
       };
       handle.rafId = requestAnimationFrame(run);
-      handle.timeoutId = setTimeout(() => run(performance.now()), 80);
+      handle.timeoutId = nativeSetTimeout.call(window, () => run(performance.now()), 80);
       return handle;
     }
 
@@ -6111,6 +6115,7 @@
         "hasExpectedDataIntegrity",
         "hasExpectedDomShape",
         "hasUnexpectedInjectedContent",
+        "hasExpectedTimerIntegrity",
         "maxFlightSpeedIndex",
         "renderTrainingRecords",
         "startTrainingReplay",
@@ -6137,7 +6142,7 @@
       cancelActiveAnimation();
       clearHoleAdvanceTimer();
       hideAfkChallenge();
-      if (integrityTimerId) clearInterval(integrityTimerId);
+      if (integrityTimerId) nativeClearInterval.call(window, integrityTimerId);
       if (siteMutationObserver) siteMutationObserver.disconnect();
       try {
         window.location.replace("about:blank");
@@ -6158,6 +6163,13 @@
       return Array.isArray(flightSpeedOptions)
         && flightSpeedOptions.length === 7
         && flightSpeedOptions.every((speed, index) => speed === [0.5, 1, 1.5, 2, 3, 5, 10][index]);
+    }
+
+    function hasExpectedTimerIntegrity() {
+      return window.setTimeout === nativeSetTimeout
+        && window.clearTimeout === nativeClearTimeout
+        && window.setInterval === nativeSetInterval
+        && window.clearInterval === nativeClearInterval;
     }
 
     function hasUnexpectedInjectedContent() {
@@ -6232,7 +6244,8 @@
       const shapeOk = hasExpectedDomShape();
       const injectedOk = !hasUnexpectedInjectedContent();
       const speedOk = hasExpectedFlightSpeeds();
-      if (!domOk || !functionsOk || !textOk || !sourceOk || !dataOk || !shapeOk || !injectedOk || !speedOk) {
+      const timerOk = hasExpectedTimerIntegrity();
+      if (!domOk || !functionsOk || !textOk || !sourceOk || !dataOk || !shapeOk || !injectedOk || !speedOk || !timerOk) {
         forceBrowserStartPage();
         return false;
       }
@@ -6241,7 +6254,7 @@
 
     function startIntegrityMonitor() {
       checkSiteIntegrity();
-      integrityTimerId = setInterval(checkSiteIntegrity, 1200);
+      integrityTimerId = nativeSetInterval.call(window, checkSiteIntegrity, 1200);
     }
 
     function startMutationGuard() {
