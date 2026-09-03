@@ -2066,7 +2066,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "967dc8b5";
+    const SOURCE_INTEGRITY_HASH = "2c8e410b";
     const PLAYER_DATA_INTEGRITY_HASH = "1df944ae";
     const PLAYER_RATING_INTEGRITY_HASH = "f4870e8a";
     const DEFAULT_ANGLE_INTEGRITY_HASH = "cbacfbd3";
@@ -2400,6 +2400,8 @@
     let clickGuardRapidStreak = 0;
     let clickGuardLastTime = 0;
     let clickGuardCooldownUntil = 0;
+    let lastTrustedLaunchPointerAt = 0;
+    let lastTrustedLaunchKeyAt = 0;
     let afkActiveStartedAt = 0;
     let afkLastLaunchAt = 0;
     let afkChallenge = null;
@@ -6305,6 +6307,25 @@
       }
     }
 
+    function rememberTrustedLaunchPointer(event) {
+      if (event.isTrusted && event.pointerType !== "") {
+        lastTrustedLaunchPointerAt = performance.now();
+      }
+    }
+
+    function rememberTrustedLaunchKey(event) {
+      if (event.isTrusted && (event.key === "Enter" || event.key === " ")) {
+        lastTrustedLaunchKeyAt = performance.now();
+      }
+    }
+
+    function hasTrustedLaunchClick(event) {
+      if (!event?.isTrusted) return false;
+      const sincePointer = performance.now() - lastTrustedLaunchPointerAt;
+      const sinceKey = performance.now() - lastTrustedLaunchKeyAt;
+      return (sincePointer >= 0 && sincePointer < 1200) || (sinceKey >= 0 && sinceKey < 1200);
+    }
+
     function clampLaunchDockPosition(left, top) {
       const rect = launchDock.getBoundingClientRect();
       const margin = 10;
@@ -6652,7 +6673,11 @@
       animation = scheduleAnimationFrame(sinkFrame);
     }
 
-    function launch() {
+    function launch(event) {
+      if (!hasTrustedLaunchClick(event)) {
+        exitForAbnormalClicking(event);
+        return;
+      }
       cancelActiveAnimation();
       replayState = null;
       replayHud.classList.remove("show");
@@ -7306,6 +7331,8 @@
     cheatToggle.addEventListener("change", updateResetButtonVisibility);
     window.addEventListener("pointerdown", primeAudioContext, { capture: true });
     window.addEventListener("keydown", primeAudioContext, { capture: true });
+    launchBtn.addEventListener("pointerdown", rememberTrustedLaunchPointer);
+    launchBtn.addEventListener("keydown", rememberTrustedLaunchKey);
     launchBtn.addEventListener("pointerdown", primeAudioContext);
     launchBtn.addEventListener("click", launch);
     resetBtn.addEventListener("click", useResetButton);
