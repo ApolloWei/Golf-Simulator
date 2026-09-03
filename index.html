@@ -1989,7 +1989,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "e2d98dc8";
+    const SOURCE_INTEGRITY_HASH = "8b6967ae";
     const PLAYER_DATA_INTEGRITY_HASH = "1df944ae";
     const PLAYER_RATING_INTEGRITY_HASH = "f4870e8a";
     const DEFAULT_ANGLE_INTEGRITY_HASH = "cbacfbd3";
@@ -3396,13 +3396,16 @@
         });
       },
       upgradePlayer(player) {
+        trustDomMutation(3000);
         if (this.coins() < 500) {
           window.alert(tr("upgradeNoCoins"));
+          trustDomMutation(900);
           return false;
         }
         this.data.coins = this.coins() - 500;
         this.data.playerLevels[player] = this.playerLevel(player) + 1;
         this.save();
+        trustDomMutation(3000);
         updateCoinDisplay();
         fillPlayers();
         if (mode !== "lobby" && !isReplayMode() && playerSelect.value === player) {
@@ -3411,10 +3414,12 @@
           updateText("powerChanged");
           drawScene();
         }
+        trustDomMutation(3000);
         window.alert(tr("upgradeSuccess", {
           player: playerDisplayName(player),
           level: this.playerLevel(player)
         }));
+        trustDomMutation(900);
         return true;
       }
     };
