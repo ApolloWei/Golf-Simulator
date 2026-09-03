@@ -1776,6 +1776,17 @@
             <span class="difficulty-button" id="obstacleHardBtn" role="button" tabindex="0" data-obstacle="hard" data-i18n="hardMode">困难</span>
           </span>
         </button>
+        <button class="mode-button" id="startTournamentBtn" type="button">
+          <strong data-i18n="tournamentMode">锦标赛模式</strong>
+          <span data-i18n="tournamentModeDesc">连续挑战 18 个 Classic Hard 球洞，低于标准杆才能赢得奖金。</span>
+          <span class="difficulty-label" data-i18n="tournamentType">比赛类型</span>
+          <span class="difficulty-toggle three" role="group" aria-label="Tournament type">
+            <span class="difficulty-button active" id="tournamentRegionalBtn" role="button" tabindex="0" data-tournament="regional" data-i18n="tournamentRegional">区域赛</span>
+            <span class="difficulty-button" id="tournamentUndergroundBtn" role="button" tabindex="0" data-tournament="underground" data-i18n="tournamentUnderground">黑帮比赛</span>
+            <span class="difficulty-button" id="tournamentNationalBtn" role="button" tabindex="0" data-tournament="national" data-i18n="tournamentNational">全国赛</span>
+          </span>
+          <span class="difficulty-label" id="tournamentFeeLabel">入场费 50 金币｜奖金 300 金币</span>
+        </button>
         <button class="mode-button" id="startPrecisionBtn" type="button">
           <strong data-i18n="precisionMode">精准模式</strong>
           <span data-i18n="precisionModeDesc">只有一杆机会，纯凭感觉把球打到离旗杆越近越好。</span>
@@ -2066,7 +2077,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "8c1fd324";
+    const SOURCE_INTEGRITY_HASH = "8ad8c438";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2256,6 +2267,7 @@
     const supporterBtn = document.querySelector("#supporterBtn");
     const startGameBtn = document.querySelector("#startGameBtn");
     const startObstacleBtn = document.querySelector("#startObstacleBtn");
+    const startTournamentBtn = document.querySelector("#startTournamentBtn");
     const startPrecisionBtn = document.querySelector("#startPrecisionBtn");
     const startPuttingBtn = document.querySelector("#startPuttingBtn");
     const startFreeBtn = document.querySelector("#startFreeBtn");
@@ -2266,6 +2278,10 @@
     const obstacleEasyBtn = document.querySelector("#obstacleEasyBtn");
     const obstacleMediumBtn = document.querySelector("#obstacleMediumBtn");
     const obstacleHardBtn = document.querySelector("#obstacleHardBtn");
+    const tournamentRegionalBtn = document.querySelector("#tournamentRegionalBtn");
+    const tournamentUndergroundBtn = document.querySelector("#tournamentUndergroundBtn");
+    const tournamentNationalBtn = document.querySelector("#tournamentNationalBtn");
+    const tournamentFeeLabel = document.querySelector("#tournamentFeeLabel");
     const lobbyLanguageBtn = document.querySelector("#lobbyLanguageBtn");
     const lobbyDailyBtn = document.querySelector("#lobbyDailyBtn");
     const lobbyAchievementsBtn = document.querySelector("#lobbyAchievementsBtn");
@@ -2370,6 +2386,24 @@
     let audioPrimed = false;
     const flightSpeedOptions = Object.freeze([0.5, 1, 1.5, 2, 3, 5, 10]);
     let flightSpeedIndex = 1;
+    const TOURNAMENT_HOLES = 18;
+    const TOURNAMENT_PAR_PER_HOLE = 3;
+    const TOURNAMENTS = Object.freeze({
+      regional: { fee: 50, prize: 300, proOnly: false, nameKey: "tournamentRegional" },
+      underground: { fee: 500, prize: 1000, proOnly: false, nameKey: "tournamentUnderground" },
+      national: { fee: 500, prize: 3000, proOnly: true, nameKey: "tournamentNational" }
+    });
+    let selectedTournament = "regional";
+    let tournamentState = {
+      active: false,
+      type: "regional",
+      hole: 1,
+      totalShots: 0,
+      entryFee: 0,
+      prize: 0,
+      previousClassicDifficulty: "easy",
+      previousClassicGreenRule: "green"
+    };
     let gameTargetYards = 0;
     let gameRemainingYards = 0;
     let gameBallYards = 0;
@@ -2545,6 +2579,27 @@
         obstacleMode: "障碍物模式",
         obstacleModeDesc: "系统生成一条标准弹道，并在弹道上放置带小孔的障碍门。调整击球，让小球从孔中穿过。",
         obstacleDifficulty: "障碍物难度",
+        tournamentMode: "锦标赛模式",
+        tournamentModeDesc: "连续挑战 18 个 Classic Hard 球洞，低于标准杆才能赢得奖金。",
+        tournamentType: "比赛类型",
+        tournamentRegional: "区域赛",
+        tournamentUnderground: "黑帮比赛",
+        tournamentNational: "全国赛",
+        tournamentFeeLabel: "入场费 {fee} 金币｜奖金 {prize} 金币",
+        tournamentNoCoins: "金币不足。这个比赛需要 {fee} 金币入场。",
+        tournamentProOnly: "全国赛只能使用已解锁的 Pro 球员参加。",
+        tournamentStarted: "{name} 开始。18 洞 Classic Hard，总标准杆 54。当前第 {hole} 洞。",
+        tournamentInfo: "{name}｜第 {hole}/18 洞｜总杆：{total}｜标准杆差：{relative}",
+        tournamentHoleTitle: "第 {hole} 洞完成",
+        tournamentHoleText: "本洞用了 {shots} 杆。当前总杆 {total}，距离标准杆 {relativeText}。3 秒后进入下一洞。",
+        tournamentFinalTitle: "锦标赛结束",
+        tournamentWinText: "你用 {total} 杆完成 18 洞，低于标准杆 {under} 杆，获得 {prize} 金币奖金。3 秒后返回大厅。",
+        tournamentLoseText: "你用 {total} 杆，未低于标准杆 54，无法获得奖金。3 秒后返回大厅。",
+        tournamentOverParText: "总杆数已达到 {total}，超过标准杆 {over} 杆，比赛结束且没有奖金。3 秒后返回大厅。",
+        tournamentEven: "平标准杆",
+        tournamentUnder: "低于标准杆 {count} 杆",
+        tournamentOver: "超过标准杆 {count} 杆",
+        tournamentDisqualified: "你已离开锦标赛，自动取消资格，入场费不退还。",
         precisionMode: "精准模式",
         precisionModeDesc: "只有一杆机会，纯凭感觉把球打到离旗杆越近越好。",
         puttingMode: "果岭练习",
@@ -2624,6 +2679,7 @@
         availableClubs: "当前球员可用球杆",
         gameInfo: "洞距：{target} yd｜剩余：{remaining} yd｜杆数：{shots}",
         hardGameInfo: "经典困难｜只显示粗略刻度｜杆数：{shots}",
+        tournamentGameInfo: "{name}｜第 {hole}/18 洞｜洞内杆数：{shots}｜总杆：{total}｜标准杆差：{relative}",
         lowVisionGameInfo: "旗杆位置：未知｜剩余：未知｜杆数：{shots}",
         precisionInfo: "精准模式｜一杆机会｜已打：{shots}",
         puttingInfo: "果岭练习｜剩余：{remaining} yd｜练习次数：{shots}",
@@ -2793,6 +2849,27 @@
         obstacleMode: "Obstacle Mode",
         obstacleModeDesc: "The system creates a reference shot and places gates along that path. Adjust club, angle, and power to fly through the openings.",
         obstacleDifficulty: "Obstacle Difficulty",
+        tournamentMode: "Tournament Mode",
+        tournamentModeDesc: "Play 18 straight Classic Hard holes. Beat par to win the purse.",
+        tournamentType: "Tournament Type",
+        tournamentRegional: "Regional",
+        tournamentUnderground: "Underground",
+        tournamentNational: "National",
+        tournamentFeeLabel: "Entry {fee} coins | Purse {prize} coins",
+        tournamentNoCoins: "Not enough coins. This tournament needs a {fee}-coin entry fee.",
+        tournamentProOnly: "National tournaments require an unlocked Pro player.",
+        tournamentStarted: "{name} started. 18 Classic Hard holes, total par 54. Hole {hole} now.",
+        tournamentInfo: "{name} | Hole {hole}/18 | Total: {total} | To par: {relative}",
+        tournamentHoleTitle: "Hole {hole} Complete",
+        tournamentHoleText: "You used {shots} shots on this hole. Total {total}, {relativeText}. Next hole in 3 seconds.",
+        tournamentFinalTitle: "Tournament Complete",
+        tournamentWinText: "You finished 18 holes in {total} shots, {under} under par, and won {prize} coins. Returning to the lobby in 3 seconds.",
+        tournamentLoseText: "You finished in {total} shots, not under par 54, so there is no prize. Returning to the lobby in 3 seconds.",
+        tournamentOverParText: "Your total reached {total}, {over} over par. Tournament over with no prize. Returning to the lobby in 3 seconds.",
+        tournamentEven: "even par",
+        tournamentUnder: "{count} under par",
+        tournamentOver: "{count} over par",
+        tournamentDisqualified: "You left the tournament and were disqualified. The entry fee is not refunded.",
         precisionMode: "Precision Mode",
         precisionModeDesc: "One shot only. Judge by feel and finish as close to the flag as possible.",
         puttingMode: "Green Practice",
@@ -2872,6 +2949,7 @@
         availableClubs: "Available Clubs",
         gameInfo: "Hole: {target} yd | Remaining: {remaining} yd | Shots: {shots}",
         hardGameInfo: "Classic Hard | Coarse marks only | Shots: {shots}",
+        tournamentGameInfo: "{name} | Hole {hole}/18 | Hole shots: {shots} | Total: {total} | To par: {relative}",
         lowVisionGameInfo: "Flag: unknown | Remaining: unknown | Shots: {shots}",
         precisionInfo: "Precision Mode | One shot | Shots: {shots}",
         puttingInfo: "Green Practice | Remaining: {remaining} yd | Putts: {shots}",
@@ -2919,6 +2997,13 @@
         obstacleFail: "Not every gate was cleared. 1 life lost. Lives left: {lives}. Next set coming up.",
         obstacleCompleteTitle: "Obstacle Mode Over",
         obstacleCompleteText: "You ran out of lives. Cleared sets: {cleared}. Launches: {shots}. Total score: {score}. Restarting in 3 seconds.",
+        tournamentStarted: "{name} started. 18 Classic Hard holes, total par 54. Hole {hole} now.",
+        tournamentHoleTitle: "Hole {hole} Complete",
+        tournamentHoleText: "You used {shots} shots on this hole. Total {total}, {relativeText}. Next hole in 3 seconds.",
+        tournamentFinalTitle: "Tournament Complete",
+        tournamentWinText: "You finished 18 holes in {total} shots, {under} under par, and won {prize} coins. Returning to the lobby in 3 seconds.",
+        tournamentLoseText: "You finished in {total} shots, not under par 54, so there is no prize. Returning to the lobby in 3 seconds.",
+        tournamentOverParText: "Your total reached {total}, {over} over par. Tournament over with no prize. Returning to the lobby in 3 seconds.",
         puttingReady: "The ball is on the green. Putter selected automatically. Sink it into the silver cup to hole out.",
         puttingPracticeReady: "Green Practice started. The ball is {remaining} yd away. Adjust power and sink it.",
         puttingPracticeLanded: "This putt stopped {remaining} yd away. Adjust power and try to sink it.",
@@ -2948,7 +3033,7 @@
     const SUPPORTER_CREATOR_PROOF_SALT = "ascetic-monk-hidden-reward-2026-09";
 
     const CLUB_COLLECTION_TARGET = 13;
-    const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
+    const ALL_MODES = ["classic", "tournament", "obstacle", "precision", "putting", "free"];
     const EXPECTED_DOM_IDS = Object.freeze([
       "lobby", "supporterBtn", "lobbyDailyBtn", "lobbyAchievementsBtn", "lobbyTrainingBtn", "lobbyLanguageBtn", "lobbyPlayer",
       "playerUnlockPanel", "coinBalanceText", "playerUnlockPercent", "playerUnlockBar", "bonusAchievementProgress",
@@ -2956,7 +3041,8 @@
       "plusAchievementBar", "asceticAchievementProgress", "asceticAchievementLabel",
       "asceticAchievementPercent", "asceticAchievementBar", "playerUnlockList", "startGameBtn",
       "classicEasyBtn", "classicHardBtn", "classicGreenBtn", "classicNoGreenBtn", "startFreeBtn",
-      "startObstacleBtn", "obstacleEasyBtn", "obstacleMediumBtn", "obstacleHardBtn", "startPrecisionBtn",
+      "startObstacleBtn", "obstacleEasyBtn", "obstacleMediumBtn", "obstacleHardBtn", "startTournamentBtn",
+      "tournamentRegionalBtn", "tournamentUndergroundBtn", "tournamentNationalBtn", "tournamentFeeLabel", "startPrecisionBtn",
       "startPuttingBtn", "app", "homeBtn", "lifeHud", "dailyBtn", "achievementsBtn", "trainingBtn", "languageBtn",
       "gameInfo", "playerControl", "player", "club", "angle", "angleValue", "power", "powerValue",
       "bounceToggle", "trajectoryToggle", "trajectoryOnlyControl", "trajectoryOnlyToggle", "soundToggle",
@@ -3526,6 +3612,7 @@
     function modeDisplayName(value) {
       const keys = {
         classic: "classicMode",
+        tournament: "tournamentMode",
         obstacle: "obstacleMode",
         precision: "precisionMode",
         putting: "puttingMode",
@@ -3579,6 +3666,15 @@
         if (achievementId) this.data.rewardedAchievements[achievementId] = coins;
         this.save();
         updateCoinDisplay();
+      },
+      spendCoins(amount) {
+        const coins = Math.max(0, Math.floor(amount || 0));
+        if (coins <= 0) return true;
+        if (this.coins() < coins) return false;
+        this.data.coins = this.coins() - coins;
+        this.save();
+        updateCoinDisplay();
+        return true;
       },
       grantAchievementReward(achievement) {
         if (!achievement || this.data.rewardedAchievements[achievement.id]) return 0;
@@ -4551,6 +4647,10 @@
     }
 
     function showHoleCompleteModal(shots) {
+      if (isTournamentMode()) {
+        handleTournamentHoleComplete(shots);
+        return;
+      }
       showRoundCompleteModal("holeCompleteTitle", "holeCompleteText", {
         shots,
         score: scoreStars(classicScore(shots))
@@ -4648,11 +4748,15 @@
     }
 
     function isChallengeMode() {
-      return mode === "classic" || mode === "obstacle" || mode === "precision" || mode === "putting";
+      return mode === "classic" || mode === "tournament" || mode === "obstacle" || mode === "precision" || mode === "putting";
     }
 
     function isClassicMode() {
-      return mode === "classic";
+      return mode === "classic" || mode === "tournament";
+    }
+
+    function isTournamentMode() {
+      return mode === "tournament" && tournamentState.active;
     }
 
     function isPuttingPracticeMode() {
@@ -4672,7 +4776,7 @@
     }
 
     function isClassicHardMode() {
-      return mode === "classic" && classicDifficulty === "hard";
+      return isTournamentMode() || (mode === "classic" && classicDifficulty === "hard");
     }
 
     function isLowVisionPlayer() {
@@ -4688,11 +4792,11 @@
     }
 
     function hasClassicGreen() {
-      return mode === "classic" && classicGreenRule === "green";
+      return isTournamentMode() || (mode === "classic" && classicGreenRule === "green");
     }
 
     function usesGreenVisual() {
-      return (mode === "classic" && classicGreenRule === "green") || mode === "precision" || mode === "putting";
+      return isTournamentMode() || (mode === "classic" && classicGreenRule === "green") || mode === "precision" || mode === "putting";
     }
 
     function clampNumber(value, min, max, fallback) {
@@ -4846,6 +4950,183 @@
       if (mode === "free") fillClubs({ reset: false, preserveSwing: true });
     }
 
+    function tournamentConfig(type = selectedTournament) {
+      return TOURNAMENTS[type] || TOURNAMENTS.regional;
+    }
+
+    function tournamentName(type = selectedTournament) {
+      return tr(tournamentConfig(type).nameKey);
+    }
+
+    function tournamentParThroughCurrentHole() {
+      return tournamentState.hole * TOURNAMENT_PAR_PER_HOLE;
+    }
+
+    function tournamentTotalPar() {
+      return TOURNAMENT_HOLES * TOURNAMENT_PAR_PER_HOLE;
+    }
+
+    function tournamentRelativeText(total = tournamentState.totalShots, holes = tournamentState.hole) {
+      const relative = total - holes * TOURNAMENT_PAR_PER_HOLE;
+      if (relative === 0) return tr("tournamentEven");
+      if (relative < 0) return tr("tournamentUnder", { count: Math.abs(relative) });
+      return tr("tournamentOver", { count: relative });
+    }
+
+    function tournamentCompletedHoles() {
+      if (!isTournamentMode()) return 0;
+      return Math.max(0, Math.min(TOURNAMENT_HOLES, tournamentState.hole - (gameShots === 0 ? 1 : 0)));
+    }
+
+    function isProTournamentPlayer(player) {
+      const display = playerDisplayName(player).toLowerCase();
+      return display.includes("pro") || [
+        "Bryson DeChambeau",
+        "Nelly Korda",
+        "Scottie Scheffler",
+        "Tommy Fleetwood",
+        "Stephen Curry",
+        "Xander Schauffele",
+        "Average tour pro",
+        "Heart Recovery Pro Player",
+        "Fred Couples"
+      ].includes(player);
+    }
+
+    function updateTournamentFeeLabel() {
+      if (!tournamentFeeLabel) return;
+      trustDomMutation();
+      const config = tournamentConfig();
+      tournamentFeeLabel.textContent = tr("tournamentFeeLabel", {
+        fee: config.fee,
+        prize: config.prize
+      });
+    }
+
+    function setTournamentType(value) {
+      trustDomMutation();
+      selectedTournament = TOURNAMENTS[value] ? value : "regional";
+      tournamentRegionalBtn.classList.toggle("active", selectedTournament === "regional");
+      tournamentUndergroundBtn.classList.toggle("active", selectedTournament === "underground");
+      tournamentNationalBtn.classList.toggle("active", selectedTournament === "national");
+      tournamentRegionalBtn.setAttribute("aria-pressed", String(selectedTournament === "regional"));
+      tournamentUndergroundBtn.setAttribute("aria-pressed", String(selectedTournament === "underground"));
+      tournamentNationalBtn.setAttribute("aria-pressed", String(selectedTournament === "national"));
+      updateTournamentFeeLabel();
+    }
+
+    function startTournament() {
+      trustDomMutation(1200);
+      fillPlayers();
+      const player = lobbyPlayerSelect.value;
+      const config = tournamentConfig();
+      if (!isPlayerUnlocked(player)) {
+        lobbyPlayerSelect.value = "Calvin";
+        return;
+      }
+      if (config.proOnly && !isProTournamentPlayer(player)) {
+        window.alert(tr("tournamentProOnly"));
+        trustDomMutation(900);
+        return;
+      }
+      if (!EconomyManager.spendCoins(config.fee)) {
+        window.alert(tr("tournamentNoCoins", { fee: config.fee }));
+        trustDomMutation(900);
+        return;
+      }
+      tournamentState = {
+        active: true,
+        type: selectedTournament,
+        hole: 1,
+        totalShots: 0,
+        entryFee: config.fee,
+        prize: config.prize,
+        previousClassicDifficulty: classicDifficulty,
+        previousClassicGreenRule: classicGreenRule
+      };
+      classicDifficulty = "hard";
+      classicGreenRule = "green";
+      showSimulator("tournament");
+    }
+
+    function showTournamentModal(titleKey, textKey, vars, callback) {
+      if (!checkSiteIntegrity()) return;
+      trustDomMutation();
+      clearHoleAdvanceTimer();
+      modalTitleKey = titleKey;
+      modalTextKey = textKey;
+      modalVars = { ...vars };
+      holeCompleteShots = vars.shots || 0;
+      updateHoleModalText();
+      holeModal.classList.remove("hidden");
+      holeAdvanceTimer = nativeSetTimeout.call(window, () => {
+        holeAdvanceTimer = null;
+        runAuthorizedRoundAdvance(callback);
+      }, 3000);
+    }
+
+    function finishTournament(textKey, vars = {}) {
+      const finalVars = {
+        total: tournamentState.totalShots,
+        prize: tournamentState.prize,
+        ...vars
+      };
+      const previousDifficulty = tournamentState.previousClassicDifficulty;
+      const previousGreenRule = tournamentState.previousClassicGreenRule;
+      tournamentState.active = false;
+      showTournamentModal("tournamentFinalTitle", textKey, finalVars, () => {
+        setClassicDifficulty(previousDifficulty);
+        setClassicGreenRule(previousGreenRule);
+        showLobby();
+      });
+    }
+
+    function handleTournamentHoleComplete(shots) {
+      tournamentState.totalShots += shots;
+      const totalPar = tournamentTotalPar();
+      const overTotalPar = tournamentState.totalShots - totalPar;
+      if (overTotalPar > 0) {
+        finishTournament("tournamentOverParText", { over: overTotalPar });
+        return;
+      }
+      if (tournamentState.hole >= TOURNAMENT_HOLES) {
+        const under = totalPar - tournamentState.totalShots;
+        if (under > 0) {
+          EconomyManager.addCoins(tournamentState.prize);
+          finishTournament("tournamentWinText", { under });
+        } else {
+          finishTournament("tournamentLoseText");
+        }
+        return;
+      }
+      showTournamentModal("tournamentHoleTitle", "tournamentHoleText", {
+        hole: tournamentState.hole,
+        shots,
+        total: tournamentState.totalShots,
+        relativeText: tournamentRelativeText()
+      }, () => {
+        tournamentState.hole += 1;
+        startGame("tournament");
+      });
+    }
+
+    function cancelTournamentForLobby() {
+      if (!isTournamentMode()) return false;
+      const previousDifficulty = tournamentState.previousClassicDifficulty;
+      const previousGreenRule = tournamentState.previousClassicGreenRule;
+      tournamentState.active = false;
+      setClassicDifficulty(previousDifficulty);
+      setClassicGreenRule(previousGreenRule);
+      window.alert(tr("tournamentDisqualified"));
+      trustDomMutation(900);
+      return true;
+    }
+
+    function handleHomeButton() {
+      cancelTournamentForLobby();
+      showLobby();
+    }
+
     async function unlockSupporterMode() {
       trustDomMutation(7000);
       const choice = window.prompt(tr("supporterChoicePrompt"), hasSupporterMaxUnlock() ? "3" : (hasSupporterUnlock() ? "2" : "1"));
@@ -4953,6 +5234,11 @@
 
     function showLobby() {
       trustDomMutation(900);
+      if (isTournamentMode() && !roundAdvanceAuthorized) {
+        tournamentState.active = false;
+        window.alert(tr("tournamentDisqualified"));
+        trustDomMutation(900);
+      }
       cancelActiveAnimation();
       replayState = null;
       app.classList.remove("replay-mode");
@@ -4992,7 +5278,7 @@
       replayHud.classList.remove("show");
       fillPlayers();
       if (!isPlayerUnlocked(lobbyPlayerSelect.value)) lobbyPlayerSelect.value = "Calvin";
-      const challengeMode = nextMode === "classic" || nextMode === "obstacle" || nextMode === "precision" || nextMode === "putting";
+      const challengeMode = nextMode === "classic" || nextMode === "tournament" || nextMode === "obstacle" || nextMode === "precision" || nextMode === "putting";
       gameOnGreen = false;
       greenZooming = false;
       obstacleCourse = null;
@@ -5050,10 +5336,16 @@
       fillClubs({ reset: false });
       applyAsceticAutoAim();
       updateWindHud();
-      const readyKey = mode === "precision"
+      const readyKey = isTournamentMode()
+        ? "tournamentStarted"
+        : mode === "precision"
         ? (isLowVisionPlayer() ? "lowVisionReady" : "precisionReady")
         : (isLowVisionPlayer() ? "lowVisionReady" : (isClassicHardMode() ? "hardGameReady" : "gameReady"));
-      resetShot(readyKey, { target: gameTargetYards });
+      resetShot(readyKey, {
+        target: gameTargetYards,
+        name: tournamentName(tournamentState.type),
+        hole: tournamentState.hole
+      });
     }
 
     function randomPuttingDistance() {
@@ -5178,7 +5470,8 @@
       if (!isChallengeMode()) return;
       trustDomMutation();
       let infoKey = "gameInfo";
-      if (isLowVisionPlayer() && (mode === "classic" || mode === "precision" || mode === "putting")) infoKey = "lowVisionGameInfo";
+      if (isTournamentMode()) infoKey = "tournamentGameInfo";
+      else if (isLowVisionPlayer() && (mode === "classic" || mode === "precision" || mode === "putting")) infoKey = "lowVisionGameInfo";
       else if (mode === "precision") infoKey = "precisionInfo";
       else if (mode === "putting") infoKey = "puttingInfo";
       else if (mode === "obstacle") infoKey = "obstacleInfo";
@@ -5186,6 +5479,10 @@
       fields.gameInfo.textContent = [
         `${tr("rating", { stars: ratingStars(playerSelect.value) })} · ${playerLevelLabel(playerSelect.value)}`,
         tr(infoKey, {
+          name: tournamentName(tournamentState.type),
+          hole: tournamentState.hole,
+          total: tournamentState.totalShots,
+          relative: tournamentRelativeText(tournamentState.totalShots, tournamentCompletedHoles()),
           target: isLowVisionPlayer() ? tr("hiddenTarget") : gameTargetYards,
           remaining: isLowVisionPlayer() ? tr("hiddenTarget") : Math.round(gameRemainingYards),
           obstacles: obstacleCourse ? obstacleCourse.gates.length : 0,
@@ -6207,6 +6504,7 @@
       const criticalNames = [
         "isPlayerUnlocked",
         "ensureSelectedPlayerUnlocked",
+        "isTournamentMode",
         "allAsceticProgressEarned",
         "hasSupporterCreatorUnlock",
         "applyAsceticAutoAim",
@@ -6215,6 +6513,13 @@
         "finishHoleSinkAnimation",
         "startGame",
         "startObstacleCourse",
+        "startTournament",
+        "setTournamentType",
+        "tournamentConfig",
+        "handleTournamentHoleComplete",
+        "finishTournament",
+        "showTournamentModal",
+        "cancelTournamentForLobby",
         "runAuthorizedRoundAdvance",
         "rejectUnauthorizedRoundAdvance",
         "showAfkChallenge",
@@ -6613,13 +6918,14 @@
 
     function updateResetButtonVisibility() {
       trustDomMutation();
-      const showReset = isFreeMode() || (isChallengeMode() && cheatToggle.checked);
+      const showReset = isFreeMode() || (isChallengeMode() && !isTournamentMode() && cheatToggle.checked);
       resetBtn.classList.toggle("hidden", !showReset);
     }
 
     function currentMapReadyMessage() {
       if (isPuttingPracticeMode()) return ["puttingPracticeReady", { remaining: Math.round(gameRemainingYards) }];
       if (isObstacleMode()) return ["obstacleReady", {}];
+      if (isTournamentMode()) return ["tournamentStarted", { name: tournamentName(tournamentState.type), hole: tournamentState.hole }];
       if (mode === "precision") return [isLowVisionPlayer() ? "lowVisionReady" : "precisionReady", { target: gameTargetYards }];
       if (isClassicMode() && gameOnGreen) return ["puttingReady", {}];
       if (isClassicMode()) return [isLowVisionPlayer() ? "lowVisionReady" : (isClassicHardMode() ? "hardGameReady" : "gameReady"), { target: gameTargetYards }];
@@ -7426,6 +7732,7 @@
       setClassicDifficulty(classicDifficulty);
       setClassicGreenRule(classicGreenRule);
       setObstacleDifficulty(obstacleDifficulty);
+      setTournamentType(selectedTournament);
       if (mode !== "lobby") setLaunchButton(launchButtonKey, launchBtn.disabled);
       if (shot) updateText();
       if (!holeModal.classList.contains("hidden")) updateHoleModalText();
@@ -7568,6 +7875,17 @@
       handleObstacleChoice(event, value);
     }
 
+    function handleTournamentChoice(event, value) {
+      event.stopPropagation();
+      setTournamentType(value);
+    }
+
+    function handleTournamentKey(event, value) {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      handleTournamentChoice(event, value);
+    }
+
     classicEasyBtn.addEventListener("click", (event) => handleDifficultyChoice(event, "easy"));
     classicHardBtn.addEventListener("click", (event) => handleDifficultyChoice(event, "hard"));
     classicEasyBtn.addEventListener("keydown", (event) => handleDifficultyKey(event, "easy"));
@@ -7582,12 +7900,19 @@
     obstacleEasyBtn.addEventListener("keydown", (event) => handleObstacleKey(event, "easy"));
     obstacleMediumBtn.addEventListener("keydown", (event) => handleObstacleKey(event, "medium"));
     obstacleHardBtn.addEventListener("keydown", (event) => handleObstacleKey(event, "hard"));
+    tournamentRegionalBtn.addEventListener("click", (event) => handleTournamentChoice(event, "regional"));
+    tournamentUndergroundBtn.addEventListener("click", (event) => handleTournamentChoice(event, "underground"));
+    tournamentNationalBtn.addEventListener("click", (event) => handleTournamentChoice(event, "national"));
+    tournamentRegionalBtn.addEventListener("keydown", (event) => handleTournamentKey(event, "regional"));
+    tournamentUndergroundBtn.addEventListener("keydown", (event) => handleTournamentKey(event, "underground"));
+    tournamentNationalBtn.addEventListener("keydown", (event) => handleTournamentKey(event, "national"));
     startGameBtn.addEventListener("click", () => showSimulator("classic"));
     startObstacleBtn.addEventListener("click", () => showSimulator("obstacle"));
+    startTournamentBtn.addEventListener("click", startTournament);
     startPrecisionBtn.addEventListener("click", () => showSimulator("precision"));
     startPuttingBtn.addEventListener("click", () => showSimulator("putting"));
     startFreeBtn.addEventListener("click", () => showSimulator("free"));
-    homeBtn.addEventListener("click", showLobby);
+    homeBtn.addEventListener("click", handleHomeButton);
     supporterBtn.addEventListener("click", unlockSupporterMode);
     [achievementsBtn, lobbyAchievementsBtn].forEach((button) => {
       button.addEventListener("click", () => toggleAchievementPanel(true));
