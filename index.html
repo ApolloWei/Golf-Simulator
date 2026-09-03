@@ -2066,11 +2066,14 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "92dc6c07";
+    const SOURCE_INTEGRITY_HASH = "8c1fd324";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
     const nativeClearInterval = window.clearInterval;
+    const nativeStorageSetItem = Storage.prototype.setItem;
+    const nativeStorageRemoveItem = Storage.prototype.removeItem;
+    const nativeStorageClear = Storage.prototype.clear;
     const PLAYER_DATA_INTEGRITY_HASH = "1df944ae";
     const PLAYER_RATING_INTEGRITY_HASH = "f4870e8a";
     const DEFAULT_ANGLE_INTEGRITY_HASH = "cbacfbd3";
@@ -2413,11 +2416,16 @@
     let integrityTimerId = null;
     let integrityFailed = false;
     let trustedDomMutationUntil = 0;
+    let trustedSupporterStorageUntil = 0;
     let siteMutationObserver = null;
     let tutorialState = { active: false, step: "idle" };
     let replayState = null;
     let suppressUpgradePrompt = false;
     let protectedFunctionRefs = null;
+    let protectedMutationObserverRef = null;
+    let protectedMutationDisconnectRef = null;
+    let mutationGuardAlive = false;
+    let mutationGuardDisconnectAllowed = false;
     let roundAdvanceAuthorized = false;
 
     const translations = {
@@ -3005,6 +3013,64 @@
 
     function saveSupporterCreatorProof() {
       localStorage.setItem(STORAGE_KEYS.supporterCreatorProof, creatorProofValue());
+    }
+
+    function trustSupporterStorage(duration = 1200) {
+      trustedSupporterStorageUntil = Math.max(trustedSupporterStorageUntil, performance.now() + duration);
+    }
+
+    function isTrustedSupporterStorage() {
+      return performance.now() <= trustedSupporterStorageUntil;
+    }
+
+    function isSensitiveStorageKey(key) {
+      return [
+        STORAGE_KEYS.supporterUnlock,
+        STORAGE_KEYS.supporterFutureUnlock,
+        STORAGE_KEYS.supporterMaxUnlock,
+        STORAGE_KEYS.supporterCreatorUnlock,
+        STORAGE_KEYS.supporterCreatorProof
+      ].includes(String(key));
+    }
+
+    function protectSupporterStorage() {
+      try {
+        Object.defineProperty(Storage.prototype, "setItem", {
+          value(key, value) {
+            if (this === localStorage && isSensitiveStorageKey(key) && !isTrustedSupporterStorage()) {
+              forceBrowserStartPage();
+              return;
+            }
+            return nativeStorageSetItem.call(this, key, value);
+          },
+          writable: false,
+          configurable: false
+        });
+        Object.defineProperty(Storage.prototype, "removeItem", {
+          value(key) {
+            if (this === localStorage && isSensitiveStorageKey(key) && !isTrustedSupporterStorage()) {
+              forceBrowserStartPage();
+              return;
+            }
+            return nativeStorageRemoveItem.call(this, key);
+          },
+          writable: false,
+          configurable: false
+        });
+        Object.defineProperty(Storage.prototype, "clear", {
+          value() {
+            if (this === localStorage && !isTrustedSupporterStorage()) {
+              forceBrowserStartPage();
+              return;
+            }
+            return nativeStorageClear.call(this);
+          },
+          writable: false,
+          configurable: false
+        });
+      } catch {
+        // Some browsers lock native prototypes; the integrity monitor still catches direct function swaps.
+      }
     }
 
     function deepFreeze(value) {
@@ -4808,6 +4874,7 @@
         return;
       }
       trustDomMutation(7000);
+      trustSupporterStorage(7000);
       if (unlocksNormal) localStorage.setItem(STORAGE_KEYS.supporterUnlock, "true");
       if (unlocksFuture) localStorage.setItem(STORAGE_KEYS.supporterFutureUnlock, "true");
       if (unlocksMax) localStorage.setItem(STORAGE_KEYS.supporterMaxUnlock, "true");
@@ -6155,6 +6222,7 @@
         "updateAfkLaunchActivity",
         "detectAbnormalClicking",
         "exitForAbnormalClicking",
+        "hasTrustedLaunchClick",
         "checkSiteIntegrity",
         "forceBrowserStartPage",
         "startMutationGuard",
@@ -6164,6 +6232,8 @@
         "hasExpectedDomShape",
         "hasUnexpectedInjectedContent",
         "hasExpectedTimerIntegrity",
+        "hasExpectedStorageIntegrity",
+        "hasExpectedMutationGuardIntegrity",
         "hasExpectedCriticalFunctionIntegrity",
         "maxFlightSpeedIndex",
         "renderTrainingRecords",
@@ -6196,7 +6266,11 @@
       clearHoleAdvanceTimer();
       hideAfkChallenge();
       if (integrityTimerId) nativeClearInterval.call(window, integrityTimerId);
-      if (siteMutationObserver) siteMutationObserver.disconnect();
+      if (siteMutationObserver) {
+        mutationGuardDisconnectAllowed = true;
+        siteMutationObserver.disconnect();
+        mutationGuardDisconnectAllowed = false;
+      }
       try {
         window.location.replace("about:blank");
       } catch {
@@ -6223,6 +6297,22 @@
         && window.clearTimeout === nativeClearTimeout
         && window.setInterval === nativeSetInterval
         && window.clearInterval === nativeClearInterval;
+    }
+
+    function hasExpectedStorageIntegrity() {
+      return Storage.prototype.setItem !== nativeStorageSetItem
+        && Storage.prototype.removeItem !== nativeStorageRemoveItem
+        && Storage.prototype.clear !== nativeStorageClear
+        && !Object.getOwnPropertyDescriptor(Storage.prototype, "setItem")?.configurable
+        && !Object.getOwnPropertyDescriptor(Storage.prototype, "removeItem")?.configurable
+        && !Object.getOwnPropertyDescriptor(Storage.prototype, "clear")?.configurable;
+    }
+
+    function hasExpectedMutationGuardIntegrity() {
+      return siteMutationObserver
+        && siteMutationObserver === protectedMutationObserverRef
+        && mutationGuardAlive
+        && siteMutationObserver.disconnect === protectedMutationDisconnectRef;
     }
 
     function hasExpectedCriticalFunctionIntegrity() {
@@ -6303,8 +6393,10 @@
       const injectedOk = !hasUnexpectedInjectedContent();
       const speedOk = hasExpectedFlightSpeeds();
       const timerOk = hasExpectedTimerIntegrity();
+      const storageOk = hasExpectedStorageIntegrity();
+      const mutationGuardOk = hasExpectedMutationGuardIntegrity();
       const criticalOk = hasExpectedCriticalFunctionIntegrity();
-      if (!domOk || !functionsOk || !textOk || !sourceOk || !dataOk || !shapeOk || !injectedOk || !speedOk || !timerOk || !criticalOk) {
+      if (!domOk || !functionsOk || !textOk || !sourceOk || !dataOk || !shapeOk || !injectedOk || !speedOk || !timerOk || !storageOk || !mutationGuardOk || !criticalOk) {
         forceBrowserStartPage();
         return false;
       }
@@ -6327,7 +6419,11 @@
     }
 
     function startMutationGuard() {
-      if (siteMutationObserver) siteMutationObserver.disconnect();
+      if (siteMutationObserver) {
+        mutationGuardDisconnectAllowed = true;
+        siteMutationObserver.disconnect();
+        mutationGuardDisconnectAllowed = false;
+      }
       siteMutationObserver = new MutationObserver((mutations) => {
         if (integrityFailed || isTrustedDomMutation()) return;
         const suspicious = mutations.some((mutation) => {
@@ -6337,6 +6433,23 @@
         });
         if (suspicious) forceBrowserStartPage();
       });
+      const nativeDisconnect = siteMutationObserver.disconnect.bind(siteMutationObserver);
+      const guardedDisconnect = function guardedMutationDisconnect() {
+        if (!mutationGuardDisconnectAllowed && !integrityFailed) {
+          forceBrowserStartPage();
+          return;
+        }
+        mutationGuardAlive = false;
+        return nativeDisconnect();
+      };
+      Object.defineProperty(siteMutationObserver, "disconnect", {
+        value: guardedDisconnect,
+        writable: false,
+        configurable: false
+      });
+      protectedMutationObserverRef = siteMutationObserver;
+      protectedMutationDisconnectRef = guardedDisconnect;
+      mutationGuardAlive = true;
       siteMutationObserver.observe(document.body, {
         childList: true,
         subtree: true,
@@ -7337,7 +7450,9 @@
     EconomyManager.syncUnlockedAchievementRewards();
     fillPlayers();
     setupLaunchDockDragging();
+    protectSupporterStorage();
     protectCriticalGlobals();
+    startMutationGuard();
     document.addEventListener("pointerdown", detectAbnormalClicking, true);
     afkCanvas.addEventListener("pointerdown", handleAfkPointerDown);
     afkCanvas.addEventListener("pointermove", handleAfkPointerMove);
@@ -7355,7 +7470,6 @@
     }, 60000);
     startIntegrityMonitor();
     startHiddenIntegrityWatchdog();
-    startMutationGuard();
 
     playerSelect.addEventListener("change", () => {
       if (mode === "free") fillClubs({ preserveSwing: true });
