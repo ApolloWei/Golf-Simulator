@@ -2066,7 +2066,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "8227c866";
+    const SOURCE_INTEGRITY_HASH = "967dc8b5";
     const PLAYER_DATA_INTEGRITY_HASH = "1df944ae";
     const PLAYER_RATING_INTEGRITY_HASH = "f4870e8a";
     const DEFAULT_ANGLE_INTEGRITY_HASH = "cbacfbd3";
@@ -2443,17 +2443,17 @@
         dailyCompleted: "今日完成",
         dailyReward: "单个奖励",
         dailyRefresh: "刷新时间",
-        dailyRewardValue: "100 金币",
+        dailyRewardValue: "500 金币",
         dailyCheckin: "每日签到",
         dailyCheckinClaim: "签到领取",
         dailyCheckinDone: "今日已领",
         dailyCheckinToastTitle: "每日签到成功",
-        dailyCheckinCoinReward: "+25 金币",
+        dailyCheckinCoinReward: "+50 金币",
         dailyProgress: "进度",
         dailyComplete: "已完成",
         dailyIncomplete: "进行中",
         dailyTaskCompleteTitle: "📅 每日任务完成",
-        dailyTaskCoinReward: "+100 金币",
+        dailyTaskCoinReward: "+500 金币",
         dailyRefreshLine: "每天 12:00 刷新",
         playerUnlockProgress: "角色解锁进度",
         bonusAchievements: "奖励成就",
@@ -2691,17 +2691,17 @@
         dailyCompleted: "Today",
         dailyReward: "Reward Each",
         dailyRefresh: "Refresh",
-        dailyRewardValue: "100 coins",
+        dailyRewardValue: "500 coins",
         dailyCheckin: "Daily Check-In",
         dailyCheckinClaim: "Claim",
         dailyCheckinDone: "Claimed",
         dailyCheckinToastTitle: "Daily Check-In Complete",
-        dailyCheckinCoinReward: "+25 coins",
+        dailyCheckinCoinReward: "+50 coins",
         dailyProgress: "Progress",
         dailyComplete: "Complete",
         dailyIncomplete: "In progress",
         dailyTaskCompleteTitle: "📅 DAILY TASK COMPLETE",
-        dailyTaskCoinReward: "+100 coins",
+        dailyTaskCoinReward: "+500 coins",
         dailyRefreshLine: "Refreshes every day at 12:00",
         playerUnlockProgress: "Player Unlock Progress",
         bonusAchievements: "Bonus Achievements",
@@ -3476,12 +3476,12 @@
     }
 
     function achievementCoinReward(achievement) {
-      if (achievement.tier === "ascetic") return 800;
+      if (achievement.tier === "ascetic") return 1000;
       const target = Number(achievement.target) || 1;
-      if (target >= 10000 || /1000|3000|6000|100000|10000000/.test(achievement.id)) return 500;
-      if (target >= 100 || /century|fanatic|master|collector/.test(achievement.id)) return 100;
-      if (target >= 10 || /putting|clean|hard|eagle|albatross|streak/.test(achievement.id)) return 50;
-      return 20;
+      if (target >= 10000 || /1000|3000|6000|100000|10000000/.test(achievement.id)) return 800;
+      if (target >= 100 || /century|fanatic|master|collector/.test(achievement.id)) return 500;
+      if (target >= 10 || /putting|clean|hard|eagle|albatross|streak/.test(achievement.id)) return 100;
+      return 50;
     }
 
     const EconomyManager = {
@@ -3815,7 +3815,7 @@
         trustDomMutation(1200);
         this.data.checkinAt = new Date().toISOString();
         this.save();
-        EconomyManager.addCoins(25, `checkin:${this.data.slot}`);
+        EconomyManager.addCoins(50, `checkin:${this.data.slot}`);
         this.showCheckinToast();
         renderDailyTasks();
         return true;
@@ -3827,7 +3827,7 @@
           const progress = Math.min(task.target, Math.max(0, task.progress(this.data.stats)));
           if (progress < task.target) return;
           this.data.completed[task.id] = new Date().toISOString();
-          EconomyManager.addCoins(100, `daily:${this.data.slot}:${task.id}`);
+          EconomyManager.addCoins(500, `daily:${this.data.slot}:${task.id}`);
           this.showToast(task);
         });
       },
