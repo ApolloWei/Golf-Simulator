@@ -169,6 +169,7 @@
     .lobby-actions .language-button,
     .lobby-actions .achievements-button,
     .lobby-actions .training-button,
+    .lobby-actions .coin-panel,
     .lobby-actions .supporter-button {
       position: static;
       margin: 0;
@@ -274,11 +275,13 @@
       align-items: center;
       justify-content: space-between;
       min-height: 42px;
+      height: 38px;
       padding: 10px 12px;
       border: 1px solid rgba(240, 184, 74, 0.42);
       border-radius: 8px;
       background: linear-gradient(135deg, rgba(255, 247, 219, 0.96), rgba(255, 255, 255, 0.92));
       color: #6f4b00;
+      gap: 10px;
       font-weight: 900;
     }
 
@@ -340,6 +343,15 @@
       background: #ffffff;
       color: var(--ink);
       font-size: 12px;
+    }
+
+    .player-unlock-item:not(.locked) {
+      cursor: pointer;
+    }
+
+    .player-unlock-item:not(.locked):hover {
+      border-color: rgba(240, 184, 74, 0.68);
+      background: #fffaf0;
     }
 
     .player-unlock-item.locked {
@@ -1638,6 +1650,10 @@
   <section class="lobby" id="lobby">
     <header>
       <div class="lobby-actions">
+        <div class="coin-panel">
+          <span data-i18n="coinBalance">金币</span>
+          <strong id="coinBalanceText">0</strong>
+        </div>
         <button class="supporter-button" id="supporterBtn" type="button" data-i18n="supporterButton">支持者</button>
         <button class="achievements-button" id="lobbyAchievementsBtn" type="button" title="Achievements">🏆</button>
         <button class="training-button" id="lobbyTrainingBtn" type="button" title="Training Records">📋</button>
@@ -1653,10 +1669,6 @@
         <select id="lobbyPlayer"></select>
       </div>
       <div class="player-unlock-panel" id="playerUnlockPanel">
-        <div class="coin-panel">
-          <span data-i18n="coinBalance">金币</span>
-          <strong id="coinBalanceText">0</strong>
-        </div>
         <div class="player-unlock-progress">
           <div class="player-unlock-head">
             <span data-i18n="playerUnlockProgress">角色解锁进度</span>
@@ -1977,7 +1989,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "5f70a806";
+    const SOURCE_INTEGRITY_HASH = "e2d98dc8";
     const PLAYER_DATA_INTEGRITY_HASH = "1df944ae";
     const PLAYER_RATING_INTEGRITY_HASH = "f4870e8a";
     const DEFAULT_ANGLE_INTEGRITY_HASH = "cbacfbd3";
@@ -3393,7 +3405,7 @@
         this.save();
         updateCoinDisplay();
         fillPlayers();
-        if (mode !== "lobby" && !isReplayMode()) {
+        if (mode !== "lobby" && !isReplayMode() && playerSelect.value === player) {
           fillClubs({ reset: false, preserveSwing: isFreeMode() });
           shot = getShot();
           updateText("powerChanged");
@@ -4291,6 +4303,12 @@
         if (name === "苦行僧" && !unlocked) return;
         const item = document.createElement("div");
         item.className = `player-unlock-item${unlocked ? "" : " locked"}`;
+        item.dataset.player = name;
+        if (unlocked) item.title = tr("upgradePrompt", {
+          player: playerDisplayName(name),
+          level: EconomyManager.playerLevel(name),
+          distance: playerLongestDistance(name)
+        });
         item.innerHTML = `
           <strong>${unlocked ? "✓" : "🔒"} ${playerDisplayName(name)}</strong>
           <span>${playerLevelLabel(name)} · ${unlocked ? tr("playerUnlocked") : tr("playerLocked")} · ${tr(playerUnlockRequirementKey(name))}</span>
@@ -6743,10 +6761,11 @@
 
     playerSelect.addEventListener("change", () => {
       if (mode === "free") fillClubs({ preserveSwing: true });
-      if (mode === "free") maybeOfferPlayerUpgrade(playerSelect.value);
     });
-    lobbyPlayerSelect.addEventListener("change", () => {
-      if (mode === "lobby") maybeOfferPlayerUpgrade(lobbyPlayerSelect.value);
+    playerUnlockList.addEventListener("click", (event) => {
+      const item = event.target.closest(".player-unlock-item");
+      if (!item || item.classList.contains("locked")) return;
+      maybeOfferPlayerUpgrade(item.dataset.player);
     });
     clubSelect.addEventListener("change", () => {
       if (mode !== "free") angleSlider.value = defaultAngles[clubSelect.value] || 18;
