@@ -2066,7 +2066,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "c3d983fb";
+    const SOURCE_INTEGRITY_HASH = "f28ec9f0";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2417,6 +2417,7 @@
     let tutorialState = { active: false, step: "idle" };
     let replayState = null;
     let suppressUpgradePrompt = false;
+    let protectedFunctionRefs = null;
 
     const translations = {
       zh: {
@@ -4263,7 +4264,7 @@
 
     function hideAfkChallenge() {
       trustDomMutation();
-      if (afkTimerId) clearInterval(afkTimerId);
+      if (afkTimerId) nativeClearInterval.call(window, afkTimerId);
       afkTimerId = null;
       afkChallenge = null;
       afkPanel.classList.add("hidden");
@@ -4386,7 +4387,7 @@
       afkPanel.classList.remove("hidden");
       updateAfkTimer();
       drawAfkChallenge();
-      afkTimerId = setInterval(updateAfkTimer, 250);
+      afkTimerId = nativeSetInterval.call(window, updateAfkTimer, 250);
     }
 
     function updateAfkLaunchActivity() {
@@ -6102,26 +6103,38 @@
     }
 
     function protectCriticalGlobals() {
-      [
+      const criticalNames = [
         "isPlayerUnlocked",
+        "ensureSelectedPlayerUnlocked",
         "allAsceticProgressEarned",
         "hasSupporterCreatorUnlock",
         "applyAsceticAutoAim",
         "findAsceticShotForDistance",
+        "showAfkChallenge",
+        "hideAfkChallenge",
+        "updateAfkLaunchActivity",
+        "detectAbnormalClicking",
+        "exitForAbnormalClicking",
         "checkSiteIntegrity",
         "forceBrowserStartPage",
         "startMutationGuard",
+        "startHiddenIntegrityWatchdog",
         "hasExpectedSourceIntegrity",
         "hasExpectedDataIntegrity",
         "hasExpectedDomShape",
         "hasUnexpectedInjectedContent",
         "hasExpectedTimerIntegrity",
+        "hasExpectedCriticalFunctionIntegrity",
         "maxFlightSpeedIndex",
         "renderTrainingRecords",
         "startTrainingReplay",
         "exitTrainingReplay",
         "updateReplayHud"
-      ].forEach((name) => {
+      ];
+      protectedFunctionRefs = Object.freeze(Object.fromEntries(
+        criticalNames.map((name) => [name, window[name]]).filter(([, value]) => typeof value === "function")
+      ));
+      criticalNames.forEach((name) => {
         const value = window[name];
         if (typeof value !== "function") return;
         try {
@@ -6170,6 +6183,11 @@
         && window.clearTimeout === nativeClearTimeout
         && window.setInterval === nativeSetInterval
         && window.clearInterval === nativeClearInterval;
+    }
+
+    function hasExpectedCriticalFunctionIntegrity() {
+      if (!protectedFunctionRefs) return true;
+      return Object.entries(protectedFunctionRefs).every(([name, fn]) => window[name] === fn);
     }
 
     function hasUnexpectedInjectedContent() {
@@ -6245,7 +6263,8 @@
       const injectedOk = !hasUnexpectedInjectedContent();
       const speedOk = hasExpectedFlightSpeeds();
       const timerOk = hasExpectedTimerIntegrity();
-      if (!domOk || !functionsOk || !textOk || !sourceOk || !dataOk || !shapeOk || !injectedOk || !speedOk || !timerOk) {
+      const criticalOk = hasExpectedCriticalFunctionIntegrity();
+      if (!domOk || !functionsOk || !textOk || !sourceOk || !dataOk || !shapeOk || !injectedOk || !speedOk || !timerOk || !criticalOk) {
         forceBrowserStartPage();
         return false;
       }
@@ -6255,6 +6274,16 @@
     function startIntegrityMonitor() {
       checkSiteIntegrity();
       integrityTimerId = nativeSetInterval.call(window, checkSiteIntegrity, 1200);
+    }
+
+    function startHiddenIntegrityWatchdog() {
+      const watchdog = () => {
+        if (!integrityFailed) {
+          checkSiteIntegrity();
+          nativeSetTimeout.call(window, watchdog, 1700 + Math.floor(Math.random() * 600));
+        }
+      };
+      nativeSetTimeout.call(window, watchdog, 900);
     }
 
     function startMutationGuard() {
@@ -7277,7 +7306,7 @@
     applyLanguage();
     showLobby();
     beginTutorialIfNeeded();
-    setInterval(() => {
+    nativeSetInterval.call(window, () => {
       const previousSlot = DailyTaskManager.data?.slot;
       DailyTaskManager.ensureCurrentDay();
       if (previousSlot !== DailyTaskManager.data.slot || !dailyPanel.classList.contains("hidden")) {
@@ -7285,6 +7314,7 @@
       }
     }, 60000);
     startIntegrityMonitor();
+    startHiddenIntegrityWatchdog();
     startMutationGuard();
 
     playerSelect.addEventListener("change", () => {
