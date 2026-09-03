@@ -2066,7 +2066,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "a1408482";
+    const SOURCE_INTEGRITY_HASH = "0cc86666";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -4781,7 +4781,9 @@
     }
 
     async function unlockSupporterMode() {
+      trustDomMutation(7000);
       const choice = window.prompt(tr("supporterChoicePrompt"), hasSupporterMaxUnlock() ? "3" : (hasSupporterUnlock() ? "2" : "1"));
+      trustDomMutation(7000);
       if (choice == null) return;
       const normalizedChoice = choice.trim();
       const unlocksCreator = normalizedChoice === "5";
@@ -4791,8 +4793,10 @@
       if (!unlocksNormal) return;
       const promptKey = unlocksCreator ? "supporterCreatorPrompt" : (unlocksMax ? "supporterMaxPrompt" : (unlocksFuture ? "supporterFuturePrompt" : "supporterPrompt"));
       const entered = window.prompt(tr(promptKey));
+      trustDomMutation(7000);
       if (entered == null) return;
       const enteredHash = await sha256Hex(entered.trim());
+      trustDomMutation(7000);
       const expectedHash = unlocksCreator
         ? SUPPORTER_CREATOR_PASSWORD_HASH
         : unlocksMax
@@ -4800,8 +4804,10 @@
         : (unlocksFuture ? SUPPORTER_FUTURE_PASSWORD_HASH : SUPPORTER_PASSWORD_HASH);
       if (enteredHash !== expectedHash) {
         window.alert(tr("supporterFail"));
+        trustDomMutation(1200);
         return;
       }
+      trustDomMutation(7000);
       if (unlocksNormal) localStorage.setItem(STORAGE_KEYS.supporterUnlock, "true");
       if (unlocksFuture) localStorage.setItem(STORAGE_KEYS.supporterFutureUnlock, "true");
       if (unlocksMax) localStorage.setItem(STORAGE_KEYS.supporterMaxUnlock, "true");
@@ -4809,10 +4815,14 @@
         localStorage.setItem(STORAGE_KEYS.supporterCreatorUnlock, "true");
         saveSupporterCreatorProof();
       }
+      trustDomMutation(7000);
       AchievementManager.evaluate();
+      trustDomMutation(7000);
       refreshPlayerUnlocks();
       updateFlightSpeedControl();
+      trustDomMutation(7000);
       window.alert(tr(unlocksMax ? "supporterMaxSuccess" : (unlocksFuture ? "supporterFutureSuccess" : "supporterSuccess")));
+      trustDomMutation(1200);
     }
 
     function setClassicDifficulty(value) {
