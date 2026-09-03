@@ -2095,7 +2095,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "910d119d";
+    const SOURCE_INTEGRITY_HASH = "e6034be3";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2611,6 +2611,9 @@
         tournamentFeeLabel: "入场费 {fee} 金币｜奖金 {prize} 金币",
         tournamentNoCoins: "金币不足。这个比赛需要 {fee} 金币入场。",
         tournamentProOnly: "全国赛只能使用已解锁的 Pro 球员参加。",
+        tournamentAsceticRegionalBan: "苦行僧看不上这么差的比赛。",
+        tournamentAsceticUndergroundBan: "因为实力太强在此比赛中被终身禁赛。",
+        tournamentAsceticNationalBan: "苦行僧不参加任何锦标赛。",
         tournamentStarted: "{name} 开始。18 洞 Classic Hard，总标准杆 54。当前第 {hole} 洞。",
         tournamentInfo: "{name}｜第 {hole}/18 洞｜总杆：{total}｜标准杆差：{relative}",
         tournamentHoleTitle: "第 {hole} 洞完成",
@@ -2887,6 +2890,9 @@
         tournamentFeeLabel: "Entry {fee} coins | Purse {prize} coins",
         tournamentNoCoins: "Not enough coins. This tournament needs a {fee}-coin entry fee.",
         tournamentProOnly: "National tournaments require an unlocked Pro player.",
+        tournamentAsceticRegionalBan: "The Ascetic Monk looks down on a tournament this weak.",
+        tournamentAsceticUndergroundBan: "Banned for life from this tournament for being too powerful.",
+        tournamentAsceticNationalBan: "The Ascetic Monk does not enter tournaments.",
         tournamentStarted: "{name} started. 18 Classic Hard holes, total par 54. Hole {hole} now.",
         tournamentInfo: "{name} | Hole {hole}/18 | Total: {total} | To par: {relative}",
         tournamentHoleTitle: "Hole {hole} Complete",
@@ -5045,6 +5051,12 @@
       ].includes(player);
     }
 
+    function asceticTournamentBanKey(type = selectedTournament) {
+      if (type === "regional") return "tournamentAsceticRegionalBan";
+      if (type === "underground") return "tournamentAsceticUndergroundBan";
+      return "tournamentAsceticNationalBan";
+    }
+
     function updateTournamentFeeLabel() {
       if (!tournamentFeeLabel) return;
       trustDomMutation();
@@ -5074,6 +5086,11 @@
       const config = tournamentConfig();
       if (!isPlayerUnlocked(player)) {
         lobbyPlayerSelect.value = "Calvin";
+        return;
+      }
+      if (player === "苦行僧") {
+        window.alert(tr(asceticTournamentBanKey(selectedTournament)));
+        trustDomMutation(900);
         return;
       }
       if (config.proOnly && !isProTournamentPlayer(player)) {
