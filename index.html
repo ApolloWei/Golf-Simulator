@@ -2095,7 +2095,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "99f2f68d";
+    const SOURCE_INTEGRITY_HASH = "910d119d";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -6122,12 +6122,15 @@
       } else if (currentWeather === "night") {
         ctx.save();
         ctx.fillStyle = "rgba(255, 255, 225, 0.85)";
-        for (let i = 0; i < 34; i += 1) {
-          const x = (i * 73) % rect.width;
-          const y = 18 + ((i * 41) % Math.max(80, rect.height * 0.45));
-          ctx.globalAlpha = 0.35 + ((i * 17) % 45) / 100;
+        for (let i = 0; i < 52; i += 1) {
+          const seedA = Math.abs(Math.sin((i + 3) * 37.271) * 9137.731) % 1;
+          const seedB = Math.abs(Math.sin((i + 11) * 91.417) * 17453.219) % 1;
+          const seedC = Math.abs(Math.sin((i + 19) * 17.193) * 4219.873) % 1;
+          const x = seedA * rect.width;
+          const y = 14 + seedB * Math.max(86, rect.height * 0.5);
+          ctx.globalAlpha = 0.24 + seedC * 0.58;
           ctx.beginPath();
-          ctx.arc(x, y, i % 4 === 0 ? 1.5 : 1, 0, Math.PI * 2);
+          ctx.arc(x, y, seedC > 0.82 ? 1.6 : 0.75 + seedA * 0.55, 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.restore();
@@ -6152,26 +6155,35 @@
         return;
       }
       if (currentWeather === "cloudy") {
-        drawCloud(rect.width * 0.05, 58, 76, 0.72, "#ffffff");
-        drawCloud(rect.width * 0.22, 92, 84, 0.66, "#f8fbfc");
-        drawCloud(rect.width * 0.42, 60, 70, 0.7, "#ffffff");
-        drawCloud(rect.width * 0.6, 105, 92, 0.58, "#eef4f5");
-        drawCloud(rect.width * 0.78, 70, 78, 0.68, "#ffffff");
-        drawCloud(rect.width * 0.94, 116, 88, 0.54, "#edf3f4");
+        drawCloud(rect.width * 0.02, 54, 88, 0.78, "#ffffff");
+        drawCloud(rect.width * 0.16, 88, 96, 0.7, "#f8fbfc");
+        drawCloud(rect.width * 0.28, 48, 82, 0.74, "#ffffff");
+        drawCloud(rect.width * 0.42, 84, 104, 0.66, "#eef4f5");
+        drawCloud(rect.width * 0.56, 58, 92, 0.74, "#ffffff");
+        drawCloud(rect.width * 0.7, 104, 108, 0.6, "#edf3f4");
+        drawCloud(rect.width * 0.84, 64, 94, 0.72, "#ffffff");
+        drawCloud(rect.width * 0.98, 112, 98, 0.58, "#edf3f4");
+        drawCloud(rect.width * 0.22, 142, 82, 0.42, "#f4f8f8");
+        drawCloud(rect.width * 0.5, 136, 88, 0.4, "#eef5f5");
+        drawCloud(rect.width * 0.78, 148, 86, 0.38, "#f7fbfb");
         return;
       }
       if (currentWeather === "storm") {
         const color = "#52616a";
-        drawCloud(rect.width * 0.02, 52, 92, 0.74, color);
-        drawCloud(rect.width * 0.16, 86, 108, 0.68, "#5e6c74");
-        drawCloud(rect.width * 0.31, 48, 98, 0.78, color);
-        drawCloud(rect.width * 0.48, 78, 116, 0.72, "#64727a");
-        drawCloud(rect.width * 0.64, 42, 104, 0.76, "#56656d");
-        drawCloud(rect.width * 0.8, 84, 112, 0.7, "#5c6a72");
-        drawCloud(rect.width * 0.96, 54, 96, 0.76, color);
-        drawCloud(rect.width * 0.2, 134, 88, 0.5, "#6c797f");
-        drawCloud(rect.width * 0.58, 128, 96, 0.46, "#6a777f");
-        drawCloud(rect.width * 0.88, 136, 84, 0.48, "#69767d");
+        drawCloud(rect.width * 0, 46, 112, 0.82, color);
+        drawCloud(rect.width * 0.12, 82, 128, 0.76, "#5e6c74");
+        drawCloud(rect.width * 0.24, 42, 116, 0.84, "#4f5e66");
+        drawCloud(rect.width * 0.38, 82, 134, 0.78, "#64727a");
+        drawCloud(rect.width * 0.52, 44, 122, 0.82, "#56656d");
+        drawCloud(rect.width * 0.66, 86, 136, 0.76, "#5c6a72");
+        drawCloud(rect.width * 0.8, 48, 118, 0.82, color);
+        drawCloud(rect.width * 0.94, 86, 130, 0.76, "#5d6b73");
+        drawCloud(rect.width * 1.06, 50, 112, 0.8, "#515f67");
+        drawCloud(rect.width * 0.1, 138, 106, 0.58, "#6c797f");
+        drawCloud(rect.width * 0.32, 148, 120, 0.52, "#65737b");
+        drawCloud(rect.width * 0.56, 134, 116, 0.54, "#6a777f");
+        drawCloud(rect.width * 0.78, 150, 118, 0.52, "#66737a");
+        drawCloud(rect.width * 0.98, 140, 104, 0.56, "#69767d");
         return;
       }
       const alpha = 0.62;
