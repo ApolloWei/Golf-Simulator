@@ -2095,7 +2095,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "247acd55";
+    const SOURCE_INTEGRITY_HASH = "3395e3e0";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -5090,17 +5090,18 @@
         lobbyPlayerSelect.value = "Calvin";
         return;
       }
-      if (player === "苦行僧") {
+      const creatorOverride = hasSupporterCreatorUnlock();
+      if (!creatorOverride && player === "苦行僧") {
         window.alert(tr(asceticTournamentBanKey(selectedTournament)));
         trustDomMutation(900);
         return;
       }
-      if (player === "老花眼") {
+      if (!creatorOverride && player === "老花眼") {
         window.alert(tr("tournamentLowVisionBan"));
         trustDomMutation(900);
         return;
       }
-      if (config.proOnly && !isProTournamentPlayer(player)) {
+      if (!creatorOverride && config.proOnly && !isProTournamentPlayer(player)) {
         window.alert(tr("tournamentProOnly"));
         trustDomMutation(900);
         return;
