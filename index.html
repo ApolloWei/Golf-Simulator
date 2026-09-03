@@ -2095,7 +2095,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "60742dc1";
+    const SOURCE_INTEGRITY_HASH = "42f42422";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -6110,9 +6110,12 @@
         ctx.fillStyle = sun;
         ctx.fillRect(0, 0, rect.width, rect.height);
       } else if (currentWeather === "sunset") {
-        const sun = ctx.createRadialGradient(rect.width * 0.78, rect.height * 0.42, 10, rect.width * 0.78, rect.height * 0.42, 88);
+        const sunX = rect.width * 0.78;
+        const sunY = rect.height * 0.62;
+        const sun = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 96);
         sun.addColorStop(0, "rgba(255, 237, 177, 0.92)");
-        sun.addColorStop(0.32, "rgba(239, 111, 79, 0.38)");
+        sun.addColorStop(0.24, "rgba(255, 178, 103, 0.56)");
+        sun.addColorStop(0.44, "rgba(239, 111, 79, 0.28)");
         sun.addColorStop(1, "rgba(239, 111, 79, 0)");
         ctx.fillStyle = sun;
         ctx.fillRect(0, 0, rect.width, rect.height);
@@ -6138,9 +6141,9 @@
         return;
       }
       if (currentWeather === "sunset") {
-        drawCloud(rect.width * 0.18, 74, 58, 0.5);
-        drawCloud(rect.width * 0.55, 54, 48, 0.42);
-        drawCloud(rect.width * 0.84, 104, 66, 0.46);
+        drawCloud(rect.width * 0.18, 74, 58, 0.46, "#fff3df");
+        drawCloud(rect.width * 0.55, 54, 48, 0.38, "#ffe7cc");
+        drawCloud(rect.width * 0.84, 104, 66, 0.42, "#ffd6b9");
         return;
       }
       if (currentWeather === "night") {
@@ -6148,7 +6151,16 @@
         drawCloud(rect.width * 0.68, 98, 74, 0.14);
         return;
       }
-      const alpha = currentWeather === "storm" ? 0.62 : 0.72;
+      if (currentWeather === "cloudy") {
+        drawCloud(rect.width * 0.05, 58, 76, 0.72, "#ffffff");
+        drawCloud(rect.width * 0.22, 92, 84, 0.66, "#f8fbfc");
+        drawCloud(rect.width * 0.42, 60, 70, 0.7, "#ffffff");
+        drawCloud(rect.width * 0.6, 105, 92, 0.58, "#eef4f5");
+        drawCloud(rect.width * 0.78, 70, 78, 0.68, "#ffffff");
+        drawCloud(rect.width * 0.94, 116, 88, 0.54, "#edf3f4");
+        return;
+      }
+      const alpha = 0.62;
       const color = currentWeather === "storm" ? "#5e6c74" : "#ffffff";
       drawCloud(rect.width * 0.1, 62, 68, alpha, color);
       drawCloud(rect.width * 0.32, 84, 76, alpha * 0.86, color);
@@ -6171,15 +6183,26 @@
       }
 
       ctx.save();
-      ctx.strokeStyle = "rgba(210, 231, 245, 0.62)";
-      ctx.lineWidth = 1.2;
-      const rainOffset = (now * 0.62) % 36;
-      for (let i = 0; i < 240; i += 1) {
-        const x = (i * 37) % (rect.width + 90) - 60;
-        const y = ((i * 29 + rainOffset * 9) % (rect.height + 80)) - 60;
+      ctx.lineCap = "round";
+      for (let i = 0; i < 310; i += 1) {
+        const seedA = (Math.sin(i * 12.9898) * 43758.5453) % 1;
+        const seedB = (Math.sin(i * 78.233) * 24634.6345) % 1;
+        const seedC = (Math.sin(i * 37.719) * 12415.8731) % 1;
+        const a = Math.abs(seedA);
+        const b = Math.abs(seedB);
+        const c = Math.abs(seedC);
+        const speed = 0.32 + a * 0.5;
+        const length = 18 + b * 28;
+        const slant = 7 + c * 15;
+        const laneWidth = rect.width + 160;
+        const laneHeight = rect.height + 120;
+        const x = ((i * 47 + now * speed * 0.45 + b * 95) % laneWidth) - 80;
+        const y = ((i * 31 + now * speed * 1.35 + a * 110) % laneHeight) - 70;
+        ctx.strokeStyle = `rgba(210, 231, 245, ${0.28 + c * 0.42})`;
+        ctx.lineWidth = 0.7 + a * 1.1;
         ctx.beginPath();
         ctx.moveTo(x, y);
-        ctx.lineTo(x - 12, y + 34);
+        ctx.lineTo(x - slant, y + length);
         ctx.stroke();
       }
       ctx.restore();
