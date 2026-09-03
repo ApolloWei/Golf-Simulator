@@ -269,6 +269,27 @@
       background: #f7fbf6;
     }
 
+    .coin-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 42px;
+      padding: 10px 12px;
+      border: 1px solid rgba(240, 184, 74, 0.42);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255, 247, 219, 0.96), rgba(255, 255, 255, 0.92));
+      color: #6f4b00;
+      font-weight: 900;
+    }
+
+    .coin-panel strong::before {
+      content: "●";
+      display: inline-block;
+      margin-right: 7px;
+      color: var(--gold);
+      text-shadow: 0 1px 0 rgba(111, 75, 0, 0.24);
+    }
+
     .player-unlock-progress {
       display: grid;
       gap: 8px;
@@ -398,6 +419,27 @@
       grid-template-columns: 328px minmax(0, 1fr);
       gap: 18px;
       align-items: stretch;
+    }
+
+    .app.replay-mode {
+      height: 100vh;
+      padding: 18px 0;
+      overflow: hidden;
+    }
+
+    .app.replay-mode header,
+    .app.replay-mode .panel {
+      display: none;
+    }
+
+    .app.replay-mode .layout {
+      height: 100%;
+      grid-template-columns: 1fr;
+    }
+
+    .app.replay-mode .stage {
+      min-height: 0;
+      height: 100%;
     }
 
     .panel,
@@ -700,6 +742,79 @@
       bottom: auto;
     }
 
+    .replay-hud {
+      position: fixed;
+      left: 50%;
+      top: 16px;
+      z-index: 18;
+      transform: translateX(-50%);
+      display: none;
+      align-items: center;
+      gap: 12px;
+      width: min(560px, calc(100vw - 28px));
+      padding: 10px 12px;
+      border: 1px solid rgba(205, 219, 209, 0.92);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 14px 38px rgba(30, 56, 39, 0.18);
+      backdrop-filter: blur(8px);
+    }
+
+    .replay-hud.show {
+      display: flex;
+    }
+
+    .replay-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .replay-info strong,
+    .replay-info span {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .replay-info strong {
+      font-size: 14px;
+    }
+
+    .replay-info span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .replay-progress {
+      width: 120px;
+      height: 7px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #dfe9e2;
+    }
+
+    .replay-progress span {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--fairway), var(--blue));
+    }
+
+    .replay-close {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8faf7;
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
     .flight-speed-control {
       display: inline-flex;
       align-items: center;
@@ -1000,11 +1115,11 @@
       position: fixed;
       inset: 0;
       z-index: 50;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
+      display: block;
       padding: 24px;
-      background: linear-gradient(180deg, rgba(23, 36, 29, 0.08), rgba(23, 36, 29, 0.34));
+      background:
+        radial-gradient(circle var(--tutorial-spot-size, 140px) at var(--tutorial-spot-x, 50%) var(--tutorial-spot-y, 50%), rgba(255, 255, 255, 0) 0 52%, rgba(255, 255, 255, 0.18) 60%, rgba(23, 36, 29, 0.62) 100%),
+        rgba(23, 36, 29, 0.22);
       pointer-events: auto;
     }
 
@@ -1013,6 +1128,10 @@
     }
 
     .tutorial-card {
+      position: absolute;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
       width: min(520px, 100%);
       padding: 20px;
       border: 1px solid rgba(205, 219, 209, 0.95);
@@ -1020,6 +1139,41 @@
       background: rgba(255, 255, 255, 0.98);
       box-shadow: 0 24px 70px rgba(30, 56, 39, 0.28);
       pointer-events: auto;
+    }
+
+    .tutorial-panel.card-left .tutorial-card {
+      left: 24px;
+      right: auto;
+      bottom: 24px;
+      transform: none;
+    }
+
+    .tutorial-panel.card-right .tutorial-card {
+      left: auto;
+      right: 24px;
+      bottom: 24px;
+      transform: none;
+    }
+
+    .tutorial-panel.card-top .tutorial-card {
+      top: 18px;
+      bottom: auto;
+    }
+
+    .tutorial-panel.card-top-left .tutorial-card {
+      top: 18px;
+      left: 24px;
+      bottom: auto;
+      transform: none;
+    }
+
+    .tutorial-focus {
+      position: relative;
+      z-index: 55 !important;
+      outline: 3px solid rgba(240, 184, 74, 0.98);
+      outline-offset: 6px;
+      box-shadow: 0 0 0 9999px rgba(23, 36, 29, 0.08), 0 0 32px rgba(240, 184, 74, 0.72);
+      border-radius: 10px;
     }
 
     .tutorial-kicker {
@@ -1499,6 +1653,10 @@
         <select id="lobbyPlayer"></select>
       </div>
       <div class="player-unlock-panel" id="playerUnlockPanel">
+        <div class="coin-panel">
+          <span data-i18n="coinBalance">金币</span>
+          <strong id="coinBalanceText">0</strong>
+        </div>
         <div class="player-unlock-progress">
           <div class="player-unlock-head">
             <span data-i18n="playerUnlockProgress">角色解锁进度</span>
@@ -1723,6 +1881,15 @@
     </button>
   </div>
 
+  <div class="replay-hud" id="replayHud">
+    <div class="replay-info">
+      <strong id="replayTitle">训练回放</strong>
+      <span id="replayMeta">1x</span>
+    </div>
+    <div class="replay-progress" aria-hidden="true"><span id="replayProgressBar"></span></div>
+    <button class="replay-close" id="replayCloseBtn" type="button" aria-label="Close">×</button>
+  </div>
+
   <div class="hole-modal hidden" id="holeModal" role="status" aria-live="polite">
     <div class="hole-modal-card">
       <h2 id="holeModalTitle">恭喜！</h2>
@@ -1810,7 +1977,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "8afe0141";
+    const SOURCE_INTEGRITY_HASH = "5f70a806";
     const PLAYER_DATA_INTEGRITY_HASH = "1df944ae";
     const PLAYER_RATING_INTEGRITY_HASH = "f4870e8a";
     const DEFAULT_ANGLE_INTEGRITY_HASH = "cbacfbd3";
@@ -1979,6 +2146,7 @@
     const lobbyPlayerSelect = document.querySelector("#lobbyPlayer");
     const playerUnlockPercent = document.querySelector("#playerUnlockPercent");
     const playerUnlockBar = document.querySelector("#playerUnlockBar");
+    const coinBalanceText = document.querySelector("#coinBalanceText");
     const bonusAchievementProgress = document.querySelector("#bonusAchievementProgress");
     const bonusAchievementPercent = document.querySelector("#bonusAchievementPercent");
     const bonusAchievementBar = document.querySelector("#bonusAchievementBar");
@@ -2051,6 +2219,11 @@
     const slowerBtn = document.querySelector("#slowerBtn");
     const fasterBtn = document.querySelector("#fasterBtn");
     const flightSpeedText = document.querySelector("#flightSpeedText");
+    const replayHud = document.querySelector("#replayHud");
+    const replayTitle = document.querySelector("#replayTitle");
+    const replayMeta = document.querySelector("#replayMeta");
+    const replayProgressBar = document.querySelector("#replayProgressBar");
+    const replayCloseBtn = document.querySelector("#replayCloseBtn");
     const holeModal = document.querySelector("#holeModal");
 
     const fields = {
@@ -2139,6 +2312,7 @@
     let siteMutationObserver = null;
     let tutorialState = { active: false, step: "idle" };
     let replayState = null;
+    let suppressUpgradePrompt = false;
 
     const translations = {
       zh: {
@@ -2160,6 +2334,12 @@
         supporterMaxSuccess: "SupporterMax 已解锁！所有人物已开放。",
         supporterFail: "密码不正确。",
         choosePlayer: "选择球员",
+        coinBalance: "金币",
+        playerLevel: "等级 {level}",
+        upgradePrompt: "升级人物？\n{player}\n等级：Lv.{level}\n最远距离：{distance} yd\n花费：500 金币\n升级后力量 +0.5%",
+        upgradeSuccess: "{player} 已升级到 Lv.{level}！",
+        upgradeNoCoins: "金币不足。升级需要 500 金币。",
+        achievementCoinReward: "+{coins} 金币",
         playerUnlockProgress: "角色解锁进度",
         bonusAchievements: "奖励成就",
         plusOnlyAchievements: "Plus 专属成就",
@@ -2199,13 +2379,21 @@
         tutorialFreeShotTitle: "打出第一杆",
         tutorialFreeShotBody: "现在点击右下角的发射按钮。小球飞行时会逐步画出蓝色轨迹，你可以观察速度、飞行时间和落点距离。",
         tutorialClassicEasyTitle: "进入 Classic Easy",
-        tutorialClassicEasyBody: "经典简单模式会给你一个目标洞位。你可以看到比较完整的信息，目标是用尽量少的杆数把球打进洞。",
+        tutorialClassicEasyBody: "现在选择经典简单模式。它会给你一个目标洞位，目标是用尽量少的杆数把球打进洞。",
+        tutorialClassicEasyDistanceTitle: "怎么看距离",
+        tutorialClassicEasyDistanceBody: "左边会显示洞距、剩余距离和杆数；球场里旗杆就是洞的位置。你可以用这些信息判断这杆需要飞多远。",
         tutorialClassicEasyShotTitle: "打一杆简单经典",
-        tutorialClassicEasyShotBody: "根据旗杆位置选择球杆、角度和力度，然后发射。第一杆不一定要进洞，先感受剩余距离会如何更新。",
+        tutorialClassicEasyShotBody: "现在根据旗杆位置选择球杆、角度和力度，然后点击发射。第一杆不一定要进洞，先感受剩余距离会如何更新。",
+        tutorialClassicEasyContinueTitle: "继续把它打进洞",
+        tutorialClassicEasyContinueBody: "没关系，已经离洞更近了。看看左侧剩余距离，换一根更合适的球杆或调小力度，再打一杆，直到真正进洞。",
         tutorialClassicHardTitle: "进入 Classic Hard",
-        tutorialClassicHardBody: "困难经典会隐藏更精确的距离，只保留粗略刻度和风向提示。你需要根据刻度、旗杆位置和风的偏差来估算。",
+        tutorialClassicHardBody: "接下来进入经典困难模式。困难模式会隐藏准确码数，只给你更少的信息。",
+        tutorialClassicHardDistanceTitle: "困难模式怎么估算",
+        tutorialClassicHardDistanceBody: "困难经典只保留粗略刻度和右上角风向。观察旗杆在刻度之间的位置，再把风带来的 0-5 码偏差算进去。",
         tutorialClassicHardShotTitle: "试一杆困难经典",
         tutorialClassicHardShotBody: "现在再发射一杆。注意右上角风向，以及 100 码刻度；困难模式更像真正的目测判断。",
+        tutorialClassicHardContinueTitle: "相信你的判断",
+        tutorialClassicHardContinueBody: "这一杆还没进。困难模式本来就要靠估算：先看球现在的位置，再用粗略刻度判断剩余距离，微调角度和力度继续打完这一洞。",
         tutorialDoneTitle: "教程完成",
         tutorialDoneBody: "还有更多的玩法和人物等你探索！",
         tutorialWaitingButton: "完成当前击球",
@@ -2244,6 +2432,10 @@
         trainingNotHoled: "未进洞",
         trainingRecordLine: "{mode}｜{player}｜{club}｜{angle}°｜{power}%｜{distance} yd｜{time}s｜{hole}",
         replayingTraining: "正在回放第 {index} 杆训练记录。",
+        replayTitle: "训练回放",
+        replayMeta: "{mode}｜{player}｜{club}｜{speed}x｜{progress}%",
+        replayComplete: "回放完成",
+        replayClose: "关闭回放",
         achievementUnlocked: "已解锁",
         achievementCompletion: "完成度",
         achievementBestShot: "最远一杆",
@@ -2373,6 +2565,12 @@
         supporterMaxSuccess: "SupporterMax unlocked. Every player is now available.",
         supporterFail: "Incorrect password.",
         choosePlayer: "Choose Player",
+        coinBalance: "Coins",
+        playerLevel: "Level {level}",
+        upgradePrompt: "Upgrade this player?\n{player}\nLevel: Lv.{level}\nLongest distance: {distance} yd\nCost: 500 coins\nUpgrade gives +0.5% power.",
+        upgradeSuccess: "{player} upgraded to Lv.{level}.",
+        upgradeNoCoins: "Not enough coins. Upgrading costs 500 coins.",
+        achievementCoinReward: "+{coins} coins",
         playerUnlockProgress: "Player Unlock Progress",
         bonusAchievements: "Bonus Achievements",
         plusOnlyAchievements: "+ Only Achievements",
@@ -2412,13 +2610,21 @@
         tutorialFreeShotTitle: "Hit Your First Shot",
         tutorialFreeShotBody: "Press the Launch button in the lower-right corner. The blue trail is drawn while the ball flies, so you can watch speed, time, and final distance update.",
         tutorialClassicEasyTitle: "Enter Classic Easy",
-        tutorialClassicEasyBody: "Classic Easy gives you a target hole. You get clearer information, and the goal is to hole out in as few shots as possible.",
+        tutorialClassicEasyBody: "Choose Classic Easy now. It gives you a target hole, and the goal is to hole out in as few shots as possible.",
+        tutorialClassicEasyDistanceTitle: "Reading Distance",
+        tutorialClassicEasyDistanceBody: "The left panel shows hole distance, remaining distance, and shots. On the course, the flag marks the hole. Use those clues to judge how far this shot should fly.",
         tutorialClassicEasyShotTitle: "Play One Easy Classic Shot",
         tutorialClassicEasyShotBody: "Read the flag, choose a club, angle, and power, then launch. The first shot does not have to go in; notice how remaining distance updates.",
+        tutorialClassicEasyContinueTitle: "Keep Playing the Hole",
+        tutorialClassicEasyContinueBody: "Good shot. You are closer now. Read the remaining distance on the left, switch club or lower power if needed, and keep playing until the ball is holed.",
         tutorialClassicHardTitle: "Enter Classic Hard",
-        tutorialClassicHardBody: "Classic Hard hides exact target distance and gives only coarse marks plus wind direction. Judge the shot from the scale, flag position, and wind offset.",
+        tutorialClassicHardBody: "Now enter Classic Hard. It hides exact yardage and gives you less help.",
+        tutorialClassicHardDistanceTitle: "Judging Hard Mode",
+        tutorialClassicHardDistanceBody: "Classic Hard keeps only coarse marks and the wind readout in the upper-right. Estimate the flag between marks, then allow for the 0-5 yd wind offset.",
         tutorialClassicHardShotTitle: "Try One Hard Classic Shot",
         tutorialClassicHardShotBody: "Launch one more shot. Watch the wind in the upper-right and use the 100-yard marks; this mode is much more about feel.",
+        tutorialClassicHardContinueTitle: "Trust Your Read",
+        tutorialClassicHardContinueBody: "Not in yet. Hard Mode is supposed to be estimation: read the ball position, judge the remaining distance from coarse marks, adjust angle and power, and finish the hole.",
         tutorialDoneTitle: "Tutorial Complete",
         tutorialDoneBody: "More modes and players are waiting for you to explore!",
         tutorialWaitingButton: "Finish this shot",
@@ -2457,6 +2663,10 @@
         trainingNotHoled: "Not holed",
         trainingRecordLine: "{mode} | {player} | {club} | {angle}° | {power}% | {distance} yd | {time}s | {hole}",
         replayingTraining: "Replaying training shot #{index}.",
+        replayTitle: "Training Replay",
+        replayMeta: "{mode} | {player} | {club} | {speed}x | {progress}%",
+        replayComplete: "Replay complete",
+        replayClose: "Close replay",
         achievementUnlocked: "Unlocked",
         achievementCompletion: "Completion",
         achievementBestShot: "Longest Shot",
@@ -2579,7 +2789,8 @@
       supporterCreatorProof: "golfSimulatorSupporterCreatorProof.v1",
       launchDockPosition: "golfSimulatorLaunchDockPosition.v1",
       tutorialComplete: "golfSimulatorTutorialComplete.v1",
-      trainingRecords: "golfSimulatorTrainingRecords.v1"
+      trainingRecords: "golfSimulatorTrainingRecords.v1",
+      economy: "golfSimulatorEconomy.v1"
     };
     const SUPPORTER_PASSWORD_HASH = "ea72c79594296e45b8c2a296644d988581f58cfac6601d122ed0a8bd7c02e8bf";
     const SUPPORTER_FUTURE_PASSWORD_HASH = "2dfcab3471c3a8bcea03ea7c0402547d9235998780a7e8c248b4da2a2b2a42c6";
@@ -2591,7 +2802,7 @@
     const ALL_MODES = ["classic", "obstacle", "precision", "putting", "free"];
     const EXPECTED_DOM_IDS = Object.freeze([
       "lobby", "supporterBtn", "lobbyAchievementsBtn", "lobbyTrainingBtn", "lobbyLanguageBtn", "lobbyPlayer",
-      "playerUnlockPanel", "playerUnlockPercent", "playerUnlockBar", "bonusAchievementProgress",
+      "playerUnlockPanel", "coinBalanceText", "playerUnlockPercent", "playerUnlockBar", "bonusAchievementProgress",
       "bonusAchievementPercent", "bonusAchievementBar", "plusAchievementProgress", "plusAchievementPercent",
       "plusAchievementBar", "asceticAchievementProgress", "asceticAchievementLabel",
       "asceticAchievementPercent", "asceticAchievementBar", "playerUnlockList", "startGameBtn",
@@ -2604,6 +2815,7 @@
       "currentSpeedText", "horizontalSpeedText", "verticalSpeedText", "timeText", "phaseText",
       "message", "clubChips", "stage", "trajectoryCanvas", "windHud", "windText", "windArrow",
       "launchDock", "resetBtn", "slowerBtn", "flightSpeedText", "fasterBtn", "launchBtn",
+      "replayHud", "replayTitle", "replayMeta", "replayProgressBar", "replayCloseBtn",
       "holeModal", "holeModalTitle", "holeModalText", "achievementPanel", "achievementPanelTitle",
       "achievementCloseBtn", "achievementUnlockedText", "achievementCompletionText", "achievementLongestText",
       "achievementStreakText", "achievementList", "statisticsList", "trainingPanel", "trainingPanelTitle",
@@ -3114,6 +3326,114 @@
       return tr(keys[value] || "freeMode");
     }
 
+    const defaultEconomy = {
+      coins: 0,
+      rewardedAchievements: {},
+      playerLevels: {}
+    };
+
+    function normalizedEconomyData(value) {
+      return {
+        ...defaultEconomy,
+        ...(value || {}),
+        rewardedAchievements: { ...(value?.rewardedAchievements || {}) },
+        playerLevels: { ...(value?.playerLevels || {}) }
+      };
+    }
+
+    function achievementCoinReward(achievement) {
+      if (achievement.tier === "ascetic") return 800;
+      const target = Number(achievement.target) || 1;
+      if (target >= 10000 || /1000|3000|6000|100000|10000000/.test(achievement.id)) return 500;
+      if (target >= 100 || /century|fanatic|master|collector/.test(achievement.id)) return 100;
+      if (target >= 10 || /putting|clean|hard|eagle|albatross|streak/.test(achievement.id)) return 50;
+      return 20;
+    }
+
+    const EconomyManager = {
+      data: normalizedEconomyData(safeLoad(STORAGE_KEYS.economy, defaultEconomy)),
+      save() {
+        saveJson(STORAGE_KEYS.economy, this.data);
+      },
+      coins() {
+        return Math.max(0, Math.floor(this.data.coins || 0));
+      },
+      playerLevel(player) {
+        return Math.max(0, Math.floor(this.data.playerLevels[player] || 0));
+      },
+      playerMultiplier(player) {
+        return 1 + this.playerLevel(player) * 0.005;
+      },
+      addCoins(amount, achievementId) {
+        const coins = Math.max(0, Math.floor(amount || 0));
+        if (coins <= 0) return;
+        this.data.coins = this.coins() + coins;
+        if (achievementId) this.data.rewardedAchievements[achievementId] = coins;
+        this.save();
+        updateCoinDisplay();
+      },
+      grantAchievementReward(achievement) {
+        if (!achievement || this.data.rewardedAchievements[achievement.id]) return 0;
+        const reward = achievementCoinReward(achievement);
+        this.addCoins(reward, achievement.id);
+        return reward;
+      },
+      syncUnlockedAchievementRewards() {
+        allAchievementDefinitions.forEach((achievement) => {
+          if (AchievementManager.isUnlocked(achievement.id)) this.grantAchievementReward(achievement);
+        });
+      },
+      upgradePlayer(player) {
+        if (this.coins() < 500) {
+          window.alert(tr("upgradeNoCoins"));
+          return false;
+        }
+        this.data.coins = this.coins() - 500;
+        this.data.playerLevels[player] = this.playerLevel(player) + 1;
+        this.save();
+        updateCoinDisplay();
+        fillPlayers();
+        if (mode !== "lobby" && !isReplayMode()) {
+          fillClubs({ reset: false, preserveSwing: isFreeMode() });
+          shot = getShot();
+          updateText("powerChanged");
+          drawScene();
+        }
+        window.alert(tr("upgradeSuccess", {
+          player: playerDisplayName(player),
+          level: this.playerLevel(player)
+        }));
+        return true;
+      }
+    };
+
+    function updateCoinDisplay() {
+      if (coinBalanceText) coinBalanceText.textContent = String(EconomyManager.coins());
+    }
+
+    function adjustedDistanceForPlayer(player, distance) {
+      return Math.round(Number(distance) * EconomyManager.playerMultiplier(player));
+    }
+
+    function playerLongestDistance(player) {
+      const clubs = players[player] || [];
+      return clubs.reduce((max, [, distance]) => Math.max(max, adjustedDistanceForPlayer(player, distance)), 0);
+    }
+
+    function playerLevelLabel(player) {
+      return `Lv.${EconomyManager.playerLevel(player)}`;
+    }
+
+    function maybeOfferPlayerUpgrade(player) {
+      if (suppressUpgradePrompt || !player || !isPlayerUnlocked(player) || isReplayMode()) return;
+      const ok = window.confirm(tr("upgradePrompt", {
+        player: playerDisplayName(player),
+        level: EconomyManager.playerLevel(player),
+        distance: playerLongestDistance(player)
+      }));
+      if (ok) EconomyManager.upgradePlayer(player);
+    }
+
     function sampledTrailPoints() {
       const source = [...trail, ballPosition].filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
       const baseX = source[0]?.x || 0;
@@ -3286,20 +3606,24 @@
       unlock(achievement) {
         this.data.unlocked[achievement.id] = new Date().toISOString();
         this.save();
-        this.queue.push(achievement);
+        const reward = EconomyManager.grantAchievementReward(achievement);
+        this.queue.push({ achievement, reward });
         this.showNext();
       },
       showNext() {
         if (this.showing || this.queue.length === 0) return;
         trustDomMutation(900);
         this.showing = true;
-        const achievement = this.queue.shift();
+        const item = this.queue.shift();
+        const achievement = item.achievement || item;
+        const reward = item.reward || 0;
         const toast = document.createElement("div");
         toast.className = "achievement-toast";
         toast.innerHTML = `
           <div class="toast-kicker">${tr("achievementToastTitle")}</div>
           <strong>${achievement.name[currentLang]}</strong>
           <p>${achievement.desc[currentLang]}</p>
+          ${reward ? `<p>${tr("achievementCoinReward", { coins: reward })}</p>` : ""}
         `;
         achievementToasts.appendChild(toast);
         setTimeout(() => {
@@ -3317,30 +3641,55 @@
     }
 
     function tutorialStepConfig(step = tutorialState.step) {
-      const waiting = step === "freeShot" || step === "classicEasyShot" || step === "classicHardShot";
       const map = {
-        freeIntro: { title: "tutorialFreeTitle", body: "tutorialFreeBody", button: "tutorialNext" },
-        controls: { title: "tutorialControlsTitle", body: "tutorialControlsBody", button: "tutorialNext" },
-        freeShot: { title: "tutorialFreeShotTitle", body: "tutorialFreeShotBody", button: "tutorialWaitingButton", waiting: true },
-        classicEasyIntro: { title: "tutorialClassicEasyTitle", body: "tutorialClassicEasyBody", button: "tutorialStart" },
-        classicEasyShot: { title: "tutorialClassicEasyShotTitle", body: "tutorialClassicEasyShotBody", button: "tutorialWaitingButton", waiting: true },
-        classicHardIntro: { title: "tutorialClassicHardTitle", body: "tutorialClassicHardBody", button: "tutorialStart" },
-        classicHardShot: { title: "tutorialClassicHardShotTitle", body: "tutorialClassicHardShotBody", button: "tutorialWaitingButton", waiting: true },
-        done: { title: "tutorialDoneTitle", body: "tutorialDoneBody", button: "tutorialNext" }
+        freeIntro: { title: "tutorialFreeTitle", body: "tutorialFreeBody", button: "tutorialNext", target: playerControl, card: "card-right" },
+        controls: { title: "tutorialControlsTitle", body: "tutorialControlsBody", button: "tutorialNext", target: fields.power.closest(".control"), card: "card-right" },
+        freeShot: { title: "tutorialFreeShotTitle", body: "tutorialFreeShotBody", button: "tutorialWaitingButton", target: launchDock, card: "card-top-left", waiting: true },
+        classicEasyIntro: { title: "tutorialClassicEasyTitle", body: "tutorialClassicEasyBody", button: "tutorialStart", target: startGameBtn, card: "card-top" },
+        classicEasyDistance: { title: "tutorialClassicEasyDistanceTitle", body: "tutorialClassicEasyDistanceBody", button: "tutorialNext", target: fields.gameInfo, card: "card-right" },
+        classicEasyShot: { title: "tutorialClassicEasyShotTitle", body: "tutorialClassicEasyShotBody", button: "tutorialWaitingButton", target: launchDock, card: "card-top-left", waiting: true },
+        classicEasyContinue: { title: "tutorialClassicEasyContinueTitle", body: "tutorialClassicEasyContinueBody", button: "tutorialWaitingButton", target: fields.gameInfo, card: "card-right", waiting: true },
+        classicHardIntro: { title: "tutorialClassicHardTitle", body: "tutorialClassicHardBody", button: "tutorialStart", target: startGameBtn, card: "card-top" },
+        classicHardDistance: { title: "tutorialClassicHardDistanceTitle", body: "tutorialClassicHardDistanceBody", button: "tutorialNext", target: stage, card: "card-left" },
+        classicHardShot: { title: "tutorialClassicHardShotTitle", body: "tutorialClassicHardShotBody", button: "tutorialWaitingButton", target: launchDock, card: "card-top-left", waiting: true },
+        classicHardContinue: { title: "tutorialClassicHardContinueTitle", body: "tutorialClassicHardContinueBody", button: "tutorialWaitingButton", target: stage, card: "card-left", waiting: true },
+        done: { title: "tutorialDoneTitle", body: "tutorialDoneBody", button: "tutorialNext", target: stage, card: "card-top" }
       };
-      return map[step] || { title: "tutorialFreeTitle", body: "tutorialFreeBody", button: "tutorialNext", waiting };
+      return map[step] || { title: "tutorialFreeTitle", body: "tutorialFreeBody", button: "tutorialNext" };
+    }
+
+    function clearTutorialFocus() {
+      document.querySelectorAll(".tutorial-focus").forEach((node) => node.classList.remove("tutorial-focus"));
+    }
+
+    function positionTutorialSpot(target) {
+      if (!target || !tutorialPanel || !document.documentElement.contains(target)) return;
+      const rect = target.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const size = Math.max(92, Math.min(280, Math.max(rect.width, rect.height) * 0.72));
+      tutorialPanel.style.setProperty("--tutorial-spot-x", `${x}px`);
+      tutorialPanel.style.setProperty("--tutorial-spot-y", `${y}px`);
+      tutorialPanel.style.setProperty("--tutorial-spot-size", `${size}px`);
     }
 
     function renderTutorial() {
       if (!tutorialPanel) return;
       trustDomMutation(700);
       const config = tutorialStepConfig();
+      clearTutorialFocus();
       tutorialKicker.textContent = tr("tutorialKicker");
       tutorialTitle.textContent = tr(config.title);
       tutorialBody.textContent = tr(config.body);
       tutorialSkipBtn.textContent = tr("tutorialSkip");
       tutorialNextBtn.textContent = tr(config.button);
       tutorialNextBtn.disabled = Boolean(config.waiting);
+      ["card-left", "card-right", "card-top", "card-top-left"].forEach((name) => tutorialPanel.classList.remove(name));
+      if (config.card) tutorialPanel.classList.add(config.card);
+      if (tutorialState.active && config.target) {
+        config.target.classList.add("tutorial-focus");
+        positionTutorialSpot(config.target);
+      }
       tutorialPanel.classList.toggle("pass-through", Boolean(config.waiting));
       tutorialPanel.classList.toggle("hidden", !tutorialState.active);
     }
@@ -3348,9 +3697,18 @@
     function completeTutorial() {
       trustDomMutation(700);
       tutorialState = { active: false, step: "idle" };
+      clearTutorialFocus();
       tutorialPanel.classList.add("hidden");
       tutorialPanel.classList.remove("pass-through");
       localStorage.setItem(STORAGE_KEYS.tutorialComplete, "true");
+    }
+
+    function hideTutorialDuringShot() {
+      if (!tutorialState.active) return;
+      trustDomMutation(700);
+      clearTutorialFocus();
+      tutorialPanel.classList.add("hidden");
+      tutorialPanel.classList.remove("pass-through");
     }
 
     function setTutorialStep(step) {
@@ -3383,6 +3741,10 @@
         classicDifficulty = "easy";
         setClassicDifficulty("easy");
         showSimulator("classic");
+        setTutorialStep("classicEasyDistance");
+        return;
+      }
+      if (tutorialState.step === "classicEasyDistance") {
         setTutorialStep("classicEasyShot");
         return;
       }
@@ -3390,6 +3752,10 @@
         classicDifficulty = "hard";
         setClassicDifficulty("hard");
         showSimulator("classic");
+        setTutorialStep("classicHardDistance");
+        return;
+      }
+      if (tutorialState.step === "classicHardDistance") {
         setTutorialStep("classicHardShot");
         return;
       }
@@ -3401,11 +3767,31 @@
     function handleTutorialShotCompleted(result) {
       if (!tutorialState.active) return;
       if (tutorialState.step === "freeShot" && result.mode === "free") {
-        setTimeout(() => setTutorialStep("classicEasyIntro"), 650);
-      } else if (tutorialState.step === "classicEasyShot" && result.mode === "classic" && classicDifficulty === "easy") {
-        setTimeout(() => setTutorialStep("classicHardIntro"), 650);
-      } else if (tutorialState.step === "classicHardShot" && result.mode === "classic" && classicDifficulty === "hard") {
-        setTimeout(() => setTutorialStep("done"), 650);
+        setTimeout(() => {
+          showLobby();
+          classicDifficulty = "easy";
+          setClassicDifficulty("easy");
+          setTutorialStep("classicEasyIntro");
+        }, 650);
+      } else if ((tutorialState.step === "classicEasyShot" || tutorialState.step === "classicEasyContinue") && result.mode === "classic" && classicDifficulty === "easy") {
+        setTimeout(() => {
+          if (result.classicComplete) {
+            showLobby();
+            classicDifficulty = "hard";
+            setClassicDifficulty("hard");
+            setTutorialStep("classicHardIntro");
+          } else {
+            setTutorialStep("classicEasyContinue");
+          }
+        }, 650);
+      } else if ((tutorialState.step === "classicHardShot" || tutorialState.step === "classicHardContinue") && result.mode === "classic" && classicDifficulty === "hard") {
+        setTimeout(() => {
+          if (result.classicComplete) {
+            setTutorialStep("done");
+          } else {
+            setTutorialStep("classicHardContinue");
+          }
+        }, 650);
       }
     }
 
@@ -3712,6 +4098,7 @@
 
     function updateTrajectoryControls() {
       trustDomMutation();
+      if (isReplayMode()) return;
       const showTrajectoryOnly = isFreeMode();
       trajectoryOnlyControl.classList.toggle("hidden", !showTrajectoryOnly);
       if (!showTrajectoryOnly) trajectoryOnlyToggle.checked = false;
@@ -3742,6 +4129,10 @@
 
     function isFreeMode() {
       return mode === "free";
+    }
+
+    function isReplayMode() {
+      return mode === "replay";
     }
 
     function isClassicHardMode() {
@@ -3806,6 +4197,7 @@
 
     function fillPlayers() {
       trustDomMutation(700);
+      suppressUpgradePrompt = true;
       const previousPlayer = playerSelect.value || "Calvin";
       const previousLobbyPlayer = lobbyPlayerSelect.value || previousPlayer;
       playerSelect.innerHTML = "";
@@ -3813,7 +4205,7 @@
       sortedPlayerNames().forEach((name) => {
         const unlocked = isPlayerUnlocked(name);
         if (name === "苦行僧" && !unlocked) return;
-        const label = `${unlocked ? "" : "🔒 "}${playerDisplayName(name)} ${ratingStars(name)}`;
+        const label = `${unlocked ? "" : "🔒 "}${playerDisplayName(name)} ${ratingStars(name)} ${playerLevelLabel(name)}`;
         const option = document.createElement("option");
         option.value = name;
         option.textContent = label;
@@ -3828,6 +4220,8 @@
       });
       playerSelect.value = isPlayerUnlocked(previousPlayer) ? previousPlayer : "Calvin";
       lobbyPlayerSelect.value = isPlayerUnlocked(previousLobbyPlayer) ? previousLobbyPlayer : playerSelect.value;
+      suppressUpgradePrompt = false;
+      updateCoinDisplay();
       renderPlayerUnlocks();
     }
 
@@ -3876,6 +4270,7 @@
     function renderPlayerUnlocks() {
       trustDomMutation(700);
       const percent = Math.round(achievementCompletionRatio() * 100);
+      updateCoinDisplay();
       if (playerUnlockPercent) playerUnlockPercent.textContent = `${percent}%`;
       if (playerUnlockBar) playerUnlockBar.style.width = `${Math.min(100, percent)}%`;
       updateExtraAchievementProgress();
@@ -3898,7 +4293,7 @@
         item.className = `player-unlock-item${unlocked ? "" : " locked"}`;
         item.innerHTML = `
           <strong>${unlocked ? "✓" : "🔒"} ${playerDisplayName(name)}</strong>
-          <span>${unlocked ? tr("playerUnlocked") : tr("playerLocked")} · ${tr(playerUnlockRequirementKey(name))}</span>
+          <span>${playerLevelLabel(name)} · ${unlocked ? tr("playerUnlocked") : tr("playerLocked")} · ${tr(playerUnlockRequirementKey(name))}</span>
         `;
         playerUnlockList.appendChild(item);
       });
@@ -3980,7 +4375,6 @@
     }
 
     function cancelActiveAnimation() {
-      replayState = null;
       if (!animation) return;
       if (typeof animation === "object") {
         cancelAnimationFrame(animation.rafId);
@@ -4008,6 +4402,8 @@
       trustDomMutation(900);
       cancelActiveAnimation();
       replayState = null;
+      app.classList.remove("replay-mode");
+      replayHud.classList.remove("show");
       clearHoleAdvanceTimer();
       hideHoleModal();
       hideAfkChallenge();
@@ -4038,6 +4434,9 @@
 
     function showSimulator(nextMode) {
       trustDomMutation(900);
+      replayState = null;
+      app.classList.remove("replay-mode");
+      replayHud.classList.remove("show");
       fillPlayers();
       if (!isPlayerUnlocked(lobbyPlayerSelect.value)) lobbyPlayerSelect.value = "Calvin";
       const challengeMode = nextMode === "classic" || nextMode === "obstacle" || nextMode === "precision" || nextMode === "putting";
@@ -4230,7 +4629,7 @@
       else if (mode === "obstacle") infoKey = "obstacleInfo";
       else if (isClassicHardMode()) infoKey = "hardGameInfo";
       fields.gameInfo.textContent = [
-        tr("rating", { stars: ratingStars(playerSelect.value) }),
+        `${tr("rating", { stars: ratingStars(playerSelect.value) })} · ${playerLevelLabel(playerSelect.value)}`,
         tr(infoKey, {
           target: isLowVisionPlayer() ? tr("hiddenTarget") : gameTargetYards,
           remaining: isLowVisionPlayer() ? tr("hiddenTarget") : Math.round(gameRemainingYards),
@@ -4313,7 +4712,7 @@
       clubs.forEach(([club, distance]) => {
         const option = document.createElement("option");
         option.value = club;
-        option.textContent = `${club} - ${distance} yd`;
+        option.textContent = `${club} - ${adjustedDistanceForPlayer(playerSelect.value, distance)} yd`;
         clubSelect.appendChild(option);
       });
       const hasPreviousClub = clubs.some(([club]) => club === previousClub);
@@ -4397,9 +4796,10 @@
 
     function calculateShot({ player, club, angleDeg, powerPercent }) {
       const isPutter = club === "Putter";
-      const distanceYards = isPutter
+      const rawDistanceYards = isPutter
         ? PUTTER_DISTANCE_YARDS
         : players[player].find(([name]) => name === club)[1];
+      const distanceYards = isPutter ? rawDistanceYards : adjustedDistanceForPlayer(player, rawDistanceYards);
       const angleRad = angleDeg * Math.PI / 180;
       const baselineAngleDeg = defaultAngles[club] || angleDeg;
       const baselineAngleRad = baselineAngleDeg * Math.PI / 180;
@@ -5177,17 +5577,17 @@
       const { origin, maxX, maxY, minX, scale } = getScale(rect);
 
       drawGrid(rect, origin, scale, maxX, maxY, minX);
-      if (trajectoryToggle.checked) {
+      if (trajectoryToggle.checked || isReplayMode()) {
         drawPreviousTraces(origin, scale, minX);
         drawFullShotPath(origin, scale, minX);
         drawPrediction(origin, scale, minX);
       }
       drawObstacles(origin, scale, minX);
-      if (trajectoryToggle.checked && !trajectoryOnlyToggle.checked) drawTrace(origin, scale, minX);
+      if ((trajectoryToggle.checked && !trajectoryOnlyToggle.checked) || isReplayMode()) drawTrace(origin, scale, minX);
       drawLanding(origin, scale, minX);
       drawFlag(origin, scale, minX);
 
-      if (!ballHidden && !trajectoryOnlyToggle.checked) {
+      if (!ballHidden && (!trajectoryOnlyToggle.checked || isReplayMode())) {
         const ballScreen = screenPoint(ballPosition, origin, scale, minX);
         if (ballSinking) {
           const easedSink = 1 - Math.pow(1 - sinkProgress, 2);
@@ -5264,7 +5664,9 @@
         "hasUnexpectedInjectedContent",
         "maxFlightSpeedIndex",
         "renderTrainingRecords",
-        "startTrainingReplay"
+        "startTrainingReplay",
+        "exitTrainingReplay",
+        "updateReplayHud"
       ].forEach((name) => {
         const value = window[name];
         if (typeof value !== "function") return;
@@ -5342,6 +5744,11 @@
         statisticsList,
         trainingPanel,
         trainingRecordList,
+        replayHud,
+        replayTitle,
+        replayMeta,
+        replayProgressBar,
+        replayCloseBtn,
         holeModal,
         afkPanel,
         afkCanvas
@@ -5353,7 +5760,9 @@
         launch,
         recordCompletedShot,
         calculateShot,
-        updateFlightSpeedControl
+        updateFlightSpeedControl,
+        startTrainingReplay,
+        exitTrainingReplay
       ];
       const domOk = requiredNodes.every((node) => node && document.documentElement.contains(node));
       const functionsOk = requiredFunctions.every((fn) => typeof fn === "function");
@@ -5362,7 +5771,9 @@
         && Boolean(translations.zh.achievementUnlocked)
         && Boolean(translations.en.achievementUnlocked)
         && Boolean(translations.zh.trainingTitle)
-        && Boolean(translations.en.trainingTitle);
+        && Boolean(translations.en.trainingTitle)
+        && Boolean(translations.zh.replayTitle)
+        && Boolean(translations.en.replayTitle);
       const sourceOk = hasExpectedSourceIntegrity();
       const dataOk = hasExpectedDataIntegrity();
       const shapeOk = hasExpectedDomShape();
@@ -5594,7 +6005,7 @@
       chipClubs.forEach(([club, distance]) => {
         const chip = document.createElement("span");
         chip.className = club === shot.club ? "chip active" : "chip";
-        chip.textContent = `${club} ${distance}`;
+        chip.textContent = `${club} ${adjustedDistanceForPlayer(shot.player, distance)}`;
         fields.chips.appendChild(chip);
       });
     }
@@ -5621,6 +6032,7 @@
       trustDomMutation(700);
       cancelActiveAnimation();
       replayState = null;
+      replayHud.classList.remove("show");
       clearHoleAdvanceTimer();
       hideHoleModal();
       shot = getShot();
@@ -5792,10 +6204,12 @@
     function launch() {
       cancelActiveAnimation();
       replayState = null;
+      replayHud.classList.remove("show");
       if (isChallengeMode() && gameFinished) return;
       if (!checkSiteIntegrity()) return;
       if (!ensureSelectedPlayerUnlocked()) return;
       if (!updateAfkLaunchActivity()) return;
+      hideTutorialDuringShot();
       updateFlightSpeedControl();
       clearHoleAdvanceTimer();
       hideHoleModal();
@@ -6122,17 +6536,46 @@
       if (show) renderTrainingRecords();
     }
 
+    function updateReplayHud(record, progress, complete = false) {
+      trustDomMutation();
+      const speed = Math.max(0.25, Number(trainingReplaySpeed.value) || 1);
+      const percent = Math.round(progress * 100);
+      if (replayState) replayState.progress = progress;
+      replayTitle.textContent = complete ? tr("replayComplete") : tr("replayTitle");
+      replayMeta.textContent = tr("replayMeta", {
+        mode: modeDisplayName(record.mode),
+        player: playerDisplayName(record.player),
+        club: record.club,
+        speed,
+        progress: percent
+      });
+      replayProgressBar.style.width = `${percent}%`;
+      replayCloseBtn.title = tr("replayClose");
+    }
+
+    function exitTrainingReplay() {
+      trustDomMutation(900);
+      cancelActiveAnimation();
+      replayState = null;
+      replayHud.classList.remove("show");
+      app.classList.remove("replay-mode");
+      showLobby();
+    }
+
     function startTrainingReplay(recordId) {
       const record = TrainingRecordManager.records.find((item) => item.id === recordId);
       if (!record || !record.points || record.points.length < 2) return;
       toggleTrainingPanel(false);
       cancelActiveAnimation();
-      if (mode === "lobby") showSimulator("free");
+      trustDomMutation(900);
       replayState = { recordId, active: true };
-      mode = "free";
-      playerControl.classList.remove("hidden");
-      fields.gameInfo.classList.remove("show");
-      playerSelect.disabled = false;
+      mode = "replay";
+      lobby.classList.add("hidden");
+      app.classList.remove("hidden");
+      app.classList.add("replay-mode");
+      launchDock.classList.add("hidden");
+      homeBtn.classList.remove("show");
+      replayHud.classList.add("show");
       shot = record.shotSnapshot || shot;
       previousTrails = [];
       trail = [];
@@ -6145,8 +6588,7 @@
       const speed = Math.max(0.25, Number(trainingReplaySpeed.value) || 1);
       const replayMs = Math.max(700, (record.time || 2) * 1000 / speed);
       const started = performance.now();
-      setLaunchButton("flying", true);
-      updateText("replayingTraining", { index: TrainingRecordManager.records.findIndex((item) => item.id === recordId) + 1 });
+      updateReplayHud(record, 0);
 
       function replayFrame(now) {
         const u = Math.min(1, (now - started) / replayMs);
@@ -6154,6 +6596,7 @@
         trail = points.slice(0, pointIndex + 1);
         ballPosition = points[pointIndex];
         flightProgress = u;
+        updateReplayHud(record, u);
         drawScene();
         if (u < 1) {
           animation = scheduleAnimationFrame(replayFrame);
@@ -6161,9 +6604,8 @@
         }
         landed = true;
         showLandingMarker = true;
-        replayState = null;
-        setLaunchButton("relaunch", false);
-        updateText("replayingTraining", { index: TrainingRecordManager.records.findIndex((item) => item.id === recordId) + 1 });
+        replayState = { recordId, active: false };
+        updateReplayHud(record, 1, true);
         drawScene();
         animation = null;
       }
@@ -6202,6 +6644,7 @@
             <div class="progress-bar"><span style="width:${percent}%"></span></div>
             <div class="achievement-meta">
               ${tr("achievementProgress")}: ${Math.round(progress * 100) / 100} / ${achievement.target}
+              · ${tr("achievementCoinReward", { coins: achievementCoinReward(achievement) })}
               · ${unlockedAt ? tr("achievementUnlockedOn") : tr("achievementLocked")}: ${formatDate(unlockedAt)}
             </div>
           </div>
@@ -6273,12 +6716,18 @@
       renderAchievements();
       renderTrainingRecords();
       renderTutorial();
+      if (isReplayMode() && replayState?.recordId) {
+        const record = TrainingRecordManager.records.find((item) => item.id === replayState.recordId);
+        if (record) updateReplayHud(record, replayState.progress || 0, replayState.active === false);
+      }
       updateGameInfo();
       if (mode !== "lobby") drawScene();
     }
 
     fillPlayers();
     AchievementManager.evaluate();
+    EconomyManager.syncUnlockedAchievementRewards();
+    fillPlayers();
     setupLaunchDockDragging();
     protectCriticalGlobals();
     document.addEventListener("pointerdown", detectAbnormalClicking, true);
@@ -6294,6 +6743,10 @@
 
     playerSelect.addEventListener("change", () => {
       if (mode === "free") fillClubs({ preserveSwing: true });
+      if (mode === "free") maybeOfferPlayerUpgrade(playerSelect.value);
+    });
+    lobbyPlayerSelect.addEventListener("change", () => {
+      if (mode === "lobby") maybeOfferPlayerUpgrade(lobbyPlayerSelect.value);
     });
     clubSelect.addEventListener("change", () => {
       if (mode !== "free") angleSlider.value = defaultAngles[clubSelect.value] || 18;
@@ -6417,6 +6870,7 @@
     trainingPanel.addEventListener("click", (event) => {
       if (event.target === trainingPanel) toggleTrainingPanel(false);
     });
+    replayCloseBtn.addEventListener("click", exitTrainingReplay);
     trainingRecordList.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-training-replay]");
       if (!button) return;
@@ -6438,9 +6892,13 @@
       if (event.key === "Escape" && !trainingPanel.classList.contains("hidden")) {
         toggleTrainingPanel(false);
       }
+      if (event.key === "Escape" && replayHud.classList.contains("show")) {
+        exitTrainingReplay();
+      }
     });
     window.addEventListener("resize", () => {
       if (mode !== "lobby") drawScene();
+      if (tutorialState.active) renderTutorial();
     });
   </script>
 </body>
