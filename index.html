@@ -2066,7 +2066,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "0cc86666";
+    const SOURCE_INTEGRITY_HASH = "92dc6c07";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2451,7 +2451,7 @@
         dailyCompleted: "今日完成",
         dailyReward: "单个奖励",
         dailyRefresh: "刷新时间",
-        dailyRewardValue: "500 金币",
+        dailyRewardValue: "200 金币",
         dailyCheckin: "每日签到",
         dailyCheckinClaim: "签到领取",
         dailyCheckinDone: "今日已领",
@@ -2461,7 +2461,7 @@
         dailyComplete: "已完成",
         dailyIncomplete: "进行中",
         dailyTaskCompleteTitle: "📅 每日任务完成",
-        dailyTaskCoinReward: "+500 金币",
+        dailyTaskCoinReward: "+200 金币",
         dailyRefreshLine: "每天 12:00 刷新",
         playerUnlockProgress: "角色解锁进度",
         bonusAchievements: "奖励成就",
@@ -2699,7 +2699,7 @@
         dailyCompleted: "Today",
         dailyReward: "Reward Each",
         dailyRefresh: "Refresh",
-        dailyRewardValue: "500 coins",
+        dailyRewardValue: "200 coins",
         dailyCheckin: "Daily Check-In",
         dailyCheckinClaim: "Claim",
         dailyCheckinDone: "Claimed",
@@ -2709,7 +2709,7 @@
         dailyComplete: "Complete",
         dailyIncomplete: "In progress",
         dailyTaskCompleteTitle: "📅 DAILY TASK COMPLETE",
-        dailyTaskCoinReward: "+500 coins",
+        dailyTaskCoinReward: "+200 coins",
         dailyRefreshLine: "Refreshes every day at 12:00",
         playerUnlockProgress: "Player Unlock Progress",
         bonusAchievements: "Bonus Achievements",
@@ -3835,7 +3835,7 @@
           const progress = Math.min(task.target, Math.max(0, task.progress(this.data.stats)));
           if (progress < task.target) return;
           this.data.completed[task.id] = new Date().toISOString();
-          EconomyManager.addCoins(500, `daily:${this.data.slot}:${task.id}`);
+          EconomyManager.addCoins(200, `daily:${this.data.slot}:${task.id}`);
           this.showToast(task);
         });
       },
