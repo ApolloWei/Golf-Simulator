@@ -2095,7 +2095,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "3395e3e0";
+    const SOURCE_INTEGRITY_HASH = "ba7007b0";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -7199,6 +7199,9 @@
 
     function updateResetButtonVisibility() {
       trustDomMutation();
+      const hideCheatControl = isTournamentMode();
+      cheatToggle.closest(".control")?.classList.toggle("hidden", hideCheatControl);
+      if (hideCheatControl) cheatToggle.checked = false;
       const showReset = isFreeMode() || (isChallengeMode() && !isTournamentMode() && cheatToggle.checked);
       resetBtn.classList.toggle("hidden", !showReset);
     }
