@@ -2094,7 +2094,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "45764762";
+    const SOURCE_INTEGRITY_HASH = "b4921eae";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2550,6 +2550,7 @@
         unlockBenKruper: "完成 60% + Only 成就解锁",
         unlockFredCouples: "完成“百次一杆进洞”成就解锁",
         lockedPlayerBlocked: "这个人物还没有合法解锁，已切回 Calvin。",
+        hardHackMessage: "你为什么要不断地攻击一个网站呢？网站的创建者非常伤心。你就拿别人那么多个夜晚的编程当作儿戏吗？还公平吗？",
         abnormalClickExit: "检测到异常点击速度，已自动退出当前游戏。",
         afkTitle: "AFK 检测",
         afkPrompt: "请在 60 秒内把小球拖到终点，否则会自动返回大厅。",
@@ -2830,6 +2831,7 @@
         unlockBenKruper: "Unlock at 60% + Only achievements",
         unlockFredCouples: "Unlock by completing Ace Century",
         lockedPlayerBlocked: "This player is not legitimately unlocked. Switched back to Calvin.",
+        hardHackMessage: "Why do you keep attacking a website? The creator is very sad. Are you treating so many nights of someone else's programming like a joke? Is that still fair?",
         abnormalClickExit: "Abnormal click speed detected. Current game exited automatically.",
         afkTitle: "AFK Check",
         afkPrompt: "Drag the ball to the finish within 60 seconds or you will return to the lobby.",
@@ -6896,6 +6898,11 @@
       clearHoleAdvanceTimer();
       hideAfkChallenge();
       if (integrityTimerId) nativeClearInterval.call(window, integrityTimerId);
+      try {
+        window.alert(tr("hardHackMessage"));
+      } catch {
+        // Keep the forced exit working even if alert is blocked.
+      }
       if (siteMutationObserver) {
         mutationGuardDisconnectAllowed = true;
         siteMutationObserver.disconnect();
