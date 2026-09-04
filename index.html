@@ -2095,7 +2095,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "ba7007b0";
+    const SOURCE_INTEGRITY_HASH = "141ed7c4";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -3703,6 +3703,7 @@
         return 1 + this.playerLevel(player) * 0.005;
       },
       addCoins(amount, achievementId) {
+        if (!isProgressTrusted()) return;
         const coins = Math.max(0, Math.floor(amount || 0));
         if (coins <= 0) return;
         this.data.coins = this.coins() + coins;
@@ -4250,7 +4251,30 @@
       isUnlocked(id) {
         return Boolean(this.data.unlocked[id]);
       },
+      auditUnlocks() {
+        let changed = false;
+        const known = new Map(allAchievementDefinitions.map((achievement) => [achievement.id, achievement]));
+        Object.keys(this.data.unlocked || {}).forEach((id) => {
+          const achievement = known.get(id);
+          if (!achievement || achievement.progress(StatsManager.data) < achievement.target) {
+            delete this.data.unlocked[id];
+            if (EconomyManager.data.rewardedAchievements[id]) {
+              const reward = Math.max(0, Math.floor(EconomyManager.data.rewardedAchievements[id] || 0));
+              EconomyManager.data.coins = Math.max(0, EconomyManager.coins() - reward);
+              delete EconomyManager.data.rewardedAchievements[id];
+            }
+            changed = true;
+          }
+        });
+        if (changed) {
+          this.save();
+          EconomyManager.save();
+          updateCoinDisplay();
+        }
+      },
       evaluate() {
+        if (!isProgressTrusted()) return;
+        this.auditUnlocks();
         visibleAchievementDefinitions().forEach((achievement) => {
           if (this.isUnlocked(achievement.id)) return;
           const progress = Math.min(achievement.target, achievement.progress(StatsManager.data));
@@ -5059,6 +5083,24 @@
       return "tournamentAsceticNationalBan";
     }
 
+    function isTournamentPlayerAllowedForRewards(player, type = selectedTournament) {
+      if (hasSupporterCreatorUnlock()) return true;
+      if (player === "苦行僧" || player === "老花眼") return false;
+      const config = tournamentConfig(type);
+      return !config.proOnly || isProTournamentPlayer(player);
+    }
+
+    function isProgressTrusted(result = {}) {
+      if (integrityFailed || !checkSiteIntegrity()) return false;
+      const resultMode = result.mode || mode;
+      if (resultMode !== "tournament" && !isTournamentMode()) return true;
+      const player = result.player || shot?.player || lobbyPlayerSelect.value || playerSelect.value;
+      const type = tournamentState.type || selectedTournament;
+      if (isTournamentPlayerAllowedForRewards(player, type)) return true;
+      forceBrowserStartPage();
+      return false;
+    }
+
     function updateTournamentFeeLabel() {
       if (!tournamentFeeLabel) return;
       trustDomMutation();
@@ -5090,18 +5132,17 @@
         lobbyPlayerSelect.value = "Calvin";
         return;
       }
-      const creatorOverride = hasSupporterCreatorUnlock();
-      if (!creatorOverride && player === "苦行僧") {
+      if (!hasSupporterCreatorUnlock() && player === "苦行僧") {
         window.alert(tr(asceticTournamentBanKey(selectedTournament)));
         trustDomMutation(900);
         return;
       }
-      if (!creatorOverride && player === "老花眼") {
+      if (!hasSupporterCreatorUnlock() && player === "老花眼") {
         window.alert(tr("tournamentLowVisionBan"));
         trustDomMutation(900);
         return;
       }
-      if (!creatorOverride && config.proOnly && !isProTournamentPlayer(player)) {
+      if (!isTournamentPlayerAllowedForRewards(player, selectedTournament)) {
         window.alert(tr("tournamentProOnly"));
         trustDomMutation(900);
         return;
@@ -6819,6 +6860,8 @@
         "hasExpectedStorageIntegrity",
         "hasExpectedMutationGuardIntegrity",
         "hasExpectedCriticalFunctionIntegrity",
+        "isTournamentPlayerAllowedForRewards",
+        "isProgressTrusted",
         "maxFlightSpeedIndex",
         "renderTrainingRecords",
         "startTrainingReplay",
@@ -7321,6 +7364,7 @@
         windYards: currentWind.yards,
         ...extra
       };
+      if (!isProgressTrusted(result)) return;
       TrainingRecordManager.record(result);
       StatsManager.recordShot(result);
     }
