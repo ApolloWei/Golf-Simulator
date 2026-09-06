@@ -2094,7 +2094,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "b4921eae";
+    const SOURCE_INTEGRITY_HASH = "49ac441a";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2508,7 +2508,9 @@
         coinBalance: "金币",
         playerLevel: "等级 {level}",
         upgradePrompt: "升级人物？\n{player}\n等级：Lv.{level}\n最远距离：{distance} yd\n花费：500 金币\n升级后力量 +0.5%",
+        upgradeAllPrompt: "一键升级这个人物？\n{player}\n当前等级：Lv.{level}\n当前金币：{coins}\n可以升级：{levels} 级\n总花费：{cost} 金币\n升级后等级：Lv.{nextLevel}\n每级力量 +0.5%",
         upgradeSuccess: "{player} 已升级到 Lv.{level}！",
+        upgradeAllSuccess: "{player} 已一键升级 {levels} 级，现在是 Lv.{level}！",
         upgradeNoCoins: "金币不足。升级需要 500 金币。",
         achievementCoinReward: "+{coins} 金币",
         dailyTitle: "每日任务",
@@ -2789,7 +2791,9 @@
         coinBalance: "Coins",
         playerLevel: "Level {level}",
         upgradePrompt: "Upgrade this player?\n{player}\nLevel: Lv.{level}\nLongest distance: {distance} yd\nCost: 500 coins\nUpgrade gives +0.5% power.",
+        upgradeAllPrompt: "One-click upgrade this player?\n{player}\nCurrent level: Lv.{level}\nCurrent coins: {coins}\nAvailable upgrades: {levels}\nTotal cost: {cost} coins\nNew level: Lv.{nextLevel}\nEach level gives +0.5% power.",
         upgradeSuccess: "{player} upgraded to Lv.{level}.",
+        upgradeAllSuccess: "{player} upgraded {levels} levels at once. Now Lv.{level}.",
         upgradeNoCoins: "Not enough coins. Upgrading costs 500 coins.",
         achievementCoinReward: "+{coins} coins",
         dailyTitle: "Daily Tasks",
@@ -3733,15 +3737,17 @@
           if (AchievementManager.isUnlocked(achievement.id)) this.grantAchievementReward(achievement);
         });
       },
-      upgradePlayer(player) {
+      applyPlayerUpgrade(player, levels) {
         trustDomMutation(3000);
-        if (this.coins() < 500) {
+        const count = Math.max(1, Math.floor(levels || 1));
+        const cost = count * 500;
+        if (this.coins() < cost) {
           window.alert(tr("upgradeNoCoins"));
           trustDomMutation(900);
           return false;
         }
-        this.data.coins = this.coins() - 500;
-        this.data.playerLevels[player] = this.playerLevel(player) + 1;
+        this.data.coins = this.coins() - cost;
+        this.data.playerLevels[player] = this.playerLevel(player) + count;
         this.save();
         trustDomMutation(3000);
         updateCoinDisplay();
@@ -3752,9 +3758,30 @@
           updateText("powerChanged");
           drawScene();
         }
+        return true;
+      },
+      upgradePlayer(player) {
+        if (!this.applyPlayerUpgrade(player, 1)) return false;
         trustDomMutation(3000);
         window.alert(tr("upgradeSuccess", {
           player: playerDisplayName(player),
+          level: this.playerLevel(player)
+        }));
+        trustDomMutation(900);
+        return true;
+      },
+      upgradePlayerWithAllCoins(player) {
+        const levels = Math.floor(this.coins() / 500);
+        if (levels < 1) {
+          window.alert(tr("upgradeNoCoins"));
+          trustDomMutation(900);
+          return false;
+        }
+        if (!this.applyPlayerUpgrade(player, levels)) return false;
+        trustDomMutation(3000);
+        window.alert(tr("upgradeAllSuccess", {
+          player: playerDisplayName(player),
+          levels,
           level: this.playerLevel(player)
         }));
         trustDomMutation(900);
@@ -4082,6 +4109,22 @@
 
     function maybeOfferPlayerUpgrade(player) {
       if (suppressUpgradePrompt || !player || !isPlayerUnlocked(player) || isReplayMode()) return;
+      const coins = EconomyManager.coins();
+      const bulkLevels = Math.floor(coins / 500);
+      if (bulkLevels > 1) {
+        const upgradeAll = window.confirm(tr("upgradeAllPrompt", {
+          player: playerDisplayName(player),
+          level: EconomyManager.playerLevel(player),
+          coins,
+          levels: bulkLevels,
+          cost: bulkLevels * 500,
+          nextLevel: EconomyManager.playerLevel(player) + bulkLevels
+        }));
+        if (upgradeAll) {
+          EconomyManager.upgradePlayerWithAllCoins(player);
+          return;
+        }
+      }
       const ok = window.confirm(tr("upgradePrompt", {
         player: playerDisplayName(player),
         level: EconomyManager.playerLevel(player),
