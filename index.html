@@ -2231,7 +2231,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "3966a978";
+    const SOURCE_INTEGRITY_HASH = "031fb664";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2696,6 +2696,10 @@
         accountLoginSuccess: "登录成功，云端进度已恢复。",
         accountLoggedOut: "已登出。本地进度已清零，重新登录会恢复账号进度。",
         accountBusy: "这个账号已经在另一个浏览器登录。",
+        accountExists: "这个昵称已经被注册了，请换一个昵称或直接登录。",
+        accountBadCredentials: "昵称或密码不正确。",
+        accountInvalidInput: "昵称需要 2-24 个字符，密码需要 4-64 个字符，昵称不能包含 /。",
+        accountAuthFailed: "Firebase 登录授权失败，请刷新后再试。",
         accountFailed: "账户操作失败，请检查昵称或密码。",
         playerUnlockProgress: "角色解锁进度",
         bonusAchievements: "奖励成就",
@@ -2998,6 +3002,10 @@
         accountLoginSuccess: "Logged in. Cloud progress restored.",
         accountLoggedOut: "Logged out. Local progress was reset; logging back in restores account progress.",
         accountBusy: "This account is already active in another browser.",
+        accountExists: "That nickname is already registered. Try another nickname or log in.",
+        accountBadCredentials: "Incorrect nickname or password.",
+        accountInvalidInput: "Nickname must be 2-24 characters, password must be 4-64 characters, and nickname cannot contain /.",
+        accountAuthFailed: "Firebase sign-in failed. Refresh and try again.",
         accountFailed: "Account action failed. Check the nickname or password.",
         playerUnlockProgress: "Player Unlock Progress",
         bonusAchievements: "Bonus Achievements",
@@ -4032,6 +4040,15 @@
           if (code === "functions/permission-denied" || code === "permission-denied") {
             throw new Error("bad-credentials");
           }
+          if (code === "functions/already-exists" || code === "already-exists") {
+            throw new Error("account-exists");
+          }
+          if (code === "functions/invalid-argument" || code === "invalid-argument") {
+            throw new Error("invalid-account-input");
+          }
+          if (code === "functions/unauthenticated" || code === "unauthenticated") {
+            throw new Error("account-auth-failed");
+          }
           throw error;
         }
       },
@@ -4327,6 +4344,10 @@
         return tr("accountNeedFirebase");
       }
       if (error?.message === "account-busy") return tr("accountBusy");
+      if (error?.message === "account-exists") return tr("accountExists");
+      if (error?.message === "bad-credentials") return tr("accountBadCredentials");
+      if (error?.message === "invalid-account-input") return tr("accountInvalidInput");
+      if (error?.message === "account-auth-failed") return tr("accountAuthFailed");
       return tr("accountFailed");
     }
 
