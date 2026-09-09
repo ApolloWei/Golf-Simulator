@@ -2094,7 +2094,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "618224a8";
+    const SOURCE_INTEGRITY_HASH = "560ef14c";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -3075,10 +3075,16 @@
       dailyTasks: "golfSimulatorDailyTasks.v1",
       economy: "golfSimulatorEconomy.v1"
     };
-    const SUPPORTER_PASSWORD_HASH = "ea72c79594296e45b8c2a296644d988581f58cfac6601d122ed0a8bd7c02e8bf";
-    const SUPPORTER_FUTURE_PASSWORD_HASH = "2dfcab3471c3a8bcea03ea7c0402547d9235998780a7e8c248b4da2a2b2a42c6";
-    const SUPPORTER_MAX_PASSWORD_HASH = "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f";
-    const SUPPORTER_CREATOR_PASSWORD_HASH = "a43729edcece96240479409e5e66c0316e0ee893b18f644d0a93d771a7c6ae61";
+    const FIREBASE_CONFIG = Object.freeze({
+      apiKey: "AIzaSyAc4yuho5ml0tU3bUG-SmjsSAM5qMhEf9A",
+      authDomain: "golf-simulator-c43e3.firebaseapp.com",
+      projectId: "golf-simulator-c43e3",
+      storageBucket: "golf-simulator-c43e3.firebasestorage.app",
+      messagingSenderId: "402902182057",
+      appId: "1:402902182057:web:eb6134611c0be8eadda1b8",
+      measurementId: "G-B494RK0XRM"
+    });
+    const FIREBASE_MODULE_VERSION = "10.12.5";
     const SUPPORTER_CREATOR_PROOF_SALT = "ascetic-monk-hidden-reward-2026-09";
 
     const CLUB_COLLECTION_TARGET = 13;
@@ -3143,7 +3149,7 @@
     }
 
     function creatorProofValue() {
-      return stableHash(`${SUPPORTER_CREATOR_PASSWORD_HASH}|${SUPPORTER_CREATOR_PROOF_SALT}|苦行僧`);
+      return stableHash(`${FIREBASE_CONFIG.appId}|${SUPPORTER_CREATOR_PROOF_SALT}|苦行僧`);
     }
 
     function saveSupporterCreatorProof() {
@@ -3295,12 +3301,6 @@
 
     function visibleAchievementDefinitions() {
       return allAchievementDefinitions.filter(canUseAchievement);
-    }
-
-    async function sha256Hex(value) {
-      const bytes = new TextEncoder().encode(value);
-      const digest = await crypto.subtle.digest("SHA-256", bytes);
-      return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
     }
 
     function isPlayerUnlocked(name) {
@@ -3649,9 +3649,171 @@
       }
     }
 
+    let firebaseBridge = null;
+
     function saveJson(key, value) {
       localStorage.setItem(key, JSON.stringify(value));
+      if (firebaseBridge && !firebaseBridge.syncingFromCloud) firebaseBridge.queueSave(key);
     }
+
+    const FirebaseBridge = {
+      ready: false,
+      syncingFromCloud: false,
+      uid: "",
+      db: null,
+      doc: null,
+      getDoc: null,
+      setDoc: null,
+      serverTimestamp: null,
+      httpsCallable: null,
+      functions: null,
+      saveTimer: 0,
+      async init() {
+        try {
+          const [
+            appModule,
+            authModule,
+            firestoreModule,
+            functionsModule
+          ] = await Promise.all([
+            import(`https://www.gstatic.com/firebasejs/${FIREBASE_MODULE_VERSION}/firebase-app.js`),
+            import(`https://www.gstatic.com/firebasejs/${FIREBASE_MODULE_VERSION}/firebase-auth.js`),
+            import(`https://www.gstatic.com/firebasejs/${FIREBASE_MODULE_VERSION}/firebase-firestore.js`),
+            import(`https://www.gstatic.com/firebasejs/${FIREBASE_MODULE_VERSION}/firebase-functions.js`)
+          ]);
+          const app = appModule.initializeApp(FIREBASE_CONFIG);
+          const auth = authModule.getAuth(app);
+          this.db = firestoreModule.getFirestore(app);
+          this.doc = firestoreModule.doc;
+          this.getDoc = firestoreModule.getDoc;
+          this.setDoc = firestoreModule.setDoc;
+          this.serverTimestamp = firestoreModule.serverTimestamp;
+          this.functions = functionsModule.getFunctions(app);
+          this.httpsCallable = functionsModule.httpsCallable;
+          await authModule.signInAnonymously(auth);
+          await new Promise((resolve) => {
+            const unsubscribe = authModule.onAuthStateChanged(auth, (user) => {
+              if (!user) return;
+              unsubscribe();
+              this.uid = user.uid;
+              resolve();
+            });
+          });
+          this.ready = true;
+          await this.loadProfile();
+          await this.loadServerProfile();
+          this.queueSave("initial");
+        } catch (error) {
+          console.info("Firebase sync is not available yet.", error);
+        }
+      },
+      profileRef() {
+        if (!this.ready || !this.uid) return null;
+        return this.doc(this.db, "users", this.uid, "clientMirror", "profile");
+      },
+      snapshot() {
+        return {
+          achievements: AchievementManager.data,
+          stats: StatsManager.data,
+          economy: EconomyManager.data,
+          dailyTasks: DailyTaskManager.data,
+          trainingRecords: TrainingRecordManager.records,
+          updatedAt: this.serverTimestamp ? this.serverTimestamp() : Date.now()
+        };
+      },
+      async loadProfile() {
+        const ref = this.profileRef();
+        if (!ref) return;
+        const snap = await this.getDoc(ref);
+        if (!snap.exists()) return;
+        const profile = snap.data() || {};
+        this.syncingFromCloud = true;
+        try {
+          if (profile.achievements) localStorage.setItem(STORAGE_KEYS.achievements, JSON.stringify(profile.achievements));
+          if (profile.stats) localStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(profile.stats));
+          if (profile.economy) localStorage.setItem(STORAGE_KEYS.economy, JSON.stringify(profile.economy));
+          if (profile.dailyTasks) localStorage.setItem(STORAGE_KEYS.dailyTasks, JSON.stringify(profile.dailyTasks));
+          if (Array.isArray(profile.trainingRecords)) {
+            localStorage.setItem(STORAGE_KEYS.trainingRecords, JSON.stringify(profile.trainingRecords));
+          }
+          AchievementManager.data = safeLoad(STORAGE_KEYS.achievements, { unlocked: {} });
+          StatsManager.data = safeLoad(STORAGE_KEYS.stats, defaultStats);
+          EconomyManager.data = normalizedEconomyData(safeLoad(STORAGE_KEYS.economy, defaultEconomy));
+          DailyTaskManager.load();
+          TrainingRecordManager.records = safeLoadArray(STORAGE_KEYS.trainingRecords);
+          AchievementManager.evaluate();
+          EconomyManager.syncUnlockedAchievementRewards();
+          refreshPlayerUnlocks();
+          renderDailyTasks();
+          renderAchievements();
+          renderTrainingRecords();
+        } finally {
+          this.syncingFromCloud = false;
+        }
+      },
+      async loadServerProfile() {
+        if (!this.ready || !this.uid) return;
+        try {
+          const ref = this.doc(this.db, "users", this.uid, "serverProfile", "progress");
+          const snap = await this.getDoc(ref);
+          if (!snap.exists()) return;
+          const profile = snap.data() || {};
+          if (!profile.supporter) return;
+          trustSupporterStorage(5000);
+          this.setSupporterFlags(profile.supporter);
+          refreshPlayerUnlocks();
+        } catch (error) {
+          console.info("Firebase server profile load failed.", error);
+        }
+      },
+      setSupporterFlags(flags = {}) {
+        const setFlag = (key, value) => {
+          if (value) localStorage.setItem(key, "true");
+          else localStorage.removeItem(key);
+        };
+        setFlag(STORAGE_KEYS.supporterUnlock, flags.normal);
+        setFlag(STORAGE_KEYS.supporterFutureUnlock, flags.future);
+        setFlag(STORAGE_KEYS.supporterMaxUnlock, flags.max);
+        setFlag(STORAGE_KEYS.supporterCreatorUnlock, flags.creator);
+        if (flags.creator) saveSupporterCreatorProof();
+        else localStorage.removeItem(STORAGE_KEYS.supporterCreatorProof);
+      },
+      queueSave() {
+        if (!this.ready || this.syncingFromCloud) return;
+        if (this.saveTimer) nativeClearTimeout.call(window, this.saveTimer);
+        this.saveTimer = nativeSetTimeout.call(window, () => {
+          this.saveTimer = 0;
+          this.saveProfile();
+        }, 900);
+      },
+      async saveProfile() {
+        const ref = this.profileRef();
+        if (!ref || this.syncingFromCloud) return;
+        try {
+          await this.setDoc(ref, this.snapshot(), { merge: true });
+        } catch (error) {
+          console.info("Firebase profile save failed.", error);
+        }
+      },
+      async verifySupporterCode(tier, password) {
+        if (!this.ready || !this.httpsCallable || !this.functions) return null;
+        try {
+          const verifyCode = this.httpsCallable(this.functions, "verifySupporterCode");
+          const result = await verifyCode({ tier, password });
+          const data = result.data || {};
+          if (!data.ok) return false;
+          trustSupporterStorage(5000);
+          this.setSupporterFlags(data.supporter || {});
+          this.queueSave("supporter");
+          return true;
+        } catch (error) {
+          if (error && error.code === "functions/not-found") return null;
+          console.info("Firebase supporter verification failed.", error);
+          return false;
+        }
+      }
+    };
+    firebaseBridge = FirebaseBridge;
 
     function formatDate(value) {
       if (!value) return tr("achievementNever");
@@ -5307,27 +5469,14 @@
       const entered = window.prompt(tr(promptKey));
       trustDomMutation(7000);
       if (entered == null) return;
-      const enteredHash = await sha256Hex(entered.trim());
+      const serverVerification = await FirebaseBridge.verifySupporterCode(normalizedChoice, entered.trim());
       trustDomMutation(7000);
-      const expectedHash = unlocksCreator
-        ? SUPPORTER_CREATOR_PASSWORD_HASH
-        : unlocksMax
-        ? SUPPORTER_MAX_PASSWORD_HASH
-        : (unlocksFuture ? SUPPORTER_FUTURE_PASSWORD_HASH : SUPPORTER_PASSWORD_HASH);
-      if (enteredHash !== expectedHash) {
+      if (serverVerification !== true) {
         window.alert(tr("supporterFail"));
         trustDomMutation(1200);
         return;
       }
-      trustDomMutation(7000);
-      trustSupporterStorage(7000);
-      if (unlocksNormal) localStorage.setItem(STORAGE_KEYS.supporterUnlock, "true");
-      if (unlocksFuture) localStorage.setItem(STORAGE_KEYS.supporterFutureUnlock, "true");
-      if (unlocksMax) localStorage.setItem(STORAGE_KEYS.supporterMaxUnlock, "true");
-      if (unlocksCreator) {
-        localStorage.setItem(STORAGE_KEYS.supporterCreatorUnlock, "true");
-        saveSupporterCreatorProof();
-      }
+      FirebaseBridge.queueSave("supporter");
       trustDomMutation(7000);
       AchievementManager.evaluate();
       trustDomMutation(7000);
@@ -8258,6 +8407,7 @@
     DailyTaskManager.load();
     AchievementManager.evaluate();
     EconomyManager.syncUnlockedAchievementRewards();
+    FirebaseBridge.init();
     fillPlayers();
     setupLaunchDockDragging();
     protectSupporterStorage();
