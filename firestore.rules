@@ -29,6 +29,7 @@ service cloud.firestore {
           'economy',
           'dailyTasks',
           'trainingRecords',
+          'sessionId',
           'updatedAt'
         ]);
       allow delete: if false;
@@ -56,10 +57,12 @@ service cloud.firestore {
     match /accountSessions/{userId} {
       allow read: if isOwner(userId);
       allow write: if false;
+      allow delete: if false;
     }
 
     match /gameAccounts/{accountId} {
       allow read, write: if false;
+      allow delete: if false;
     }
 
     match /{document=**} {

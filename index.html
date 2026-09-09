@@ -2231,7 +2231,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "15295614";
+    const SOURCE_INTEGRITY_HASH = "c7dca3d8";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2700,6 +2700,7 @@
         accountBadCredentials: "昵称或密码不正确。",
         accountInvalidInput: "昵称需要 2-24 个字符，密码需要 4-64 个字符，昵称不能包含 /。",
         accountAuthFailed: "Firebase 登录授权失败，请刷新后再试。",
+        accountProviderDisabled: "请在 Firebase Authentication 里开启 Email/Password 登录方式。",
         accountUnknownError: "账户操作失败：{detail}",
         accountFailed: "账户操作失败，请检查昵称或密码。",
         playerUnlockProgress: "角色解锁进度",
@@ -3007,6 +3008,7 @@
         accountBadCredentials: "Incorrect nickname or password.",
         accountInvalidInput: "Nickname must be 2-24 characters, password must be 4-64 characters, and nickname cannot contain /.",
         accountAuthFailed: "Firebase sign-in failed. Refresh and try again.",
+        accountProviderDisabled: "Enable Email/Password sign-in in Firebase Authentication first.",
         accountUnknownError: "Account action failed: {detail}",
         accountFailed: "Account action failed. Check the nickname or password.",
         playerUnlockProgress: "Player Unlock Progress",
@@ -3283,6 +3285,12 @@
     });
     const FIREBASE_MODULE_VERSION = "10.12.5";
     const SUPPORTER_CREATOR_PROOF_SALT = "ascetic-monk-hidden-reward-2026-09";
+    const CLIENT_SUPPORTER_HASHES = Object.freeze({
+      1: "fbe9b3e24dee7b6abb82b1e2e5c1395caa10bee5ba8ac2f513c11e70b03ddaa3",
+      2: "62758318ec0f6d303eff97ba3a06484832d4073566deff1bfcf7b6e34b72e7cd",
+      3: "f333f95c4c50440d90eae52454bd2fa73b99094527c195f0304255bf6d3f1118",
+      5: "afb55836a5f69541c74c62c4a4efd4871969a576a958af9540f4f27ad7f41685"
+    });
 
     const CLUB_COLLECTION_TARGET = 13;
     const ALL_MODES = ["classic", "tournament", "obstacle", "precision", "putting", "free"];
@@ -3349,6 +3357,14 @@
 
     function creatorProofValue() {
       return stableHash(`${FIREBASE_CONFIG.appId}|${SUPPORTER_CREATOR_PROOF_SALT}|苦行僧`);
+    }
+
+    function supporterFlagsForTier(tier) {
+      if (tier === "5") return { normal: true, future: true, max: true, creator: true };
+      if (tier === "3") return { normal: true, future: true, max: true, creator: false };
+      if (tier === "2") return { normal: true, future: true, max: false, creator: false };
+      if (tier === "1") return { normal: true, future: false, max: false, creator: false };
+      return null;
     }
 
     function saveSupporterCreatorProof() {
@@ -3898,6 +3914,8 @@
       syncingFromCloud: false,
       initPromise: null,
       uid: "",
+      auth: null,
+      authModule: null,
       db: null,
       doc: null,
       getDoc: null,
@@ -3929,6 +3947,8 @@
           ]);
           const app = appModule.initializeApp(FIREBASE_CONFIG);
           const auth = authModule.getAuth(app);
+          this.auth = auth;
+          this.authModule = authModule;
           this.db = firestoreModule.getFirestore(app);
           this.doc = firestoreModule.doc;
           this.getDoc = firestoreModule.getDoc;
@@ -3936,15 +3956,17 @@
           this.serverTimestamp = firestoreModule.serverTimestamp;
           this.functions = functionsModule.getFunctions(app);
           this.httpsCallable = functionsModule.httpsCallable;
-          await authModule.signInAnonymously(auth);
-          await new Promise((resolve) => {
+          let user = await new Promise((resolve) => {
             const unsubscribe = authModule.onAuthStateChanged(auth, (user) => {
-              if (!user) return;
               unsubscribe();
-              this.uid = user.uid;
-              resolve();
+              resolve(user || null);
             });
           });
+          if (!user) {
+            const credential = await authModule.signInAnonymously(auth);
+            user = credential.user;
+          }
+          this.uid = user.uid;
           this.ready = true;
           await this.resumeAccountSession();
           await this.loadProfile();
@@ -3963,6 +3985,9 @@
       },
       profileRef() {
         if (!this.ready || !this.uid) return null;
+        if (this.account?.firebaseAuth) {
+          return this.doc(this.db, "users", this.uid, "clientMirror", "profile");
+        }
         if (this.account?.accountId && this.account?.sessionId) {
           return this.doc(this.db, "accountProfiles", this.account.accountId, "clientMirror", "profile");
         }
@@ -4056,6 +4081,104 @@
           throw error;
         }
       },
+      async sha256(value) {
+        const bytes = new TextEncoder().encode(String(value));
+        const digest = await crypto.subtle.digest("SHA-256", bytes);
+        return Array.from(new Uint8Array(digest))
+          .map((byte) => byte.toString(16).padStart(2, "0"))
+          .join("");
+      },
+      normalizeAccountCredentials(nickname, password) {
+        const displayName = String(nickname || "").trim().replace(/\s+/g, " ");
+        const passwordValue = String(password || "");
+        if (displayName.length < 2 || displayName.length > 24 || displayName.includes("/")
+          || passwordValue.length < 4 || passwordValue.length > 64) {
+          throw new Error("invalid-account-input");
+        }
+        return { displayName, password: passwordValue };
+      },
+      async clientAccountId(displayName) {
+        return this.sha256(displayName.toLocaleLowerCase());
+      },
+      async clientAccountEmail(displayName) {
+        const id = await this.clientAccountId(displayName);
+        return `${id}@golf-simulator.local`;
+      },
+      async clientPasswordHash(password, salt) {
+        return this.sha256(`${salt}:${password}`);
+      },
+      randomToken() {
+        if (crypto.randomUUID) return crypto.randomUUID();
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      },
+      firestoreTimestampMillis(value) {
+        if (!value) return 0;
+        if (typeof value === "number") return value;
+        if (typeof value.toMillis === "function") return value.toMillis();
+        if (typeof value.seconds === "number") return value.seconds * 1000;
+        return 0;
+      },
+      async createAccountFallback(nickname, password) {
+        if (!this.ready || !this.auth || !this.authModule) throw new Error("firebase-unavailable");
+        const { displayName, password: passwordValue } = this.normalizeAccountCredentials(nickname, password);
+        const email = await this.clientAccountEmail(displayName);
+        const sessionId = this.randomToken();
+        try {
+          const credential = await this.authModule.createUserWithEmailAndPassword(this.auth, email, passwordValue);
+          this.uid = credential.user.uid;
+          if (this.authModule.updateProfile) await this.authModule.updateProfile(credential.user, { displayName });
+        } catch (error) {
+          const code = String(error?.code || "");
+          if (code === "auth/email-already-in-use") throw new Error("account-exists");
+          if (code === "auth/weak-password" || code === "auth/invalid-email") throw new Error("invalid-account-input");
+          if (code === "auth/operation-not-allowed") throw new Error("account-auth-provider-disabled");
+          throw new Error(`account-unknown:${[code, error?.message].filter(Boolean).join(" ").slice(0, 140)}`);
+        }
+        const account = { accountId: this.uid, displayName, sessionId, firebaseAuth: true };
+        this.setAccountSession(account);
+        await this.claimFirebaseAuthSession();
+        this.startHeartbeat();
+        await this.saveProfile();
+        return account;
+      },
+      async loginAccountFallback(nickname, password) {
+        if (!this.ready || !this.auth || !this.authModule) throw new Error("firebase-unavailable");
+        const { displayName, password: passwordValue } = this.normalizeAccountCredentials(nickname, password);
+        const email = await this.clientAccountEmail(displayName);
+        const sessionId = this.randomToken();
+        try {
+          const credential = await this.authModule.signInWithEmailAndPassword(this.auth, email, passwordValue);
+          this.uid = credential.user.uid;
+        } catch (error) {
+          const code = String(error?.code || "");
+          if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential") {
+            throw new Error("bad-credentials");
+          }
+          if (code === "auth/operation-not-allowed") throw new Error("account-auth-provider-disabled");
+          throw new Error(`account-unknown:${[code, error?.message].filter(Boolean).join(" ").slice(0, 140)}`);
+        }
+        const account = { accountId: this.uid, displayName: this.auth.currentUser?.displayName || displayName, sessionId, firebaseAuth: true };
+        this.setAccountSession(account);
+        await this.claimFirebaseAuthSession();
+        this.startHeartbeat();
+        await this.loadProfile();
+        return account;
+      },
+      firebaseSessionRef() {
+        if (!this.ready || !this.uid) return null;
+        return this.doc(this.db, "users", this.uid, "clientMirror", "session");
+      },
+      async claimFirebaseAuthSession() {
+        if (!this.account?.firebaseAuth) return;
+        const ref = this.firebaseSessionRef();
+        if (!ref) return;
+        await this.setDoc(ref, {
+          sessionId: this.account.sessionId,
+          updatedAt: this.serverTimestamp ? this.serverTimestamp() : Date.now()
+        }, { merge: true });
+      },
       accountPayload() {
         return {
           achievements: AchievementManager.data,
@@ -4072,28 +4195,49 @@
         renderAccountPanel();
       },
       async createAccount(nickname, password) {
-        const data = await this.callFunction("createGameAccount", {
-          nickname,
-          password,
-          profile: this.accountPayload()
-        });
-        if (!data?.ok) throw new Error("create failed");
-        this.setAccountSession(data.account);
-        this.startHeartbeat();
-        await this.saveProfile();
-        return data.account;
+        try {
+          const data = await this.callFunction("createGameAccount", {
+            nickname,
+            password,
+            profile: this.accountPayload()
+          });
+          if (!data?.ok) throw new Error("create failed");
+          this.setAccountSession(data.account);
+          this.startHeartbeat();
+          await this.saveProfile();
+          return data.account;
+        } catch (error) {
+          if (!["functions-not-deployed", "firebase-unavailable"].includes(error?.message)
+            && !String(error?.message || "").startsWith("account-unknown:")) throw error;
+          return this.createAccountFallback(nickname, password);
+        }
       },
       async loginAccount(nickname, password) {
-        const data = await this.callFunction("loginGameAccount", { nickname, password });
-        if (!data?.ok) throw new Error(data?.reason || "login failed");
-        this.setAccountSession(data.account);
-        this.startHeartbeat();
-        await this.loadProfile();
-        return data.account;
+        try {
+          const data = await this.callFunction("loginGameAccount", { nickname, password });
+          if (!data?.ok) throw new Error(data?.reason || "login failed");
+          this.setAccountSession(data.account);
+          this.startHeartbeat();
+          await this.loadProfile();
+          return data.account;
+        } catch (error) {
+          if (!["functions-not-deployed", "firebase-unavailable"].includes(error?.message)
+            && !String(error?.message || "").startsWith("account-unknown:")) throw error;
+          return this.loginAccountFallback(nickname, password);
+        }
       },
       async resumeAccountSession() {
         if (!this.account?.accountId || !this.account?.sessionId) return false;
         try {
+          if (this.account.firebaseAuth) {
+            if (!this.auth?.currentUser || this.auth.currentUser.isAnonymous || this.auth.currentUser.uid !== this.account.accountId) {
+              this.setAccountSession(null);
+              return false;
+            }
+            this.uid = this.auth.currentUser.uid;
+            await this.claimFirebaseAuthSession();
+            return true;
+          }
           const data = await this.callFunction("resumeGameAccount", this.account);
           if (!data?.ok) {
             this.setAccountSession(null);
@@ -4111,7 +4255,18 @@
         if (this.account?.accountId && this.account?.sessionId) {
           await this.saveProfile();
           try {
-            await this.callFunction("logoutGameAccount", this.account);
+            if (this.account.firebaseAuth) {
+              const ref = this.firebaseSessionRef();
+              if (ref) await this.setDoc(ref, {
+                sessionId: "",
+                updatedAt: this.serverTimestamp ? this.serverTimestamp() : Date.now()
+              }, { merge: true });
+              await this.authModule.signOut(this.auth);
+              const credential = await this.authModule.signInAnonymously(this.auth);
+              this.uid = credential.user.uid;
+            } else {
+              await this.callFunction("logoutGameAccount", this.account);
+            }
           } catch (error) {
             console.info("Game account logout failed.", error);
           }
@@ -4131,6 +4286,20 @@
       async sendHeartbeat() {
         if (!this.account?.accountId || !this.account?.sessionId) return;
         try {
+          if (this.account.firebaseAuth) {
+            const ref = this.firebaseSessionRef();
+            if (!ref) return;
+            const snap = await this.getDoc(ref);
+            const session = snap.data() || {};
+            if (snap.exists() && session.sessionId && session.sessionId !== this.account.sessionId) {
+              this.setAccountSession(null);
+              resetLocalProgressForGuest();
+              setAccountError(tr("accountBusy"));
+              return;
+            }
+            await this.claimFirebaseAuthSession();
+            return;
+          }
           const data = await this.callFunction("accountHeartbeat", this.account);
           if (!data?.ok) {
             this.setAccountSession(null);
@@ -4171,6 +4340,14 @@
         }
       },
       async verifySupporterCode(tier, password) {
+        const expected = CLIENT_SUPPORTER_HASHES[String(tier)];
+        const actual = await this.sha256(`${FIREBASE_CONFIG.appId}|supporter-tier|${tier}|${password}`);
+        if (expected && actual === expected) {
+          trustSupporterStorage(5000);
+          this.setSupporterFlags(supporterFlagsForTier(tier));
+          this.queueSave("supporter");
+          return true;
+        }
         try {
           const data = await this.callFunction("verifySupporterCode", { tier, password });
           if (!data.ok) return false;
@@ -4179,7 +4356,10 @@
           this.queueSave("supporter");
           return true;
         } catch (error) {
-          if (error?.message === "functions-not-deployed" || error?.message === "firebase-unavailable") return null;
+          if (["functions-not-deployed", "firebase-unavailable"].includes(error?.message)
+            || String(error?.message || "").startsWith("account-unknown:")) {
+            return false;
+          }
           console.info("Firebase supporter verification failed.", error);
           return false;
         }
@@ -4352,6 +4532,7 @@
       if (error?.message === "bad-credentials") return tr("accountBadCredentials");
       if (error?.message === "invalid-account-input") return tr("accountInvalidInput");
       if (error?.message === "account-auth-failed") return tr("accountAuthFailed");
+      if (error?.message === "account-auth-provider-disabled") return tr("accountProviderDisabled");
       if (String(error?.message || "").startsWith("account-unknown:")) {
         return tr("accountUnknownError", { detail: error.message.replace("account-unknown:", "") });
       }
