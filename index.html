@@ -2231,7 +2231,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "031fb664";
+    const SOURCE_INTEGRITY_HASH = "15295614";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2700,6 +2700,7 @@
         accountBadCredentials: "昵称或密码不正确。",
         accountInvalidInput: "昵称需要 2-24 个字符，密码需要 4-64 个字符，昵称不能包含 /。",
         accountAuthFailed: "Firebase 登录授权失败，请刷新后再试。",
+        accountUnknownError: "账户操作失败：{detail}",
         accountFailed: "账户操作失败，请检查昵称或密码。",
         playerUnlockProgress: "角色解锁进度",
         bonusAchievements: "奖励成就",
@@ -3006,6 +3007,7 @@
         accountBadCredentials: "Incorrect nickname or password.",
         accountInvalidInput: "Nickname must be 2-24 characters, password must be 4-64 characters, and nickname cannot contain /.",
         accountAuthFailed: "Firebase sign-in failed. Refresh and try again.",
+        accountUnknownError: "Account action failed: {detail}",
         accountFailed: "Account action failed. Check the nickname or password.",
         playerUnlockProgress: "Player Unlock Progress",
         bonusAchievements: "Bonus Achievements",
@@ -4049,6 +4051,8 @@
           if (code === "functions/unauthenticated" || code === "unauthenticated") {
             throw new Error("account-auth-failed");
           }
+          const detail = [code, error?.message].filter(Boolean).join(" ");
+          if (detail) throw new Error(`account-unknown:${detail.slice(0, 140)}`);
           throw error;
         }
       },
@@ -4348,6 +4352,9 @@
       if (error?.message === "bad-credentials") return tr("accountBadCredentials");
       if (error?.message === "invalid-account-input") return tr("accountInvalidInput");
       if (error?.message === "account-auth-failed") return tr("accountAuthFailed");
+      if (String(error?.message || "").startsWith("account-unknown:")) {
+        return tr("accountUnknownError", { detail: error.message.replace("account-unknown:", "") });
+      }
       return tr("accountFailed");
     }
 
@@ -7631,6 +7638,11 @@
       }
     }
 
+    function isAllowedFirebaseOwnedNode(node) {
+      if (isAllowedFirebaseAuthIframe(node)) return true;
+      return Boolean(node?.closest?.("iframe") && isAllowedFirebaseAuthIframe(node.closest("iframe")));
+    }
+
     function isAllowedFirebaseMutationNode(node) {
       if (isAllowedFirebaseAuthIframe(node)) return true;
       if (node?.nodeType === 1 && node.id === "codex-browser-sidebar-comments-root") return true;
@@ -7645,7 +7657,8 @@
         .some((iframe) => !isAllowedFirebaseAuthIframe(iframe));
       if (hasUnexpectedIframe) return true;
       return Array.from(document.querySelectorAll("*")).some((node) =>
-        Array.from(node.attributes || []).some((attribute) => attribute.name.toLowerCase().startsWith("on"))
+        !isAllowedFirebaseOwnedNode(node)
+          && Array.from(node.attributes || []).some((attribute) => attribute.name.toLowerCase().startsWith("on"))
       );
     }
 
@@ -7713,8 +7726,9 @@
         && Boolean(translations.en.replayTitle);
       const sourceOk = hasExpectedSourceIntegrity();
       const dataOk = hasExpectedDataIntegrity();
-      const shapeOk = hasExpectedDomShape();
-      const injectedOk = !hasUnexpectedInjectedContent();
+      const trustedDomOk = isTrustedDomMutation();
+      const shapeOk = trustedDomOk || hasExpectedDomShape();
+      const injectedOk = trustedDomOk || !hasUnexpectedInjectedContent();
       const speedOk = hasExpectedFlightSpeeds();
       const timerOk = hasExpectedTimerIntegrity();
       const storageOk = hasExpectedStorageIntegrity();
