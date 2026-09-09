@@ -2232,7 +2232,7 @@
   <script>
     const BOOT_SCRIPT_NODE = document.currentScript;
     const BOOT_SCRIPT_TEXT = BOOT_SCRIPT_NODE?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "1d4f45d6";
+    const SOURCE_INTEGRITY_HASH = "445bdd25";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2698,6 +2698,9 @@
         accountLoggedIn: "已登录：{name}",
         accountCreated: "账户已创建并登录。",
         accountLoginSuccess: "登录成功，云端进度已恢复。",
+        accountLoginNoCloudSave: "登录成功，但这个账号云端还没有存档。先玩一会儿，数据会尝试同步到云端。",
+        accountLoginCloudUnavailable: "登录成功，但暂时读不到云端数据。请确认 Firestore 规则已经部署。",
+        accountLoginBackupRestored: "登录成功，已用登出前的本地备份恢复进度，并会尝试同步到云端。",
         accountLoggedOut: "已登出。本地进度已清零，重新登录会恢复账号进度。",
         accountBusy: "这个账号已经在另一个浏览器登录。",
         accountExists: "这个昵称已经被注册了，请换一个昵称或直接登录。",
@@ -3009,6 +3012,9 @@
         accountLoggedIn: "Signed in: {name}",
         accountCreated: "Account created and signed in.",
         accountLoginSuccess: "Logged in. Cloud progress restored.",
+        accountLoginNoCloudSave: "Logged in, but this account has no cloud save yet. Play a little and the game will try to sync it.",
+        accountLoginCloudUnavailable: "Logged in, but cloud data could not be loaded yet. Make sure Firestore rules are deployed.",
+        accountLoginBackupRestored: "Logged in. Progress was restored from the local backup made before logout, and the game will try to sync it.",
         accountLoggedOut: "Logged out. Local progress was reset; logging back in restores account progress.",
         accountBusy: "This account is already active in another browser.",
         accountExists: "That nickname is already registered. Try another nickname or log in.",
@@ -3280,7 +3286,8 @@
       trainingRecords: "golfSimulatorTrainingRecords.v1",
       dailyTasks: "golfSimulatorDailyTasks.v1",
       economy: "golfSimulatorEconomy.v1",
-      accountSession: "golfSimulatorAccountSession.v1"
+      accountSession: "golfSimulatorAccountSession.v1",
+      localProgressBackup: "golfSimulatorLocalProgressBackup.v1"
     };
     const FIREBASE_CONFIG = Object.freeze({
       apiKey: "AIzaSyAc4yuho5ml0tU3bUG-SmjsSAM5qMhEf9A",
@@ -3879,7 +3886,69 @@
       }
     }
 
+    function currentProgressSnapshot() {
+      return {
+        achievements: AchievementManager.data,
+        stats: StatsManager.data,
+        economy: EconomyManager.data,
+        dailyTasks: DailyTaskManager.data,
+        trainingRecords: TrainingRecordManager.records
+      };
+    }
+
+    function applyProgressSnapshot(profile) {
+      if (!profile || typeof profile !== "object") return false;
+      if (profile.achievements) localStorage.setItem(STORAGE_KEYS.achievements, JSON.stringify(profile.achievements));
+      if (profile.stats) localStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(profile.stats));
+      if (profile.economy) localStorage.setItem(STORAGE_KEYS.economy, JSON.stringify(profile.economy));
+      if (profile.dailyTasks) localStorage.setItem(STORAGE_KEYS.dailyTasks, JSON.stringify(profile.dailyTasks));
+      if (Array.isArray(profile.trainingRecords)) {
+        localStorage.setItem(STORAGE_KEYS.trainingRecords, JSON.stringify(profile.trainingRecords));
+      }
+      AchievementManager.data = safeLoad(STORAGE_KEYS.achievements, { unlocked: {} });
+      StatsManager.data = safeLoad(STORAGE_KEYS.stats, defaultStats);
+      EconomyManager.data = normalizedEconomyData(safeLoad(STORAGE_KEYS.economy, defaultEconomy));
+      DailyTaskManager.load();
+      TrainingRecordManager.records = safeLoadArray(STORAGE_KEYS.trainingRecords);
+      AchievementManager.evaluate();
+      EconomyManager.syncUnlockedAchievementRewards();
+      refreshPlayerUnlocks();
+      renderDailyTasks();
+      renderAchievements();
+      renderTrainingRecords();
+      updateCoinDisplay();
+      if (mode !== "lobby") drawScene();
+      return true;
+    }
+
+    function saveLocalProgressBackup(reason = "manual") {
+      const account = FirebaseBridge?.account || null;
+      const backup = {
+        reason,
+        accountId: account?.accountId || "",
+        displayName: account?.displayName || "",
+        savedAt: Date.now(),
+        profile: currentProgressSnapshot()
+      };
+      localStorage.setItem(STORAGE_KEYS.localProgressBackup, JSON.stringify(backup));
+      return backup;
+    }
+
+    function canUseLocalProgressBackup(backup, account) {
+      if (!backup?.profile || !account?.displayName) return false;
+      if (backup.accountId && account.accountId && backup.accountId === account.accountId) return true;
+      return String(backup.displayName || "").trim().toLocaleLowerCase()
+        === String(account.displayName || "").trim().toLocaleLowerCase();
+    }
+
+    function restoreLocalProgressBackup(account) {
+      const backup = safeLoadPlain(STORAGE_KEYS.localProgressBackup, null);
+      if (!canUseLocalProgressBackup(backup, account)) return false;
+      return applyProgressSnapshot(backup.profile);
+    }
+
     function resetLocalProgressForGuest() {
+      saveLocalProgressBackup("logout");
       [
         STORAGE_KEYS.achievements,
         STORAGE_KEYS.stats,
@@ -3932,6 +4001,7 @@
       functions: null,
       saveTimer: 0,
       heartbeatTimer: 0,
+      lastProfileLoadStatus: "empty",
       account: safeLoadPlain(STORAGE_KEYS.accountSession, null),
       async init() {
         if (this.ready) return true;
@@ -4012,30 +4082,14 @@
       },
       async loadProfile() {
         const ref = this.profileRef();
-        if (!ref) return;
+        if (!ref) return "empty";
         const snap = await this.getDoc(ref);
-        if (!snap.exists()) return;
+        if (!snap.exists()) return "empty";
         const profile = snap.data() || {};
         this.syncingFromCloud = true;
         try {
-          if (profile.achievements) localStorage.setItem(STORAGE_KEYS.achievements, JSON.stringify(profile.achievements));
-          if (profile.stats) localStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(profile.stats));
-          if (profile.economy) localStorage.setItem(STORAGE_KEYS.economy, JSON.stringify(profile.economy));
-          if (profile.dailyTasks) localStorage.setItem(STORAGE_KEYS.dailyTasks, JSON.stringify(profile.dailyTasks));
-          if (Array.isArray(profile.trainingRecords)) {
-            localStorage.setItem(STORAGE_KEYS.trainingRecords, JSON.stringify(profile.trainingRecords));
-          }
-          AchievementManager.data = safeLoad(STORAGE_KEYS.achievements, { unlocked: {} });
-          StatsManager.data = safeLoad(STORAGE_KEYS.stats, defaultStats);
-          EconomyManager.data = normalizedEconomyData(safeLoad(STORAGE_KEYS.economy, defaultEconomy));
-          DailyTaskManager.load();
-          TrainingRecordManager.records = safeLoadArray(STORAGE_KEYS.trainingRecords);
-          AchievementManager.evaluate();
-          EconomyManager.syncUnlockedAchievementRewards();
-          refreshPlayerUnlocks();
-          renderDailyTasks();
-          renderAchievements();
-          renderTrainingRecords();
+          applyProgressSnapshot(profile);
+          return "loaded";
         } finally {
           this.syncingFromCloud = false;
         }
@@ -4057,10 +4111,24 @@
       },
       async tryLoadProfile() {
         try {
-          await this.loadProfile();
+          this.lastProfileLoadStatus = await this.loadProfile();
+          return this.lastProfileLoadStatus;
         } catch (error) {
           console.info("Firebase profile load failed.", error);
+          this.lastProfileLoadStatus = "failed";
+          return this.lastProfileLoadStatus;
         }
+      },
+      async restoreBackupIfNeeded(account, status) {
+        if (status === "loaded") return "loaded";
+        if (restoreLocalProgressBackup(account)) {
+          await this.saveProfile();
+          this.lastProfileLoadStatus = "backup-restored";
+          return this.lastProfileLoadStatus;
+        }
+        if (status === "empty") await this.saveProfile();
+        this.lastProfileLoadStatus = status;
+        return status;
       },
       async tryLoadServerProfile() {
         try {
@@ -4193,7 +4261,7 @@
         this.setAccountSession(account);
         await this.tryClaimFirebaseAuthSession();
         this.startHeartbeat();
-        await this.tryLoadProfile();
+        await this.restoreBackupIfNeeded(account, await this.tryLoadProfile());
         return account;
       },
       firebaseSessionRef() {
@@ -4248,7 +4316,7 @@
           if (!data?.ok) throw new Error(data?.reason || "login failed");
           this.setAccountSession(data.account);
           this.startHeartbeat();
-          await this.tryLoadProfile();
+          await this.restoreBackupIfNeeded(data.account, await this.tryLoadProfile());
           return data.account;
         } catch (error) {
           if (!["functions-not-deployed", "firebase-unavailable"].includes(error?.message)
@@ -4570,6 +4638,13 @@
       return tr("accountFailed");
     }
 
+    function accountLoginStatusMessage() {
+      if (FirebaseBridge.lastProfileLoadStatus === "loaded") return tr("accountLoginSuccess");
+      if (FirebaseBridge.lastProfileLoadStatus === "backup-restored") return tr("accountLoginBackupRestored");
+      if (FirebaseBridge.lastProfileLoadStatus === "failed") return tr("accountLoginCloudUnavailable");
+      return tr("accountLoginNoCloudSave");
+    }
+
     function setAccountActionInProgress(value) {
       accountActionInProgress = Boolean(value);
       renderAccountPanel();
@@ -4635,7 +4710,7 @@
         await ensureFirebaseBridgeReady();
         await FirebaseBridge.loginAccount(creds.nickname, creds.password);
         accountPasswordInput.value = "";
-        setAccountError(tr("accountLoginSuccess"));
+        setAccountError(accountLoginStatusMessage());
       } catch (error) {
         setAccountError(accountErrorMessage(error));
       } finally {
