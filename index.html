@@ -2231,7 +2231,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "b3f0eb5d";
+    const SOURCE_INTEGRITY_HASH = "087dc38a";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -4003,10 +4003,26 @@
         }
       },
       async callFunction(name, data) {
-        if (!this.ready || !this.httpsCallable || !this.functions) return null;
-        const fn = this.httpsCallable(this.functions, name);
-        const result = await fn(data);
-        return result.data || {};
+        if (!this.ready || !this.httpsCallable || !this.functions) {
+          throw new Error("firebase-unavailable");
+        }
+        try {
+          const fn = this.httpsCallable(this.functions, name);
+          const result = await fn(data);
+          return result.data || {};
+        } catch (error) {
+          const code = String(error?.code || "");
+          if (code === "functions/not-found" || code === "functions/unavailable" || code === "not-found") {
+            throw new Error("functions-not-deployed");
+          }
+          if (code === "functions/failed-precondition" || error?.message === "account-busy") {
+            throw new Error("account-busy");
+          }
+          if (code === "functions/permission-denied" || code === "permission-denied") {
+            throw new Error("bad-credentials");
+          }
+          throw error;
+        }
       },
       accountPayload() {
         return {
@@ -4123,18 +4139,15 @@
         }
       },
       async verifySupporterCode(tier, password) {
-        if (!this.ready || !this.httpsCallable || !this.functions) return null;
         try {
-          const verifyCode = this.httpsCallable(this.functions, "verifySupporterCode");
-          const result = await verifyCode({ tier, password });
-          const data = result.data || {};
+          const data = await this.callFunction("verifySupporterCode", { tier, password });
           if (!data.ok) return false;
           trustSupporterStorage(5000);
           this.setSupporterFlags(data.supporter || {});
           this.queueSave("supporter");
           return true;
         } catch (error) {
-          if (error && error.code === "functions/not-found") return null;
+          if (error?.message === "functions-not-deployed" || error?.message === "firebase-unavailable") return null;
           console.info("Firebase supporter verification failed.", error);
           return false;
         }
@@ -4298,6 +4311,14 @@
       return { nickname, password };
     }
 
+    function accountErrorMessage(error) {
+      if (error?.message === "functions-not-deployed" || error?.message === "firebase-unavailable") {
+        return tr("accountNeedFirebase");
+      }
+      if (error?.message === "account-busy") return tr("accountBusy");
+      return tr("accountFailed");
+    }
+
     function renderAccountPanel() {
       if (!accountStatusText) return;
       trustDomMutation();
@@ -4332,7 +4353,7 @@
         accountPasswordInput.value = "";
         setAccountError(tr("accountCreated"));
       } catch (error) {
-        setAccountError(error?.message === "already-exists" ? tr("accountFailed") : tr("accountFailed"));
+        setAccountError(accountErrorMessage(error));
       }
     }
 
@@ -4344,7 +4365,7 @@
         accountPasswordInput.value = "";
         setAccountError(tr("accountLoginSuccess"));
       } catch (error) {
-        setAccountError(error?.message === "account-busy" ? tr("accountBusy") : tr("accountFailed"));
+        setAccountError(accountErrorMessage(error));
       }
     }
 
