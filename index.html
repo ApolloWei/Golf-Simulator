@@ -2232,7 +2232,7 @@
   <script>
     const BOOT_SCRIPT_NODE = document.currentScript;
     const BOOT_SCRIPT_TEXT = BOOT_SCRIPT_NODE?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "b112c1ce";
+    const SOURCE_INTEGRITY_HASH = "1d4f45d6";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2627,6 +2627,7 @@
     let tutorialState = { active: false, step: "idle" };
     let replayState = null;
     let suppressUpgradePrompt = false;
+    let accountActionInProgress = false;
     let protectedFunctionRefs = null;
     let protectedMutationObserverRef = null;
     let protectedMutationDisconnectRef = null;
@@ -2704,6 +2705,7 @@
         accountInvalidInput: "昵称需要 2-24 个字符，密码需要 4-64 个字符，昵称不能包含 /。",
         accountAuthFailed: "Firebase 登录授权失败，请刷新后再试。",
         accountProviderDisabled: "请在 Firebase Authentication 里开启 Email/Password 登录方式。",
+        accountQuotaExceeded: "登录/创建尝试太频繁，Firebase 暂时限制了密码验证。请等几分钟后再试。",
         accountUnknownError: "账户操作失败：{detail}",
         accountFailed: "账户操作失败，请检查昵称或密码。",
         playerUnlockProgress: "角色解锁进度",
@@ -3014,6 +3016,7 @@
         accountInvalidInput: "Nickname must be 2-24 characters, password must be 4-64 characters, and nickname cannot contain /.",
         accountAuthFailed: "Firebase sign-in failed. Refresh and try again.",
         accountProviderDisabled: "Enable Email/Password sign-in in Firebase Authentication first.",
+        accountQuotaExceeded: "Too many login/create attempts. Firebase temporarily limited password checks. Please wait a few minutes and try again.",
         accountUnknownError: "Account action failed: {detail}",
         accountFailed: "Account action failed. Check the nickname or password.",
         playerUnlockProgress: "Player Unlock Progress",
@@ -4159,6 +4162,7 @@
           if (code === "auth/email-already-in-use") throw new Error("account-exists");
           if (code === "auth/weak-password" || code === "auth/invalid-email") throw new Error("invalid-account-input");
           if (code === "auth/operation-not-allowed") throw new Error("account-auth-provider-disabled");
+          if (code === "auth/quota-exceeded" || code === "auth/too-many-requests") throw new Error("account-quota-exceeded");
           throw new Error(`account-unknown:${[code, error?.message].filter(Boolean).join(" ").slice(0, 140)}`);
         }
         const account = { accountId: this.uid, displayName, sessionId, firebaseAuth: true };
@@ -4182,6 +4186,7 @@
             throw new Error("bad-credentials");
           }
           if (code === "auth/operation-not-allowed") throw new Error("account-auth-provider-disabled");
+          if (code === "auth/quota-exceeded" || code === "auth/too-many-requests") throw new Error("account-quota-exceeded");
           throw new Error(`account-unknown:${[code, error?.message].filter(Boolean).join(" ").slice(0, 140)}`);
         }
         const account = { accountId: this.uid, displayName: this.auth.currentUser?.displayName || displayName, sessionId, firebaseAuth: true };
@@ -4558,10 +4563,16 @@
       if (error?.message === "invalid-account-input") return tr("accountInvalidInput");
       if (error?.message === "account-auth-failed") return tr("accountAuthFailed");
       if (error?.message === "account-auth-provider-disabled") return tr("accountProviderDisabled");
+      if (error?.message === "account-quota-exceeded") return tr("accountQuotaExceeded");
       if (String(error?.message || "").startsWith("account-unknown:")) {
         return tr("accountUnknownError", { detail: error.message.replace("account-unknown:", "") });
       }
       return tr("accountFailed");
+    }
+
+    function setAccountActionInProgress(value) {
+      accountActionInProgress = Boolean(value);
+      renderAccountPanel();
     }
 
     async function ensureFirebaseBridgeReady() {
@@ -4580,9 +4591,9 @@
       } else {
         accountStatusText.innerHTML = `${tr("accountGuestTitle")}<span>${tr("accountGuestHint")}</span>`;
       }
-      accountLogoutBtn.disabled = !account?.displayName;
-      accountCreateBtn.disabled = !FirebaseBridge.ready;
-      accountLoginBtn.disabled = !FirebaseBridge.ready;
+      accountLogoutBtn.disabled = accountActionInProgress || !account?.displayName;
+      accountCreateBtn.disabled = accountActionInProgress || !FirebaseBridge.ready;
+      accountLoginBtn.disabled = accountActionInProgress || !FirebaseBridge.ready;
       accountBtn.textContent = account?.displayName ? "✓" : "👤";
       lobbyAccountBtn.textContent = account?.displayName ? "✓" : "👤";
     }
@@ -4604,12 +4615,15 @@
       const creds = accountCredentials();
       if (!creds) return;
       try {
+        setAccountActionInProgress(true);
         await ensureFirebaseBridgeReady();
         await FirebaseBridge.createAccount(creds.nickname, creds.password);
         accountPasswordInput.value = "";
         setAccountError(tr("accountCreated"));
       } catch (error) {
         setAccountError(accountErrorMessage(error));
+      } finally {
+        setAccountActionInProgress(false);
       }
     }
 
@@ -4617,19 +4631,27 @@
       const creds = accountCredentials();
       if (!creds) return;
       try {
+        setAccountActionInProgress(true);
         await ensureFirebaseBridgeReady();
         await FirebaseBridge.loginAccount(creds.nickname, creds.password);
         accountPasswordInput.value = "";
         setAccountError(tr("accountLoginSuccess"));
       } catch (error) {
         setAccountError(accountErrorMessage(error));
+      } finally {
+        setAccountActionInProgress(false);
       }
     }
 
     async function logoutGameAccountFromPanel() {
-      await FirebaseBridge.logoutAccount();
-      accountPasswordInput.value = "";
-      setAccountError(tr("accountLoggedOut"));
+      try {
+        setAccountActionInProgress(true);
+        await FirebaseBridge.logoutAccount();
+        accountPasswordInput.value = "";
+        setAccountError(tr("accountLoggedOut"));
+      } finally {
+        setAccountActionInProgress(false);
+      }
     }
 
     function adjustedDistanceForPlayer(player, distance) {
