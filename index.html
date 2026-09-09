@@ -2231,7 +2231,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "7c9a347f";
+    const SOURCE_INTEGRITY_HASH = "a67145c2";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2656,7 +2656,9 @@
         coinBalance: "金币",
         playerLevel: "等级 {level}",
         upgradePrompt: "升级人物？\n{player}\n等级：Lv.{level}\n最远距离：{distance} yd\n花费：500 金币\n升级后力量 +0.5%",
+        upgradeChoicePrompt: "升级人物：{player}\n当前等级：Lv.{level}\n当前金币：{coins}\n最远距离：{distance} yd\n\n输入 1：只升一级，花费 500 金币\n输入 max：一次性升满，可升 {levels} 级，花费 {cost} 金币\n\n取消则不升级。",
         upgradeAllPrompt: "一键升级这个人物？\n{player}\n当前等级：Lv.{level}\n当前金币：{coins}\n可以升级：{levels} 级\n总花费：{cost} 金币\n升级后等级：Lv.{nextLevel}\n每级力量 +0.5%",
+        upgradeInvalidChoice: "没有升级。请输入 1 或 max。",
         upgradeSuccess: "{player} 已升级到 Lv.{level}！",
         upgradeAllSuccess: "{player} 已一键升级 {levels} 级，现在是 Lv.{level}！",
         upgradeNoCoins: "金币不足。升级需要 500 金币。",
@@ -2964,7 +2966,9 @@
         coinBalance: "Coins",
         playerLevel: "Level {level}",
         upgradePrompt: "Upgrade this player?\n{player}\nLevel: Lv.{level}\nLongest distance: {distance} yd\nCost: 500 coins\nUpgrade gives +0.5% power.",
+        upgradeChoicePrompt: "Upgrade player: {player}\nCurrent level: Lv.{level}\nCurrent coins: {coins}\nLongest distance: {distance} yd\n\nType 1: upgrade one level for 500 coins\nType max: upgrade as much as possible, {levels} levels for {cost} coins\n\nCancel to keep coins.",
         upgradeAllPrompt: "One-click upgrade this player?\n{player}\nCurrent level: Lv.{level}\nCurrent coins: {coins}\nAvailable upgrades: {levels}\nTotal cost: {cost} coins\nNew level: Lv.{nextLevel}\nEach level gives +0.5% power.",
+        upgradeInvalidChoice: "No upgrade made. Type 1 or max.",
         upgradeSuccess: "{player} upgraded to Lv.{level}.",
         upgradeAllSuccess: "{player} upgraded {levels} levels at once. Now Lv.{level}.",
         upgradeNoCoins: "Not enough coins. Upgrading costs 500 coins.",
@@ -4924,24 +4928,34 @@
       if (suppressUpgradePrompt || !player || !isPlayerUnlocked(player) || isReplayMode()) return;
       const coins = EconomyManager.coins();
       const bulkLevels = Math.floor(coins / 500);
+      const currentLevel = EconomyManager.playerLevel(player);
+      const distance = playerLongestDistance(player);
       if (bulkLevels > 1) {
-        const upgradeAll = window.confirm(tr("upgradeAllPrompt", {
+        const choice = window.prompt(tr("upgradeChoicePrompt", {
           player: playerDisplayName(player),
-          level: EconomyManager.playerLevel(player),
+          level: currentLevel,
           coins,
+          distance,
           levels: bulkLevels,
           cost: bulkLevels * 500,
-          nextLevel: EconomyManager.playerLevel(player) + bulkLevels
-        }));
-        if (upgradeAll) {
+          nextLevel: currentLevel + bulkLevels
+        }), "1");
+        if (choice == null) return;
+        const normalizedChoice = choice.trim().toLowerCase();
+        if (normalizedChoice === "max" || normalizedChoice === "all") {
           EconomyManager.upgradePlayerWithAllCoins(player);
+          return;
+        }
+        if (normalizedChoice !== "1") {
+          window.alert(tr("upgradeInvalidChoice"));
+          trustDomMutation(900);
           return;
         }
       }
       const ok = window.confirm(tr("upgradePrompt", {
         player: playerDisplayName(player),
-        level: EconomyManager.playerLevel(player),
-        distance: playerLongestDistance(player)
+        level: currentLevel,
+        distance
       }));
       if (ok) EconomyManager.upgradePlayer(player);
     }
