@@ -2230,8 +2230,9 @@
   <div class="achievement-toasts" id="achievementToasts" aria-live="polite"></div>
 
   <script>
-    const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "a67145c2";
+    const BOOT_SCRIPT_NODE = document.currentScript;
+    const BOOT_SCRIPT_TEXT = BOOT_SCRIPT_NODE?.textContent || "";
+    const SOURCE_INTEGRITY_HASH = "2e94f38e";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -7839,8 +7840,43 @@
       return Array.from(node.querySelectorAll("iframe")).every(isAllowedFirebaseAuthIframe);
     }
 
+    function isUnexpectedScript(node) {
+      if (!node || node.nodeType !== 1 || node.tagName !== "SCRIPT") return false;
+      if (node === BOOT_SCRIPT_NODE) return false;
+      return Boolean(String(node.textContent || "").trim());
+    }
+
+    function isUnexpectedInteractiveNode(node) {
+      if (!node || node.nodeType !== 1) return false;
+      const expectedIds = new Set(EXPECTED_DOM_IDS);
+      if (node.matches("button[data-training-replay][data-dynamic-control='training']") && trainingRecordList.contains(node)) return false;
+      if (node.matches("button, input, select, canvas, textarea, a[href]")) {
+        return !(Boolean(node.id) && expectedIds.has(node.id));
+      }
+      return false;
+    }
+
+    function hasInlineEventHandler(node) {
+      return Boolean(node?.nodeType === 1
+        && Array.from(node.attributes || []).some((attribute) => attribute.name.toLowerCase().startsWith("on")));
+    }
+
+    function hasDangerousInjectedContent(node) {
+      if (!node || node.nodeType !== 1 || isAllowedFirebaseOwnedNode(node)) return false;
+      if (isUnexpectedScript(node) || node.matches("object, embed")) return true;
+      if (node.tagName === "IFRAME" && !isAllowedFirebaseAuthIframe(node)) return true;
+      if (isUnexpectedInteractiveNode(node) || hasInlineEventHandler(node)) return true;
+      return Array.from(node.querySelectorAll?.("script, object, embed, iframe, button, input, select, canvas, textarea, a[href], *") || [])
+        .some((child) => !isAllowedFirebaseOwnedNode(child)
+          && (isUnexpectedScript(child)
+            || child.matches("object, embed")
+            || (child.tagName === "IFRAME" && !isAllowedFirebaseAuthIframe(child))
+            || isUnexpectedInteractiveNode(child)
+            || hasInlineEventHandler(child)));
+    }
+
     function hasUnexpectedInjectedContent() {
-      if (document.querySelectorAll("script").length !== 1) return true;
+      if (Array.from(document.querySelectorAll("script")).some(isUnexpectedScript)) return true;
       if (document.querySelector("object, embed")) return true;
       const hasUnexpectedIframe = Array.from(document.querySelectorAll("iframe"))
         .some((iframe) => !isAllowedFirebaseAuthIframe(iframe));
@@ -7857,8 +7893,10 @@
         .filter((node) => !(node.tagName === "IFRAME" && isAllowedFirebaseAuthIframe(node)))
         .filter((node) => node.id !== "codex-browser-sidebar-comments-root")
         .map((node) => node.id);
-      if (actualIds.length !== EXPECTED_DOM_IDS.length) return false;
-      if (!actualIds.every((id) => expectedIds.has(id))) return false;
+      const duplicateExpectedIds = actualIds
+        .filter((id) => expectedIds.has(id))
+        .some((id, index, ids) => ids.indexOf(id) !== index);
+      if (duplicateExpectedIds) return false;
       if (!EXPECTED_DOM_IDS.every((id) => document.getElementById(id))) return false;
       return Array.from(document.querySelectorAll("button, input, select, canvas, textarea, a[href]")).every((node) =>
         (Boolean(node.id) && expectedIds.has(node.id))
@@ -7954,15 +7992,31 @@
       }
       siteMutationObserver = new MutationObserver((mutations) => {
         if (integrityFailed || isTrustedDomMutation()) return;
+        const expectedIds = new Set(EXPECTED_DOM_IDS);
         const suspicious = mutations.some((mutation) => {
           if (mutation.target === afkCanvas || mutation.target === canvas) return false;
           if (mutation.type === "attributes" && mutation.attributeName?.startsWith("data-")) return false;
           if (mutation.type === "attributes" && isAllowedFirebaseMutationNode(mutation.target)) return false;
+          if (mutation.type === "attributes") {
+            const name = String(mutation.attributeName || "").toLowerCase();
+            if (!name.startsWith("on")
+              && !["src", "href"].includes(name)
+              && !isUnexpectedInteractiveNode(mutation.target)) return false;
+            return hasDangerousInjectedContent(mutation.target);
+          }
           if (mutation.type === "childList") {
             const nodes = [...mutation.addedNodes, ...mutation.removedNodes];
             if (nodes.length > 0 && nodes.every(isAllowedFirebaseMutationNode)) return false;
+            if (mutation.removedNodes.length > 0
+              && [...mutation.removedNodes].some((node) => node.nodeType === 1 && node.id && expectedIds.has(node.id))) {
+              return true;
+            }
+            if (mutation.addedNodes.length > 0) {
+              return [...mutation.addedNodes].some(hasDangerousInjectedContent);
+            }
+            return false;
           }
-          return true;
+          return false;
         });
         if (suspicious) forceBrowserStartPage();
       });
