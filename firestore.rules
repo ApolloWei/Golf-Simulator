@@ -10,6 +10,16 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function hasActiveAccountSession(accountId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/accountSessions/$(request.auth.uid))
+        && exists(/databases/$(database)/documents/gameAccounts/$(accountId))
+        && get(/databases/$(database)/documents/accountSessions/$(request.auth.uid)).data.accountId == accountId
+        && get(/databases/$(database)/documents/accountSessions/$(request.auth.uid)).data.active == true
+        && get(/databases/$(database)/documents/gameAccounts/$(accountId)).data.activeUid == request.auth.uid
+        && get(/databases/$(database)/documents/gameAccounts/$(accountId)).data.activeSessionId == get(/databases/$(database)/documents/accountSessions/$(request.auth.uid)).data.sessionId;
+    }
+
     match /users/{userId}/clientMirror/{docId} {
       allow read: if isOwner(userId);
       allow create, update: if isOwner(userId)
@@ -27,6 +37,29 @@ service cloud.firestore {
     match /users/{userId}/serverProfile/{docId} {
       allow read: if isOwner(userId);
       allow write: if false;
+    }
+
+    match /accountProfiles/{accountId}/clientMirror/{docId} {
+      allow read: if hasActiveAccountSession(accountId);
+      allow create, update: if hasActiveAccountSession(accountId)
+        && request.resource.data.keys().hasOnly([
+          'achievements',
+          'stats',
+          'economy',
+          'dailyTasks',
+          'trainingRecords',
+          'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+
+    match /accountSessions/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    match /gameAccounts/{accountId} {
+      allow read, write: if false;
     }
 
     match /{document=**} {

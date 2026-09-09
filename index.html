@@ -85,7 +85,7 @@
     .home-button {
       position: absolute;
       top: 2px;
-      right: 170px;
+      right: 214px;
       display: none;
       width: 38px;
       height: 38px;
@@ -107,7 +107,7 @@
     .life-hud {
       position: absolute;
       top: 2px;
-      right: 260px;
+      right: 304px;
       display: none;
       min-width: 96px;
       height: 38px;
@@ -131,7 +131,8 @@
 
     .achievements-button,
     .daily-button,
-    .training-button {
+    .training-button,
+    .account-button {
       position: absolute;
       top: 2px;
       right: 126px;
@@ -150,16 +151,25 @@
     }
 
     .training-button {
+      right: 126px;
+    }
+
+    .achievements-button {
+      right: 170px;
+    }
+
+    .account-button {
       right: 82px;
     }
 
     .daily-button {
-      right: 216px;
+      right: 258px;
     }
 
     .achievements-button:hover,
     .daily-button:hover,
-    .training-button:hover {
+    .training-button:hover,
+    .account-button:hover {
       filter: brightness(1.04);
     }
 
@@ -176,6 +186,7 @@
     .lobby-actions .achievements-button,
     .lobby-actions .daily-button,
     .lobby-actions .training-button,
+    .lobby-actions .account-button,
     .lobby-actions .coin-panel,
     .lobby-actions .supporter-button {
       position: static;
@@ -297,6 +308,97 @@
       margin-right: 7px;
       color: var(--gold);
       text-shadow: 0 1px 0 rgba(111, 75, 0, 0.24);
+    }
+
+    .account-panel-body {
+      display: grid;
+      gap: 16px;
+    }
+
+    .account-status {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f7fbf6;
+      color: var(--ink);
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .account-status span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .account-form {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .account-form label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .account-form input {
+      min-width: 0;
+      height: 40px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-weight: 800;
+    }
+
+    .account-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .account-actions button {
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8faf7;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .account-actions button.primary {
+      border-color: rgba(45, 139, 87, 0.45);
+      background: #edf8ee;
+      color: var(--fairway-dark);
+    }
+
+    .account-actions button.danger {
+      border-color: rgba(216, 51, 74, 0.25);
+      background: #fff2f4;
+      color: #a32639;
+    }
+
+    .account-hint,
+    .account-error {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .account-error {
+      color: #a32639;
+      font-weight: 800;
     }
 
     .player-unlock-progress {
@@ -1642,6 +1744,7 @@
       .lobby-actions .language-button,
       .lobby-actions .achievements-button,
       .lobby-actions .training-button,
+      .lobby-actions .account-button,
       .lobby-actions .supporter-button {
         margin: 0;
       }
@@ -1721,6 +1824,7 @@
         <button class="daily-button" id="lobbyDailyBtn" type="button" title="每日任务">📅</button>
         <button class="achievements-button" id="lobbyAchievementsBtn" type="button" title="Achievements">🏆</button>
         <button class="training-button" id="lobbyTrainingBtn" type="button" title="Training Records">📋</button>
+        <button class="account-button" id="lobbyAccountBtn" type="button" title="Account">👤</button>
         <button class="language-button" id="lobbyLanguageBtn" type="button">English</button>
       </div>
       <h1 data-i18n="lobbyTitle">高尔夫模拟器</h1>
@@ -1822,6 +1926,7 @@
       <button class="daily-button" id="dailyBtn" type="button" title="每日任务">📅</button>
       <button class="achievements-button" id="achievementsBtn" type="button" title="Achievements">🏆</button>
       <button class="training-button" id="trainingBtn" type="button" title="Training Records">📋</button>
+      <button class="account-button" id="accountBtn" type="button" title="Account">👤</button>
       <button class="language-button" id="languageBtn" type="button">English</button>
       <h1 data-i18n="title">二维高尔夫飞行模拟器</h1>
       <p class="subtitle" data-i18n="subtitle">选择球员和球杆，调整发射角度，然后点击右下角的发射按钮。小球会先被击出，再沿着飞行轨迹前进，轨迹会跟着飞行过程逐步画出来。</p>
@@ -2069,6 +2174,38 @@
     </div>
   </div>
 
+  <div class="achievement-panel hidden" id="accountPanel" role="dialog" aria-modal="true" aria-labelledby="accountPanelTitle">
+    <div class="achievement-card">
+      <div class="achievement-head">
+        <h2 id="accountPanelTitle" data-i18n="accountTitle">账户</h2>
+        <button class="achievement-close" id="accountCloseBtn" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="account-panel-body">
+        <div class="account-status" id="accountStatusText">
+          本地游客
+          <span data-i18n="accountGuestHint">不创建账户也可以继续玩，进度只保存在这个浏览器。</span>
+        </div>
+        <div class="account-form">
+          <label>
+            <span data-i18n="accountNickname">昵称</span>
+            <input id="accountNicknameInput" type="text" autocomplete="username" maxlength="24" />
+          </label>
+          <label>
+            <span data-i18n="accountPassword">密码</span>
+            <input id="accountPasswordInput" type="password" autocomplete="current-password" maxlength="64" />
+          </label>
+        </div>
+        <div class="account-actions">
+          <button class="primary" id="accountCreateBtn" type="button" data-i18n="accountCreate">创建账户</button>
+          <button id="accountLoginBtn" type="button" data-i18n="accountLogin">登录</button>
+          <button class="danger" id="accountLogoutBtn" type="button" data-i18n="accountLogout">登出</button>
+        </div>
+        <p class="account-hint" id="accountHintText" data-i18n="accountHint">登录后，成就、金币、人物等级和训练记录会同步到这个昵称。密码不会显示在账户页面。</p>
+        <p class="account-error" id="accountErrorText"></p>
+      </div>
+    </div>
+  </div>
+
   <div class="afk-panel hidden" id="afkPanel" role="dialog" aria-modal="true" aria-labelledby="afkTitle">
     <div class="afk-card" id="afkCard">
       <h2 id="afkTitle" data-i18n="afkTitle">AFK 检测</h2>
@@ -2094,7 +2231,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "560ef14c";
+    const SOURCE_INTEGRITY_HASH = "993b8463";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2282,6 +2419,17 @@
     const asceticAchievementBar = document.querySelector("#asceticAchievementBar");
     const playerUnlockList = document.querySelector("#playerUnlockList");
     const supporterBtn = document.querySelector("#supporterBtn");
+    const accountBtn = document.querySelector("#accountBtn");
+    const lobbyAccountBtn = document.querySelector("#lobbyAccountBtn");
+    const accountPanel = document.querySelector("#accountPanel");
+    const accountCloseBtn = document.querySelector("#accountCloseBtn");
+    const accountCreateBtn = document.querySelector("#accountCreateBtn");
+    const accountLoginBtn = document.querySelector("#accountLoginBtn");
+    const accountLogoutBtn = document.querySelector("#accountLogoutBtn");
+    const accountNicknameInput = document.querySelector("#accountNicknameInput");
+    const accountPasswordInput = document.querySelector("#accountPasswordInput");
+    const accountStatusText = document.querySelector("#accountStatusText");
+    const accountErrorText = document.querySelector("#accountErrorText");
     const startGameBtn = document.querySelector("#startGameBtn");
     const startObstacleBtn = document.querySelector("#startObstacleBtn");
     const startTournamentBtn = document.querySelector("#startTournamentBtn");
@@ -2530,6 +2678,25 @@
         dailyTaskCompleteTitle: "📅 每日任务完成",
         dailyTaskCoinReward: "+200 金币",
         dailyRefreshLine: "每天 12:00 刷新",
+        accountTitle: "账户",
+        accountButtonTitle: "账户",
+        accountGuestTitle: "本地游客",
+        accountGuestHint: "不创建账户也可以继续玩，进度只保存在这个浏览器。",
+        accountSignedInHint: "已登录。这个账号同一时间只能在一个浏览器使用。",
+        accountNickname: "昵称",
+        accountPassword: "密码",
+        accountCreate: "创建账户",
+        accountLogin: "登录",
+        accountLogout: "登出",
+        accountHint: "登录后，成就、金币、人物等级和训练记录会同步到这个昵称。密码不会显示在账户页面。",
+        accountNeedFirebase: "需要先部署 Firebase Functions 后才能创建或登录账号。",
+        accountNeedInput: "请输入昵称和密码。",
+        accountLoggedIn: "已登录：{name}",
+        accountCreated: "账户已创建并登录。",
+        accountLoginSuccess: "登录成功，云端进度已恢复。",
+        accountLoggedOut: "已登出。本地进度已清零，重新登录会恢复账号进度。",
+        accountBusy: "这个账号已经在另一个浏览器登录。",
+        accountFailed: "账户操作失败，请检查昵称或密码。",
         playerUnlockProgress: "角色解锁进度",
         bonusAchievements: "奖励成就",
         plusOnlyAchievements: "Plus 专属成就",
@@ -2813,6 +2980,25 @@
         dailyTaskCompleteTitle: "📅 DAILY TASK COMPLETE",
         dailyTaskCoinReward: "+200 coins",
         dailyRefreshLine: "Refreshes every day at 12:00",
+        accountTitle: "Account",
+        accountButtonTitle: "Account",
+        accountGuestTitle: "Local Guest",
+        accountGuestHint: "You can keep playing without an account. Progress stays in this browser only.",
+        accountSignedInHint: "Signed in. This account can only be active in one browser at a time.",
+        accountNickname: "Nickname",
+        accountPassword: "Password",
+        accountCreate: "Create Account",
+        accountLogin: "Log In",
+        accountLogout: "Log Out",
+        accountHint: "After logging in, achievements, coins, player levels, and training records sync to this nickname. Passwords are never shown here.",
+        accountNeedFirebase: "Firebase Functions must be deployed before accounts can be created or used.",
+        accountNeedInput: "Enter a nickname and password.",
+        accountLoggedIn: "Signed in: {name}",
+        accountCreated: "Account created and signed in.",
+        accountLoginSuccess: "Logged in. Cloud progress restored.",
+        accountLoggedOut: "Logged out. Local progress was reset; logging back in restores account progress.",
+        accountBusy: "This account is already active in another browser.",
+        accountFailed: "Account action failed. Check the nickname or password.",
         playerUnlockProgress: "Player Unlock Progress",
         bonusAchievements: "Bonus Achievements",
         plusOnlyAchievements: "+ Only Achievements",
@@ -3073,7 +3259,8 @@
       tutorialComplete: "golfSimulatorTutorialComplete.v1",
       trainingRecords: "golfSimulatorTrainingRecords.v1",
       dailyTasks: "golfSimulatorDailyTasks.v1",
-      economy: "golfSimulatorEconomy.v1"
+      economy: "golfSimulatorEconomy.v1",
+      accountSession: "golfSimulatorAccountSession.v1"
     };
     const FIREBASE_CONFIG = Object.freeze({
       apiKey: "AIzaSyAc4yuho5ml0tU3bUG-SmjsSAM5qMhEf9A",
@@ -3090,7 +3277,7 @@
     const CLUB_COLLECTION_TARGET = 13;
     const ALL_MODES = ["classic", "tournament", "obstacle", "precision", "putting", "free"];
     const EXPECTED_DOM_IDS = Object.freeze([
-      "lobby", "supporterBtn", "lobbyDailyBtn", "lobbyAchievementsBtn", "lobbyTrainingBtn", "lobbyLanguageBtn", "lobbyPlayer",
+      "lobby", "supporterBtn", "lobbyDailyBtn", "lobbyAchievementsBtn", "lobbyTrainingBtn", "lobbyAccountBtn", "lobbyLanguageBtn", "lobbyPlayer",
       "playerUnlockPanel", "coinBalanceText", "playerUnlockPercent", "playerUnlockBar", "bonusAchievementProgress",
       "bonusAchievementPercent", "bonusAchievementBar", "plusAchievementProgress", "plusAchievementPercent",
       "plusAchievementBar", "asceticAchievementProgress", "asceticAchievementLabel",
@@ -3098,7 +3285,7 @@
       "classicEasyBtn", "classicHardBtn", "classicGreenBtn", "classicNoGreenBtn", "startFreeBtn",
       "startObstacleBtn", "obstacleEasyBtn", "obstacleMediumBtn", "obstacleHardBtn", "startTournamentBtn",
       "tournamentRegionalBtn", "tournamentUndergroundBtn", "tournamentNationalBtn", "tournamentFeeLabel", "startPrecisionBtn",
-      "startPuttingBtn", "app", "homeBtn", "lifeHud", "dailyBtn", "achievementsBtn", "trainingBtn", "languageBtn",
+      "startPuttingBtn", "app", "homeBtn", "lifeHud", "dailyBtn", "achievementsBtn", "trainingBtn", "accountBtn", "languageBtn",
       "gameInfo", "playerControl", "player", "club", "angle", "angleValue", "power", "powerValue",
       "bounceToggle", "trajectoryToggle", "trajectoryOnlyControl", "trajectoryOnlyToggle", "soundToggle",
       "cheatToggle", "targetDistanceLabel", "distanceText", "liveDistanceText", "speedText",
@@ -3110,7 +3297,9 @@
       "dailyCompletedText", "dailyRewardText", "dailyRefreshText", "dailyCheckinBtn", "dailyTaskList", "achievementPanel", "achievementPanelTitle",
       "achievementCloseBtn", "achievementUnlockedText", "achievementCompletionText", "achievementLongestText",
       "achievementStreakText", "achievementList", "statisticsList", "trainingPanel", "trainingPanelTitle",
-      "trainingCloseBtn", "trainingReplaySpeed", "trainingRecordList", "afkPanel", "afkCard",
+      "trainingCloseBtn", "trainingReplaySpeed", "trainingRecordList", "accountPanel", "accountPanelTitle",
+      "accountCloseBtn", "accountStatusText", "accountNicknameInput", "accountPasswordInput", "accountCreateBtn",
+      "accountLoginBtn", "accountLogoutBtn", "accountHintText", "accountErrorText", "afkPanel", "afkCard",
       "afkTitle", "afkCanvas", "afkTimer", "tutorialPanel", "tutorialCard", "tutorialKicker",
       "tutorialTitle", "tutorialBody", "tutorialSkipBtn", "tutorialNextBtn", "achievementToasts"
     ]);
@@ -3649,6 +3838,44 @@
       }
     }
 
+    function safeLoadPlain(key, fallback = null) {
+      try {
+        return JSON.parse(localStorage.getItem(key)) || fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function resetLocalProgressForGuest() {
+      [
+        STORAGE_KEYS.achievements,
+        STORAGE_KEYS.stats,
+        STORAGE_KEYS.economy,
+        STORAGE_KEYS.dailyTasks,
+        STORAGE_KEYS.trainingRecords
+      ].forEach((key) => localStorage.removeItem(key));
+      trustSupporterStorage(5000);
+      [
+        STORAGE_KEYS.supporterUnlock,
+        STORAGE_KEYS.supporterFutureUnlock,
+        STORAGE_KEYS.supporterMaxUnlock,
+        STORAGE_KEYS.supporterCreatorUnlock,
+        STORAGE_KEYS.supporterCreatorProof
+      ].forEach((key) => localStorage.removeItem(key));
+      AchievementManager.data = { unlocked: {} };
+      StatsManager.data = { ...defaultStats };
+      EconomyManager.data = normalizedEconomyData({ ...defaultEconomy });
+      DailyTaskManager.load();
+      TrainingRecordManager.records = [];
+      AchievementManager.evaluate();
+      refreshPlayerUnlocks();
+      renderDailyTasks();
+      renderAchievements();
+      renderTrainingRecords();
+      updateCoinDisplay();
+      if (mode !== "lobby") drawScene();
+    }
+
     let firebaseBridge = null;
 
     function saveJson(key, value) {
@@ -3668,6 +3895,8 @@
       httpsCallable: null,
       functions: null,
       saveTimer: 0,
+      heartbeatTimer: 0,
+      account: safeLoadPlain(STORAGE_KEYS.accountSession, null),
       async init() {
         try {
           const [
@@ -3700,15 +3929,22 @@
             });
           });
           this.ready = true;
+          await this.resumeAccountSession();
           await this.loadProfile();
           await this.loadServerProfile();
           this.queueSave("initial");
+          this.startHeartbeat();
+          renderAccountPanel();
         } catch (error) {
           console.info("Firebase sync is not available yet.", error);
+          renderAccountPanel();
         }
       },
       profileRef() {
         if (!this.ready || !this.uid) return null;
+        if (this.account?.accountId && this.account?.sessionId) {
+          return this.doc(this.db, "accountProfiles", this.account.accountId, "clientMirror", "profile");
+        }
         return this.doc(this.db, "users", this.uid, "clientMirror", "profile");
       },
       snapshot() {
@@ -3764,6 +4000,97 @@
           refreshPlayerUnlocks();
         } catch (error) {
           console.info("Firebase server profile load failed.", error);
+        }
+      },
+      async callFunction(name, data) {
+        if (!this.ready || !this.httpsCallable || !this.functions) return null;
+        const fn = this.httpsCallable(this.functions, name);
+        const result = await fn(data);
+        return result.data || {};
+      },
+      accountPayload() {
+        return {
+          achievements: AchievementManager.data,
+          stats: StatsManager.data,
+          economy: EconomyManager.data,
+          dailyTasks: DailyTaskManager.data,
+          trainingRecords: TrainingRecordManager.records
+        };
+      },
+      setAccountSession(account) {
+        this.account = account;
+        if (account) localStorage.setItem(STORAGE_KEYS.accountSession, JSON.stringify(account));
+        else localStorage.removeItem(STORAGE_KEYS.accountSession);
+        renderAccountPanel();
+      },
+      async createAccount(nickname, password) {
+        const data = await this.callFunction("createGameAccount", {
+          nickname,
+          password,
+          profile: this.accountPayload()
+        });
+        if (!data?.ok) throw new Error("create failed");
+        this.setAccountSession(data.account);
+        this.startHeartbeat();
+        await this.saveProfile();
+        return data.account;
+      },
+      async loginAccount(nickname, password) {
+        const data = await this.callFunction("loginGameAccount", { nickname, password });
+        if (!data?.ok) throw new Error(data?.reason || "login failed");
+        this.setAccountSession(data.account);
+        this.startHeartbeat();
+        await this.loadProfile();
+        return data.account;
+      },
+      async resumeAccountSession() {
+        if (!this.account?.accountId || !this.account?.sessionId) return false;
+        try {
+          const data = await this.callFunction("resumeGameAccount", this.account);
+          if (!data?.ok) {
+            this.setAccountSession(null);
+            return false;
+          }
+          this.setAccountSession(data.account || this.account);
+          return true;
+        } catch (error) {
+          console.info("Game account resume failed.", error);
+          this.setAccountSession(null);
+          return false;
+        }
+      },
+      async logoutAccount() {
+        if (this.account?.accountId && this.account?.sessionId) {
+          await this.saveProfile();
+          try {
+            await this.callFunction("logoutGameAccount", this.account);
+          } catch (error) {
+            console.info("Game account logout failed.", error);
+          }
+        }
+        if (this.heartbeatTimer) nativeClearInterval.call(window, this.heartbeatTimer);
+        this.heartbeatTimer = 0;
+        this.setAccountSession(null);
+        resetLocalProgressForGuest();
+      },
+      startHeartbeat() {
+        if (this.heartbeatTimer) nativeClearInterval.call(window, this.heartbeatTimer);
+        if (!this.account?.accountId || !this.account?.sessionId) return;
+        this.heartbeatTimer = nativeSetInterval.call(window, () => {
+          this.sendHeartbeat();
+        }, 30000);
+      },
+      async sendHeartbeat() {
+        if (!this.account?.accountId || !this.account?.sessionId) return;
+        try {
+          const data = await this.callFunction("accountHeartbeat", this.account);
+          if (!data?.ok) {
+            this.setAccountSession(null);
+            resetLocalProgressForGuest();
+            setAccountError(tr("accountBusy"));
+          }
+        } catch (error) {
+          console.info("Game account heartbeat failed.", error);
         }
       },
       setSupporterFlags(flags = {}) {
@@ -3953,6 +4280,78 @@
 
     function updateCoinDisplay() {
       if (coinBalanceText) coinBalanceText.textContent = String(EconomyManager.coins());
+    }
+
+    function setAccountError(message = "") {
+      if (!accountErrorText) return;
+      trustDomMutation();
+      accountErrorText.textContent = message;
+    }
+
+    function accountCredentials() {
+      const nickname = accountNicknameInput.value.trim();
+      const password = accountPasswordInput.value;
+      if (!nickname || !password) {
+        setAccountError(tr("accountNeedInput"));
+        return null;
+      }
+      return { nickname, password };
+    }
+
+    function renderAccountPanel() {
+      if (!accountStatusText) return;
+      trustDomMutation();
+      const account = FirebaseBridge.account;
+      if (account?.displayName) {
+        accountStatusText.innerHTML = `${tr("accountLoggedIn", { name: account.displayName })}<span>${tr("accountSignedInHint")}</span>`;
+        accountNicknameInput.value = account.displayName;
+      } else {
+        accountStatusText.innerHTML = `${tr("accountGuestTitle")}<span>${tr("accountGuestHint")}</span>`;
+      }
+      accountLogoutBtn.disabled = !account?.displayName;
+      accountCreateBtn.disabled = !FirebaseBridge.ready;
+      accountLoginBtn.disabled = !FirebaseBridge.ready;
+      accountBtn.textContent = account?.displayName ? "✓" : "👤";
+      lobbyAccountBtn.textContent = account?.displayName ? "✓" : "👤";
+    }
+
+    function toggleAccountPanel(show) {
+      trustDomMutation();
+      accountPanel.classList.toggle("hidden", !show);
+      if (show) {
+        setAccountError(FirebaseBridge.ready ? "" : tr("accountNeedFirebase"));
+        renderAccountPanel();
+      }
+    }
+
+    async function createGameAccountFromPanel() {
+      const creds = accountCredentials();
+      if (!creds) return;
+      try {
+        await FirebaseBridge.createAccount(creds.nickname, creds.password);
+        accountPasswordInput.value = "";
+        setAccountError(tr("accountCreated"));
+      } catch (error) {
+        setAccountError(error?.message === "already-exists" ? tr("accountFailed") : tr("accountFailed"));
+      }
+    }
+
+    async function loginGameAccountFromPanel() {
+      const creds = accountCredentials();
+      if (!creds) return;
+      try {
+        await FirebaseBridge.loginAccount(creds.nickname, creds.password);
+        accountPasswordInput.value = "";
+        setAccountError(tr("accountLoginSuccess"));
+      } catch (error) {
+        setAccountError(error?.message === "account-busy" ? tr("accountBusy") : tr("accountFailed"));
+      }
+    }
+
+    async function logoutGameAccountFromPanel() {
+      await FirebaseBridge.logoutAccount();
+      accountPasswordInput.value = "";
+      setAccountError(tr("accountLoggedOut"));
     }
 
     function adjustedDistanceForPlayer(player, distance) {
@@ -8371,6 +8770,8 @@
       homeBtn.title = tr("homeTitle");
       achievementsBtn.title = tr("achievementsButtonTitle");
       lobbyAchievementsBtn.title = tr("achievementsButtonTitle");
+      accountBtn.title = tr("accountButtonTitle");
+      lobbyAccountBtn.title = tr("accountButtonTitle");
       dailyBtn.title = tr("dailyButtonTitle");
       lobbyDailyBtn.title = tr("dailyButtonTitle");
       trainingBtn.title = tr("trainingButtonTitle");
@@ -8394,6 +8795,7 @@
       renderDailyTasks();
       renderAchievements();
       renderTrainingRecords();
+      renderAccountPanel();
       renderTutorial();
       if (isReplayMode() && replayState?.recordId) {
         const record = TrainingRecordManager.records.find((item) => item.id === replayState.recordId);
@@ -8576,6 +8978,9 @@
     [trainingBtn, lobbyTrainingBtn].forEach((button) => {
       button.addEventListener("click", () => toggleTrainingPanel(true));
     });
+    [accountBtn, lobbyAccountBtn].forEach((button) => {
+      button.addEventListener("click", () => toggleAccountPanel(true));
+    });
     dailyCloseBtn.addEventListener("click", () => toggleDailyPanel(false));
     dailyCheckinBtn.addEventListener("click", () => DailyTaskManager.claimCheckin());
     dailyPanel.addEventListener("click", (event) => {
@@ -8588,6 +8993,13 @@
     trainingCloseBtn.addEventListener("click", () => toggleTrainingPanel(false));
     trainingPanel.addEventListener("click", (event) => {
       if (event.target === trainingPanel) toggleTrainingPanel(false);
+    });
+    accountCloseBtn.addEventListener("click", () => toggleAccountPanel(false));
+    accountCreateBtn.addEventListener("click", createGameAccountFromPanel);
+    accountLoginBtn.addEventListener("click", loginGameAccountFromPanel);
+    accountLogoutBtn.addEventListener("click", logoutGameAccountFromPanel);
+    accountPanel.addEventListener("click", (event) => {
+      if (event.target === accountPanel) toggleAccountPanel(false);
     });
     replayCloseBtn.addEventListener("click", exitTrainingReplay);
     replayReturnBtn.addEventListener("click", exitTrainingReplay);
@@ -8608,6 +9020,12 @@
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !achievementPanel.classList.contains("hidden")) {
         toggleAchievementPanel(false);
+      }
+      if (event.key === "Escape" && !dailyPanel.classList.contains("hidden")) {
+        toggleDailyPanel(false);
+      }
+      if (event.key === "Escape" && !accountPanel.classList.contains("hidden")) {
+        toggleAccountPanel(false);
       }
       if (event.key === "Escape" && !trainingPanel.classList.contains("hidden")) {
         toggleTrainingPanel(false);
