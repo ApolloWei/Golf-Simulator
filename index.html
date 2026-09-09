@@ -2232,7 +2232,7 @@
   <script>
     const BOOT_SCRIPT_NODE = document.currentScript;
     const BOOT_SCRIPT_TEXT = BOOT_SCRIPT_NODE?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "089ca8dc";
+    const SOURCE_INTEGRITY_HASH = "dbeec433";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2701,6 +2701,8 @@
         accountLoginNoCloudSave: "登录成功，但这个账号云端还没有存档。为避免覆盖旧进度，当前浏览器的数据不会自动写上去。",
         accountLoginCloudUnavailable: "登录成功，但暂时读不到云端数据。为避免进度错乱，请先不要继续游玩。",
         accountLoginBackupRestored: "登录成功，已用登出前的本地备份恢复进度，并会尝试同步到云端。",
+        accountCloudSaveMissing: "密码正确，但这个账号没有云端存档，所以没有保持登录。请先恢复存档或重新创建账号。",
+        accountCloudSaveUnavailable: "密码正确，但云端存档加载失败，所以没有保持登录。请检查网络和 Firestore 规则后再试。",
         accountLoggedOut: "已登出。本地进度已清零，重新登录会恢复账号进度。",
         accountBusy: "这个账号已经在另一个浏览器登录。",
         accountExists: "这个昵称已经被注册了，请换一个昵称或直接登录。",
@@ -3015,6 +3017,8 @@
         accountLoginNoCloudSave: "Logged in, but this account has no cloud save yet. To avoid overwriting old progress, this browser will not auto-upload local data.",
         accountLoginCloudUnavailable: "Logged in, but cloud data could not be loaded yet. To avoid progress conflicts, please do not keep playing yet.",
         accountLoginBackupRestored: "Logged in. Progress was restored from the local backup made before logout, and the game will try to sync it.",
+        accountCloudSaveMissing: "Password accepted, but this account has no cloud save, so it was not kept signed in. Restore the save or create the account again.",
+        accountCloudSaveUnavailable: "Password accepted, but cloud progress failed to load, so it was not kept signed in. Check the network and Firestore rules, then try again.",
         accountLoggedOut: "Logged out. Local progress was reset; logging back in restores account progress.",
         accountBusy: "This account is already active in another browser.",
         accountExists: "That nickname is already registered. Try another nickname or log in.",
@@ -4046,7 +4050,10 @@
           this.uid = user.uid;
           this.ready = true;
           await this.resumeAccountSession();
-          await this.tryLoadProfile();
+          const profileStatus = await this.tryLoadProfile();
+          if (this.account && !["loaded", "backup-restored"].includes(profileStatus)) {
+            await this.clearUnloadedAccountSession(profileStatus);
+          }
           await this.tryLoadServerProfile();
           if (!this.account || ["loaded", "backup-restored"].includes(this.lastProfileLoadStatus)) {
             this.queueSave("initial");
@@ -4130,6 +4137,26 @@
         }
         this.lastProfileLoadStatus = status;
         return status;
+      },
+      async clearUnloadedAccountSession(status) {
+        if (this.heartbeatTimer) nativeClearInterval.call(window, this.heartbeatTimer);
+        this.heartbeatTimer = 0;
+        this.setAccountSession(null);
+        try {
+          if (this.authModule?.signOut && this.auth) {
+            await this.authModule.signOut(this.auth);
+            const credential = await this.authModule.signInAnonymously(this.auth);
+            this.uid = credential.user.uid;
+          }
+        } catch (error) {
+          console.info("Account cleanup after failed cloud load failed.", error);
+        }
+        this.lastProfileLoadStatus = status;
+      },
+      async requireLoadedAccountProgress(status) {
+        if (["loaded", "backup-restored"].includes(status)) return;
+        await this.clearUnloadedAccountSession(status);
+        throw new Error(status === "empty" ? "account-cloud-save-missing" : "account-cloud-save-unavailable");
       },
       async tryLoadServerProfile() {
         try {
@@ -4263,7 +4290,8 @@
         this.setAccountSession(account);
         await this.tryClaimFirebaseAuthSession();
         this.startHeartbeat();
-        await this.restoreBackupIfNeeded(account, await this.tryLoadProfile());
+        const status = await this.restoreBackupIfNeeded(account, await this.tryLoadProfile());
+        await this.requireLoadedAccountProgress(status);
         return account;
       },
       firebaseSessionRef() {
@@ -4319,7 +4347,8 @@
           if (!data?.ok) throw new Error(data?.reason || "login failed");
           this.setAccountSession(data.account);
           this.startHeartbeat();
-          await this.restoreBackupIfNeeded(data.account, await this.tryLoadProfile());
+          const status = await this.restoreBackupIfNeeded(data.account, await this.tryLoadProfile());
+          await this.requireLoadedAccountProgress(status);
           return data.account;
         } catch (error) {
           if (!["functions-not-deployed", "firebase-unavailable"].includes(error?.message)
@@ -4637,6 +4666,8 @@
       if (error?.message === "account-auth-failed") return tr("accountAuthFailed");
       if (error?.message === "account-auth-provider-disabled") return tr("accountProviderDisabled");
       if (error?.message === "account-quota-exceeded") return tr("accountQuotaExceeded");
+      if (error?.message === "account-cloud-save-missing") return tr("accountCloudSaveMissing");
+      if (error?.message === "account-cloud-save-unavailable") return tr("accountCloudSaveUnavailable");
       if (String(error?.message || "").startsWith("account-unknown:")) {
         return tr("accountUnknownError", { detail: error.message.replace("account-unknown:", "") });
       }
