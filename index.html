@@ -2232,7 +2232,7 @@
   <script>
     const BOOT_SCRIPT_NODE = document.currentScript;
     const BOOT_SCRIPT_TEXT = BOOT_SCRIPT_NODE?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "2e94f38e";
+    const SOURCE_INTEGRITY_HASH = "b112c1ce";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2692,7 +2692,7 @@
         accountLogin: "登录",
         accountLogout: "登出",
         accountHint: "登录后，成就、金币、人物等级和训练记录会同步到这个昵称。密码不会显示在账户页面。",
-        accountNeedFirebase: "需要先部署 Firebase Functions 后才能创建或登录账号。",
+        accountNeedFirebase: "请先在 Firebase Authentication 里开启 Email/Password 登录方式。",
         accountNeedInput: "请输入昵称和密码。",
         accountLoggedIn: "已登录：{name}",
         accountCreated: "账户已创建并登录。",
@@ -3002,7 +3002,7 @@
         accountLogin: "Log In",
         accountLogout: "Log Out",
         accountHint: "After logging in, achievements, coins, player levels, and training records sync to this nickname. Passwords are never shown here.",
-        accountNeedFirebase: "Firebase Functions must be deployed before accounts can be created or used.",
+        accountNeedFirebase: "Enable Email/Password sign-in in Firebase Authentication first.",
         accountNeedInput: "Enter a nickname and password.",
         accountLoggedIn: "Signed in: {name}",
         accountCreated: "Account created and signed in.",
@@ -3973,8 +3973,8 @@
           this.uid = user.uid;
           this.ready = true;
           await this.resumeAccountSession();
-          await this.loadProfile();
-          await this.loadServerProfile();
+          await this.tryLoadProfile();
+          await this.tryLoadServerProfile();
           this.queueSave("initial");
           this.startHeartbeat();
           renderAccountPanel();
@@ -4050,6 +4050,27 @@
           refreshPlayerUnlocks();
         } catch (error) {
           console.info("Firebase server profile load failed.", error);
+        }
+      },
+      async tryLoadProfile() {
+        try {
+          await this.loadProfile();
+        } catch (error) {
+          console.info("Firebase profile load failed.", error);
+        }
+      },
+      async tryLoadServerProfile() {
+        try {
+          await this.loadServerProfile();
+        } catch (error) {
+          console.info("Firebase server profile load failed.", error);
+        }
+      },
+      async tryClaimFirebaseAuthSession() {
+        try {
+          await this.claimFirebaseAuthSession();
+        } catch (error) {
+          console.info("Firebase session claim failed.", error);
         }
       },
       async callFunction(name, data) {
@@ -4142,7 +4163,7 @@
         }
         const account = { accountId: this.uid, displayName, sessionId, firebaseAuth: true };
         this.setAccountSession(account);
-        await this.claimFirebaseAuthSession();
+        await this.tryClaimFirebaseAuthSession();
         this.startHeartbeat();
         await this.saveProfile();
         return account;
@@ -4165,9 +4186,9 @@
         }
         const account = { accountId: this.uid, displayName: this.auth.currentUser?.displayName || displayName, sessionId, firebaseAuth: true };
         this.setAccountSession(account);
-        await this.claimFirebaseAuthSession();
+        await this.tryClaimFirebaseAuthSession();
         this.startHeartbeat();
-        await this.loadProfile();
+        await this.tryLoadProfile();
         return account;
       },
       firebaseSessionRef() {
@@ -4222,7 +4243,7 @@
           if (!data?.ok) throw new Error(data?.reason || "login failed");
           this.setAccountSession(data.account);
           this.startHeartbeat();
-          await this.loadProfile();
+          await this.tryLoadProfile();
           return data.account;
         } catch (error) {
           if (!["functions-not-deployed", "firebase-unavailable"].includes(error?.message)
@@ -4239,7 +4260,7 @@
               return false;
             }
             this.uid = this.auth.currentUser.uid;
-            await this.claimFirebaseAuthSession();
+            await this.tryClaimFirebaseAuthSession();
             return true;
           }
           const data = await this.callFunction("resumeGameAccount", this.account);
