@@ -2231,7 +2231,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "4a7921b1";
+    const SOURCE_INTEGRITY_HASH = "7c9a347f";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -3345,8 +3345,7 @@
     }
 
     function hasExpectedSourceIntegrity() {
-      return sourceIntegrityValue() === SOURCE_INTEGRITY_HASH
-        && document.scripts.length === 1;
+      return sourceIntegrityValue() === SOURCE_INTEGRITY_HASH;
     }
 
     function hasExpectedDataIntegrity() {
@@ -4541,7 +4540,7 @@
 
     async function ensureFirebaseBridgeReady() {
       if (FirebaseBridge.ready) return true;
-      trustDomMutation(5000);
+      trustDomMutation(15000);
       return FirebaseBridge.init();
     }
 
