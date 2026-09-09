@@ -2231,7 +2231,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "c7dca3d8";
+    const SOURCE_INTEGRITY_HASH = "4a7921b1";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -7744,11 +7744,6 @@
       clearHoleAdvanceTimer();
       hideAfkChallenge();
       if (integrityTimerId) nativeClearInterval.call(window, integrityTimerId);
-      try {
-        window.alert(tr("hardHackMessage"));
-      } catch {
-        // Keep the forced exit working even if alert is blocked.
-      }
       if (siteMutationObserver) {
         mutationGuardDisconnectAllowed = true;
         siteMutationObserver.disconnect();
