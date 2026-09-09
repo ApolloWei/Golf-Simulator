@@ -2232,7 +2232,7 @@
   <script>
     const BOOT_SCRIPT_NODE = document.currentScript;
     const BOOT_SCRIPT_TEXT = BOOT_SCRIPT_NODE?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "445bdd25";
+    const SOURCE_INTEGRITY_HASH = "089ca8dc";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -2698,8 +2698,8 @@
         accountLoggedIn: "已登录：{name}",
         accountCreated: "账户已创建并登录。",
         accountLoginSuccess: "登录成功，云端进度已恢复。",
-        accountLoginNoCloudSave: "登录成功，但这个账号云端还没有存档。先玩一会儿，数据会尝试同步到云端。",
-        accountLoginCloudUnavailable: "登录成功，但暂时读不到云端数据。请确认 Firestore 规则已经部署。",
+        accountLoginNoCloudSave: "登录成功，但这个账号云端还没有存档。为避免覆盖旧进度，当前浏览器的数据不会自动写上去。",
+        accountLoginCloudUnavailable: "登录成功，但暂时读不到云端数据。为避免进度错乱，请先不要继续游玩。",
         accountLoginBackupRestored: "登录成功，已用登出前的本地备份恢复进度，并会尝试同步到云端。",
         accountLoggedOut: "已登出。本地进度已清零，重新登录会恢复账号进度。",
         accountBusy: "这个账号已经在另一个浏览器登录。",
@@ -3012,8 +3012,8 @@
         accountLoggedIn: "Signed in: {name}",
         accountCreated: "Account created and signed in.",
         accountLoginSuccess: "Logged in. Cloud progress restored.",
-        accountLoginNoCloudSave: "Logged in, but this account has no cloud save yet. Play a little and the game will try to sync it.",
-        accountLoginCloudUnavailable: "Logged in, but cloud data could not be loaded yet. Make sure Firestore rules are deployed.",
+        accountLoginNoCloudSave: "Logged in, but this account has no cloud save yet. To avoid overwriting old progress, this browser will not auto-upload local data.",
+        accountLoginCloudUnavailable: "Logged in, but cloud data could not be loaded yet. To avoid progress conflicts, please do not keep playing yet.",
         accountLoginBackupRestored: "Logged in. Progress was restored from the local backup made before logout, and the game will try to sync it.",
         accountLoggedOut: "Logged out. Local progress was reset; logging back in restores account progress.",
         accountBusy: "This account is already active in another browser.",
@@ -4048,7 +4048,9 @@
           await this.resumeAccountSession();
           await this.tryLoadProfile();
           await this.tryLoadServerProfile();
-          this.queueSave("initial");
+          if (!this.account || ["loaded", "backup-restored"].includes(this.lastProfileLoadStatus)) {
+            this.queueSave("initial");
+          }
           this.startHeartbeat();
           renderAccountPanel();
           return true;
@@ -4122,11 +4124,10 @@
       async restoreBackupIfNeeded(account, status) {
         if (status === "loaded") return "loaded";
         if (restoreLocalProgressBackup(account)) {
-          await this.saveProfile();
           this.lastProfileLoadStatus = "backup-restored";
+          await this.saveProfile();
           return this.lastProfileLoadStatus;
         }
-        if (status === "empty") await this.saveProfile();
         this.lastProfileLoadStatus = status;
         return status;
       },
@@ -4237,6 +4238,7 @@
         this.setAccountSession(account);
         await this.tryClaimFirebaseAuthSession();
         this.startHeartbeat();
+        this.lastProfileLoadStatus = "loaded";
         await this.saveProfile();
         return account;
       },
@@ -4302,6 +4304,7 @@
           if (!data?.ok) throw new Error("create failed");
           this.setAccountSession(data.account);
           this.startHeartbeat();
+          this.lastProfileLoadStatus = "loaded";
           await this.saveProfile();
           return data.account;
         } catch (error) {
@@ -4422,6 +4425,7 @@
       },
       queueSave() {
         if (!this.ready || this.syncingFromCloud) return;
+        if (this.account && !["loaded", "backup-restored"].includes(this.lastProfileLoadStatus)) return;
         if (this.saveTimer) nativeClearTimeout.call(window, this.saveTimer);
         this.saveTimer = nativeSetTimeout.call(window, () => {
           this.saveTimer = 0;
@@ -4431,6 +4435,7 @@
       async saveProfile() {
         const ref = this.profileRef();
         if (!ref || this.syncingFromCloud) return;
+        if (this.account && !["loaded", "backup-restored"].includes(this.lastProfileLoadStatus)) return;
         try {
           await this.setDoc(ref, this.snapshot(), { merge: true });
         } catch (error) {
