@@ -2231,7 +2231,7 @@
 
   <script>
     const BOOT_SCRIPT_TEXT = document.currentScript?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "087dc38a";
+    const SOURCE_INTEGRITY_HASH = "3966a978";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -3886,6 +3886,7 @@
     const FirebaseBridge = {
       ready: false,
       syncingFromCloud: false,
+      initPromise: null,
       uid: "",
       db: null,
       doc: null,
@@ -3898,6 +3899,12 @@
       heartbeatTimer: 0,
       account: safeLoadPlain(STORAGE_KEYS.accountSession, null),
       async init() {
+        if (this.ready) return true;
+        if (this.initPromise) return this.initPromise;
+        this.initPromise = this.initNow();
+        return this.initPromise;
+      },
+      async initNow() {
         try {
           const [
             appModule,
@@ -3935,9 +3942,13 @@
           this.queueSave("initial");
           this.startHeartbeat();
           renderAccountPanel();
+          return true;
         } catch (error) {
           console.info("Firebase sync is not available yet.", error);
           renderAccountPanel();
+          return false;
+        } finally {
+          this.initPromise = null;
         }
       },
       profileRef() {
@@ -4319,6 +4330,12 @@
       return tr("accountFailed");
     }
 
+    async function ensureFirebaseBridgeReady() {
+      if (FirebaseBridge.ready) return true;
+      trustDomMutation(5000);
+      return FirebaseBridge.init();
+    }
+
     function renderAccountPanel() {
       if (!accountStatusText) return;
       trustDomMutation();
@@ -4342,6 +4359,10 @@
       if (show) {
         setAccountError(FirebaseBridge.ready ? "" : tr("accountNeedFirebase"));
         renderAccountPanel();
+        ensureFirebaseBridgeReady().then(() => {
+          setAccountError(FirebaseBridge.ready ? "" : tr("accountNeedFirebase"));
+          renderAccountPanel();
+        });
       }
     }
 
@@ -4349,6 +4370,7 @@
       const creds = accountCredentials();
       if (!creds) return;
       try {
+        await ensureFirebaseBridgeReady();
         await FirebaseBridge.createAccount(creds.nickname, creds.password);
         accountPasswordInput.value = "";
         setAccountError(tr("accountCreated"));
@@ -4361,6 +4383,7 @@
       const creds = accountCredentials();
       if (!creds) return;
       try {
+        await ensureFirebaseBridgeReady();
         await FirebaseBridge.loginAccount(creds.nickname, creds.password);
         accountPasswordInput.value = "";
         setAccountError(tr("accountLoginSuccess"));
@@ -5889,6 +5912,8 @@
       const entered = window.prompt(tr(promptKey));
       trustDomMutation(7000);
       if (entered == null) return;
+      await ensureFirebaseBridgeReady();
+      trustDomMutation(7000);
       const serverVerification = await FirebaseBridge.verifySupporterCode(normalizedChoice, entered.trim());
       trustDomMutation(7000);
       if (serverVerification !== true) {
@@ -7572,7 +7597,7 @@
     function isAllowedFirebaseAuthIframe(node) {
       if (!node || node.nodeType !== 1 || node.tagName !== "IFRAME") return false;
       const src = node.getAttribute("src") || "";
-      if (!src) return true;
+      if (!src) return false;
       const allowedIframeHosts = new Set([
         FIREBASE_CONFIG.authDomain,
         `${FIREBASE_CONFIG.projectId}.firebaseapp.com`
@@ -8864,7 +8889,6 @@
     DailyTaskManager.load();
     AchievementManager.evaluate();
     EconomyManager.syncUnlockedAchievementRewards();
-    FirebaseBridge.init();
     fillPlayers();
     setupLaunchDockDragging();
     protectSupporterStorage();
