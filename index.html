@@ -333,6 +333,77 @@
       font-weight: 700;
     }
 
+    .account-loading-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(23, 36, 29, 0.58);
+      backdrop-filter: blur(12px);
+    }
+
+    .account-loading-card {
+      width: min(460px, 100%);
+      display: grid;
+      gap: 14px;
+      padding: 28px;
+      border: 1px solid rgba(205, 219, 209, 0.95);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 24px 70px rgba(30, 56, 39, 0.32);
+      color: var(--ink);
+    }
+
+    .account-loading-kicker {
+      color: var(--accent-2);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .account-loading-card h2 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    .account-loading-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-weight: 750;
+    }
+
+    .account-loading-bar {
+      height: 12px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e6f0e7;
+      box-shadow: inset 0 1px 2px rgba(30, 56, 39, 0.14);
+    }
+
+    .account-loading-bar span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #5ca85e, #d8b650);
+      transition: width 220ms ease;
+    }
+
+    .account-loading-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
     .account-form {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2206,6 +2277,22 @@
     </div>
   </div>
 
+  <div class="account-loading-panel hidden" id="accountLoadingPanel" role="dialog" aria-modal="true" aria-labelledby="accountLoadingTitle">
+    <div class="account-loading-card">
+      <div class="account-loading-kicker" data-i18n="accountLoadingKicker">请不要刷新</div>
+      <h2 id="accountLoadingTitle" data-i18n="accountLoadingTitle">正在登录数据</h2>
+      <p id="accountLoadingMessage" data-i18n="accountLoadingAuth">正在验证账户...</p>
+      <div class="account-loading-bar" aria-hidden="true">
+        <span id="accountLoadingBar"></span>
+      </div>
+      <div class="account-loading-meta">
+        <span id="accountLoadingPercent">0%</span>
+        <span id="accountLoadingEta">预计 8 秒</span>
+      </div>
+      <p data-i18n="accountLoadingCancel">如果刷新，本次登录会自动取消并回到原来的账户。</p>
+    </div>
+  </div>
+
   <div class="afk-panel hidden" id="afkPanel" role="dialog" aria-modal="true" aria-labelledby="afkTitle">
     <div class="afk-card" id="afkCard">
       <h2 id="afkTitle" data-i18n="afkTitle">AFK 检测</h2>
@@ -2431,6 +2518,11 @@
     const accountPasswordInput = document.querySelector("#accountPasswordInput");
     const accountStatusText = document.querySelector("#accountStatusText");
     const accountErrorText = document.querySelector("#accountErrorText");
+    const accountLoadingPanel = document.querySelector("#accountLoadingPanel");
+    const accountLoadingMessage = document.querySelector("#accountLoadingMessage");
+    const accountLoadingBar = document.querySelector("#accountLoadingBar");
+    const accountLoadingPercent = document.querySelector("#accountLoadingPercent");
+    const accountLoadingEta = document.querySelector("#accountLoadingEta");
     const startGameBtn = document.querySelector("#startGameBtn");
     const startObstacleBtn = document.querySelector("#startObstacleBtn");
     const startTournamentBtn = document.querySelector("#startTournamentBtn");
@@ -2703,6 +2795,15 @@
         accountLoginBackupRestored: "登录成功，已用登出前的本地备份恢复进度，并会尝试同步到云端。",
         accountCloudSaveMissing: "密码正确，但这个账号没有云端存档，所以没有保持登录。请先恢复存档或重新创建账号。",
         accountCloudSaveUnavailable: "密码正确，但云端存档加载失败，所以没有保持登录。请检查网络和 Firestore 规则后再试。",
+        accountLoadingKicker: "请不要刷新",
+        accountLoadingTitle: "正在登录数据",
+        accountLoadingAuth: "正在验证账户...",
+        accountLoadingCloud: "正在读取云端存档...",
+        accountLoadingApply: "正在应用进度...",
+        accountLoadingDone: "登录完成，正在进入账号...",
+        accountLoadingCancel: "如果刷新，本次登录会自动取消并回到原来的账户。",
+        accountLoadingEta: "预计 {seconds} 秒",
+        accountLoginCanceledRefresh: "上次登录因为刷新或中断已取消，已恢复登录前的本地进度。",
         accountLoggedOut: "已登出。本地进度已清零，重新登录会恢复账号进度。",
         accountBusy: "这个账号已经在另一个浏览器登录。",
         accountExists: "这个昵称已经被注册了，请换一个昵称或直接登录。",
@@ -3019,6 +3120,15 @@
         accountLoginBackupRestored: "Logged in. Progress was restored from the local backup made before logout, and the game will try to sync it.",
         accountCloudSaveMissing: "Password accepted, but this account has no cloud save, so it was not kept signed in. Restore the save or create the account again.",
         accountCloudSaveUnavailable: "Password accepted, but cloud progress failed to load, so it was not kept signed in. Check the network and Firestore rules, then try again.",
+        accountLoadingKicker: "Please do not refresh",
+        accountLoadingTitle: "Signing in and loading data",
+        accountLoadingAuth: "Verifying account...",
+        accountLoadingCloud: "Loading cloud save...",
+        accountLoadingApply: "Applying progress...",
+        accountLoadingDone: "Login complete. Opening account...",
+        accountLoadingCancel: "If you refresh, this login will be canceled and the previous account state will be restored.",
+        accountLoadingEta: "About {seconds}s left",
+        accountLoginCanceledRefresh: "The previous login was canceled after a refresh or interruption. Local progress from before the login was restored.",
         accountLoggedOut: "Logged out. Local progress was reset; logging back in restores account progress.",
         accountBusy: "This account is already active in another browser.",
         accountExists: "That nickname is already registered. Try another nickname or log in.",
@@ -3291,7 +3401,8 @@
       dailyTasks: "golfSimulatorDailyTasks.v1",
       economy: "golfSimulatorEconomy.v1",
       accountSession: "golfSimulatorAccountSession.v1",
-      localProgressBackup: "golfSimulatorLocalProgressBackup.v1"
+      localProgressBackup: "golfSimulatorLocalProgressBackup.v1",
+      pendingAccountLogin: "golfSimulatorPendingAccountLogin.v1"
     };
     const FIREBASE_CONFIG = Object.freeze({
       apiKey: "AIzaSyAc4yuho5ml0tU3bUG-SmjsSAM5qMhEf9A",
@@ -3336,7 +3447,9 @@
       "achievementStreakText", "achievementList", "statisticsList", "trainingPanel", "trainingPanelTitle",
       "trainingCloseBtn", "trainingReplaySpeed", "trainingRecordList", "accountPanel", "accountPanelTitle",
       "accountCloseBtn", "accountStatusText", "accountNicknameInput", "accountPasswordInput", "accountCreateBtn",
-      "accountLoginBtn", "accountLogoutBtn", "accountHintText", "accountErrorText", "afkPanel", "afkCard",
+      "accountLoginBtn", "accountLogoutBtn", "accountHintText", "accountErrorText", "accountLoadingPanel",
+      "accountLoadingTitle", "accountLoadingMessage", "accountLoadingBar", "accountLoadingPercent",
+      "accountLoadingEta", "afkPanel", "afkCard",
       "afkTitle", "afkCanvas", "afkTimer", "tutorialPanel", "tutorialCard", "tutorialKicker",
       "tutorialTitle", "tutorialBody", "tutorialSkipBtn", "tutorialNextBtn", "achievementToasts"
     ]);
@@ -3891,13 +4004,18 @@
     }
 
     function currentProgressSnapshot() {
-      return {
+      const snapshot = {
         achievements: AchievementManager.data,
         stats: StatsManager.data,
         economy: EconomyManager.data,
         dailyTasks: DailyTaskManager.data,
         trainingRecords: TrainingRecordManager.records
       };
+      try {
+        return JSON.parse(JSON.stringify(snapshot));
+      } catch {
+        return snapshot;
+      }
     }
 
     function applyProgressSnapshot(profile) {
@@ -3949,6 +4067,37 @@
       const backup = safeLoadPlain(STORAGE_KEYS.localProgressBackup, null);
       if (!canUseLocalProgressBackup(backup, account)) return false;
       return applyProgressSnapshot(backup.profile);
+    }
+
+    function beginPendingAccountLogin(displayName) {
+      const pending = {
+        targetName: String(displayName || ""),
+        startedAt: Date.now(),
+        previousAccount: FirebaseBridge?.account || null,
+        previousProfile: currentProgressSnapshot()
+      };
+      localStorage.setItem(STORAGE_KEYS.pendingAccountLogin, JSON.stringify(pending));
+      return pending;
+    }
+
+    function clearPendingAccountLogin() {
+      localStorage.removeItem(STORAGE_KEYS.pendingAccountLogin);
+    }
+
+    function restorePendingAccountLoginState(showMessage = false) {
+      const pending = safeLoadPlain(STORAGE_KEYS.pendingAccountLogin, null);
+      if (!pending) return false;
+      clearPendingAccountLogin();
+      if (pending.previousProfile) applyProgressSnapshot(pending.previousProfile);
+      FirebaseBridge.account = pending.previousAccount || null;
+      if (pending.previousAccount) {
+        localStorage.setItem(STORAGE_KEYS.accountSession, JSON.stringify(pending.previousAccount));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.accountSession);
+      }
+      renderAccountPanel();
+      if (showMessage) setAccountError(tr("accountLoginCanceledRefresh"));
+      return true;
     }
 
     function resetLocalProgressForGuest() {
@@ -4141,7 +4290,6 @@
       async clearUnloadedAccountSession(status) {
         if (this.heartbeatTimer) nativeClearInterval.call(window, this.heartbeatTimer);
         this.heartbeatTimer = 0;
-        this.setAccountSession(null);
         try {
           if (this.authModule?.signOut && this.auth) {
             await this.authModule.signOut(this.auth);
@@ -4150,6 +4298,9 @@
           }
         } catch (error) {
           console.info("Account cleanup after failed cloud load failed.", error);
+        }
+        if (!restorePendingAccountLoginState(false)) {
+          this.setAccountSession(null);
         }
         this.lastProfileLoadStatus = status;
       },
@@ -4287,11 +4438,14 @@
           throw new Error(`account-unknown:${[code, error?.message].filter(Boolean).join(" ").slice(0, 140)}`);
         }
         const account = { accountId: this.uid, displayName: this.auth.currentUser?.displayName || displayName, sessionId, firebaseAuth: true };
-        this.setAccountSession(account);
+        setAccountLoadingStep("cloud");
+        this.setAccountSession(account, { persist: false });
         await this.tryClaimFirebaseAuthSession();
         this.startHeartbeat();
         const status = await this.restoreBackupIfNeeded(account, await this.tryLoadProfile());
         await this.requireLoadedAccountProgress(status);
+        setAccountLoadingStep("apply");
+        this.setAccountSession(account);
         return account;
       },
       firebaseSessionRef() {
@@ -4316,10 +4470,13 @@
           trainingRecords: TrainingRecordManager.records
         };
       },
-      setAccountSession(account) {
+      setAccountSession(account, options = {}) {
+        const persist = options.persist !== false;
         this.account = account;
-        if (account) localStorage.setItem(STORAGE_KEYS.accountSession, JSON.stringify(account));
-        else localStorage.removeItem(STORAGE_KEYS.accountSession);
+        if (persist) {
+          if (account) localStorage.setItem(STORAGE_KEYS.accountSession, JSON.stringify(account));
+          else localStorage.removeItem(STORAGE_KEYS.accountSession);
+        }
         renderAccountPanel();
       },
       async createAccount(nickname, password) {
@@ -4345,10 +4502,13 @@
         try {
           const data = await this.callFunction("loginGameAccount", { nickname, password });
           if (!data?.ok) throw new Error(data?.reason || "login failed");
-          this.setAccountSession(data.account);
+          setAccountLoadingStep("cloud");
+          this.setAccountSession(data.account, { persist: false });
           this.startHeartbeat();
           const status = await this.restoreBackupIfNeeded(data.account, await this.tryLoadProfile());
           await this.requireLoadedAccountProgress(status);
+          setAccountLoadingStep("apply");
+          this.setAccountSession(data.account);
           return data.account;
         } catch (error) {
           if (!["functions-not-deployed", "firebase-unavailable"].includes(error?.message)
@@ -4645,6 +4805,71 @@
       accountErrorText.textContent = message;
     }
 
+    let accountLoadingTimer = 0;
+    let accountLoadingStartedAt = 0;
+    let accountLoadingStep = "auth";
+    let accountLoadingProgress = 0;
+
+    function accountLoadingStepTarget(step) {
+      return {
+        auth: 35,
+        cloud: 72,
+        apply: 93,
+        done: 100
+      }[step] || 35;
+    }
+
+    function accountLoadingMessageKey(step) {
+      return {
+        auth: "accountLoadingAuth",
+        cloud: "accountLoadingCloud",
+        apply: "accountLoadingApply",
+        done: "accountLoadingDone"
+      }[step] || "accountLoadingAuth";
+    }
+
+    function updateAccountLoadingPanel(forcePercent = null) {
+      if (!accountLoadingPanel || accountLoadingPanel.classList.contains("hidden")) return;
+      const target = accountLoadingStepTarget(accountLoadingStep);
+      const elapsed = Math.max(0, (Date.now() - accountLoadingStartedAt) / 1000);
+      const glide = accountLoadingStep === "done" ? 100 : Math.min(target - 1, accountLoadingProgress + Math.max(0.4, elapsed * 0.7));
+      accountLoadingProgress = forcePercent === null ? Math.max(accountLoadingProgress, glide) : forcePercent;
+      const percent = Math.max(0, Math.min(100, Math.round(accountLoadingProgress)));
+      const secondsLeft = accountLoadingStep === "done" ? 0 : Math.max(1, Math.ceil((100 - percent) / 12));
+      trustDomMutation();
+      accountLoadingMessage.textContent = tr(accountLoadingMessageKey(accountLoadingStep));
+      accountLoadingBar.style.width = `${percent}%`;
+      accountLoadingPercent.textContent = `${percent}%`;
+      accountLoadingEta.textContent = tr("accountLoadingEta", { seconds: secondsLeft });
+    }
+
+    function showAccountLoading(step = "auth") {
+      if (!accountLoadingPanel) return;
+      accountLoadingStartedAt = Date.now();
+      accountLoadingStep = step;
+      accountLoadingProgress = Math.max(4, Math.min(accountLoadingStepTarget(step) - 18, accountLoadingProgress || 4));
+      trustDomMutation(20000);
+      accountLoadingPanel.classList.remove("hidden");
+      accountPanel.classList.add("hidden");
+      updateAccountLoadingPanel();
+      if (accountLoadingTimer) nativeClearInterval.call(window, accountLoadingTimer);
+      accountLoadingTimer = nativeSetInterval.call(window, updateAccountLoadingPanel, 250);
+    }
+
+    function setAccountLoadingStep(step) {
+      accountLoadingStep = step;
+      accountLoadingProgress = Math.max(accountLoadingProgress, Math.min(accountLoadingStepTarget(step) - 10, accountLoadingStepTarget(step)));
+      updateAccountLoadingPanel();
+    }
+
+    function hideAccountLoading() {
+      if (accountLoadingTimer) nativeClearInterval.call(window, accountLoadingTimer);
+      accountLoadingTimer = 0;
+      if (!accountLoadingPanel) return;
+      trustDomMutation();
+      accountLoadingPanel.classList.add("hidden");
+    }
+
     function accountCredentials() {
       const nickname = accountNicknameInput.value.trim();
       const password = accountPasswordInput.value;
@@ -4683,6 +4908,7 @@
 
     function setAccountActionInProgress(value) {
       accountActionInProgress = Boolean(value);
+      if (!accountActionInProgress) hideAccountLoading();
       renderAccountPanel();
     }
 
@@ -4725,13 +4951,19 @@
     async function createGameAccountFromPanel() {
       const creds = accountCredentials();
       if (!creds) return;
+      beginPendingAccountLogin(creds.nickname);
       try {
         setAccountActionInProgress(true);
+        showAccountLoading("auth");
         await ensureFirebaseBridgeReady();
         await FirebaseBridge.createAccount(creds.nickname, creds.password);
+        setAccountLoadingStep("done");
+        updateAccountLoadingPanel(100);
+        clearPendingAccountLogin();
         accountPasswordInput.value = "";
         setAccountError(tr("accountCreated"));
       } catch (error) {
+        restorePendingAccountLoginState(false);
         setAccountError(accountErrorMessage(error));
       } finally {
         setAccountActionInProgress(false);
@@ -4741,13 +4973,19 @@
     async function loginGameAccountFromPanel() {
       const creds = accountCredentials();
       if (!creds) return;
+      beginPendingAccountLogin(creds.nickname);
       try {
         setAccountActionInProgress(true);
+        showAccountLoading("auth");
         await ensureFirebaseBridgeReady();
         await FirebaseBridge.loginAccount(creds.nickname, creds.password);
+        setAccountLoadingStep("done");
+        updateAccountLoadingPanel(100);
+        clearPendingAccountLogin();
         accountPasswordInput.value = "";
         setAccountError(accountLoginStatusMessage());
       } catch (error) {
+        restorePendingAccountLoginState(false);
         setAccountError(accountErrorMessage(error));
       } finally {
         setAccountActionInProgress(false);
@@ -9317,6 +9555,7 @@
       if (mode !== "lobby") drawScene();
     }
 
+    restorePendingAccountLoginState(true);
     fillPlayers();
     DailyTaskManager.load();
     AchievementManager.evaluate();
