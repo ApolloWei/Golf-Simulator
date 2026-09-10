@@ -8155,10 +8155,13 @@
         siteMutationObserver.disconnect();
         mutationGuardDisconnectAllowed = false;
       }
+      trustDomMutation(5000);
       try {
-        window.location.replace("about:blank");
+        if (holeModal) holeModal.classList.add("hidden");
+        showLobby();
+        if (message) message.textContent = tr("hardHackMessage");
       } catch {
-        window.location.href = "about:blank";
+        // Keep the page open even if a browser blocks part of the recovery path.
       }
     }
 
