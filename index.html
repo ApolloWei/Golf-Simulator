@@ -4243,7 +4243,7 @@
       async loadProfile() {
         const ref = this.profileRef();
         if (!ref) return "empty";
-        const snap = await this.getDoc(ref);
+        const snap = await this.withFirebaseTimeout(this.getDoc(ref), "profile-load");
         if (!snap.exists()) return "empty";
         const profile = snap.data() || {};
         this.syncingFromCloud = true;
@@ -4258,7 +4258,7 @@
         if (!this.ready || !this.uid) return;
         try {
           const ref = this.doc(this.db, "users", this.uid, "serverProfile", "progress");
-          const snap = await this.getDoc(ref);
+          const snap = await this.withFirebaseTimeout(this.getDoc(ref), "server-profile-load", 5000);
           if (!snap.exists()) return;
           const profile = snap.data() || {};
           if (!profile.supporter) return;
@@ -4420,13 +4420,30 @@
         if (typeof value.seconds === "number") return value.seconds * 1000;
         return 0;
       },
+      withFirebaseTimeout(promise, label, ms = 8000) {
+        return new Promise((resolve, reject) => {
+          const timeoutId = nativeSetTimeout.call(window, () => {
+            reject(new Error(`firebase-timeout:${label}`));
+          }, ms);
+          Promise.resolve(promise).then((value) => {
+            nativeClearTimeout.call(window, timeoutId);
+            resolve(value);
+          }).catch((error) => {
+            nativeClearTimeout.call(window, timeoutId);
+            reject(error);
+          });
+        });
+      },
       async createAccountFallback(nickname, password) {
         if (!this.ready || !this.auth || !this.authModule) throw new Error("firebase-unavailable");
         const { displayName, password: passwordValue } = this.normalizeAccountCredentials(nickname, password);
         const email = await this.clientAccountEmail(displayName);
         const sessionId = this.randomToken();
         try {
-          const credential = await this.authModule.createUserWithEmailAndPassword(this.auth, email, passwordValue);
+          const credential = await this.withFirebaseTimeout(
+            this.authModule.createUserWithEmailAndPassword(this.auth, email, passwordValue),
+            "create-account"
+          );
           this.uid = credential.user.uid;
           if (this.authModule.updateProfile) await this.authModule.updateProfile(credential.user, { displayName });
         } catch (error) {
@@ -4451,7 +4468,10 @@
         const email = await this.clientAccountEmail(displayName);
         const sessionId = this.randomToken();
         try {
-          const credential = await this.authModule.signInWithEmailAndPassword(this.auth, email, passwordValue);
+          const credential = await this.withFirebaseTimeout(
+            this.authModule.signInWithEmailAndPassword(this.auth, email, passwordValue),
+            "login-account"
+          );
           this.uid = credential.user.uid;
         } catch (error) {
           const code = String(error?.code || "");
@@ -4481,10 +4501,10 @@
         if (!this.account?.firebaseAuth) return;
         const ref = this.firebaseSessionRef();
         if (!ref) return;
-        await this.setDoc(ref, {
+        await this.withFirebaseTimeout(this.setDoc(ref, {
           sessionId: this.account.sessionId,
           updatedAt: this.serverTimestamp ? this.serverTimestamp() : Date.now()
-        }, { merge: true });
+        }, { merge: true }), "session-save", 5000);
       },
       accountPayload() {
         return {
@@ -4585,10 +4605,10 @@
           try {
             if (this.account.firebaseAuth) {
               const ref = this.firebaseSessionRef();
-              if (ref) await this.setDoc(ref, {
+              if (ref) await this.withFirebaseTimeout(this.setDoc(ref, {
                 sessionId: "",
                 updatedAt: this.serverTimestamp ? this.serverTimestamp() : Date.now()
-              }, { merge: true });
+              }, { merge: true }), "session-clear", 5000);
               await this.authModule.signOut(this.auth);
               const credential = await this.authModule.signInAnonymously(this.auth);
               this.uid = credential.user.uid;
@@ -4651,7 +4671,7 @@
         if (!ref || this.syncingFromCloud) return;
         if (this.account && !["loaded", "backup-restored"].includes(this.lastProfileLoadStatus)) return;
         try {
-          await this.setDoc(ref, this.snapshot(), { merge: true });
+          await this.withFirebaseTimeout(this.setDoc(ref, this.snapshot(), { merge: true }), "profile-save");
         } catch (error) {
           console.info("Firebase profile save failed.", error);
           if (options.throwOnError) throw error;
