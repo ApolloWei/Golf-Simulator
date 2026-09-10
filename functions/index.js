@@ -8,7 +8,6 @@ const crypto = require("node:crypto");
 admin.initializeApp();
 
 const db = admin.firestore();
-const SESSION_TTL_MS = 90000;
 
 const SUPPORTER_PASSWORD = defineSecret("SUPPORTER_PASSWORD");
 const SUPPORTER_PLUS_PASSWORD = defineSecret("SUPPORTER_PLUS_PASSWORD");
@@ -69,12 +68,6 @@ async function takeAccountSession({ accountRef, sessionRef, uid, sessionId }) {
   await db.runTransaction(async (tx) => {
     const accountSnap = await tx.get(accountRef);
     if (!accountSnap.exists) throw new HttpsError("not-found", "Account not found.");
-    const account = accountSnap.data() || {};
-    const activeAt = account.activeAt?.toMillis ? account.activeAt.toMillis() : 0;
-    const activeFresh = Date.now() - activeAt < SESSION_TTL_MS;
-    if (account.activeUid && account.activeUid !== uid && activeFresh) {
-      throw new HttpsError("failed-precondition", "account-busy");
-    }
     tx.set(accountRef, {
       activeUid: uid,
       activeSessionId: sessionId,
@@ -159,9 +152,6 @@ exports.resumeGameAccount = onCall(async (request) => {
   const accountSnap = await accountRef.get();
   if (!accountSnap.exists) return { ok: false };
   const account = accountSnap.data() || {};
-  if (account.activeUid !== request.auth.uid || account.activeSessionId !== sessionId) {
-    return { ok: false };
-  }
   await takeAccountSession({
     accountRef,
     sessionRef: db.doc(`accountSessions/${request.auth.uid}`),
@@ -177,10 +167,6 @@ exports.accountHeartbeat = onCall(async (request) => {
   const accountRef = db.doc(`gameAccounts/${accountId}`);
   const accountSnap = await accountRef.get();
   if (!accountSnap.exists) return { ok: false };
-  const account = accountSnap.data() || {};
-  if (account.activeUid !== request.auth.uid || account.activeSessionId !== sessionId) {
-    return { ok: false };
-  }
   await accountRef.set({ activeAt: admin.firestore.Timestamp.now() }, { merge: true });
   await db.doc(`accountSessions/${request.auth.uid}`).set({
     accountId,

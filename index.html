@@ -2778,23 +2778,24 @@
         accountButtonTitle: "账户",
         accountGuestTitle: "本地游客",
         accountGuestHint: "不创建账户也可以继续玩，进度只保存在这个浏览器。",
-        accountSignedInHint: "已登录。这个账号同一时间只能在一个浏览器使用。",
+        accountSignedInHint: "已登录。你可以在其他设备用同一个昵称和密码登录。",
         accountNickname: "昵称",
         accountPassword: "密码",
         accountCreate: "创建账户",
         accountLogin: "登录",
         accountLogout: "登出",
         accountHint: "登录后，成就、金币、人物等级和训练记录会同步到这个昵称。密码不会显示在账户页面。",
-        accountNeedFirebase: "请先在 Firebase Authentication 里开启 Email/Password 登录方式。",
+        accountNeedFirebase: "请先在 Firebase Authentication 里开启 Email/Password 登录方式，并部署 Firestore 规则。",
         accountNeedInput: "请输入昵称和密码。",
         accountLoggedIn: "已登录：{name}",
         accountCreated: "账户已创建并登录。",
         accountLoginSuccess: "登录成功，云端进度已恢复。",
-        accountLoginNoCloudSave: "登录成功，但这个账号云端还没有存档。为避免覆盖旧进度，当前浏览器的数据不会自动写上去。",
+        accountLoginNoCloudSave: "登录成功，这个账号刚使用当前本地进度创建云端存档。",
         accountLoginCloudUnavailable: "登录成功，但暂时读不到云端数据。为避免进度错乱，请先不要继续游玩。",
         accountLoginBackupRestored: "登录成功，已用登出前的本地备份恢复进度，并会尝试同步到云端。",
         accountCloudSaveMissing: "密码正确，但这个账号没有云端存档，所以没有保持登录。请先恢复存档或重新创建账号。",
         accountCloudSaveUnavailable: "密码正确，但云端存档加载失败，所以没有保持登录。请检查网络和 Firestore 规则后再试。",
+        accountUploadLocalPrompt: "这个账号云端还没有存档。要把当前浏览器里的进度上传到这个账号吗？",
         accountLoadingKicker: "请不要刷新",
         accountLoadingTitle: "正在登录数据",
         accountLoadingAuth: "正在验证账户...",
@@ -2805,7 +2806,7 @@
         accountLoadingEta: "预计 {seconds} 秒",
         accountLoginCanceledRefresh: "上次登录因为刷新或中断已取消，已恢复登录前的本地进度。",
         accountLoggedOut: "已登出。本地进度已清零，重新登录会恢复账号进度。",
-        accountBusy: "这个账号已经在另一个浏览器登录。",
+        accountBusy: "这个账号暂时无法同步，请稍后再试。",
         accountExists: "这个昵称已经被注册了，请换一个昵称或直接登录。",
         accountBadCredentials: "昵称或密码不正确。",
         accountInvalidInput: "昵称需要 2-24 个字符，密码需要 4-64 个字符，昵称不能包含 /。",
@@ -3103,23 +3104,24 @@
         accountButtonTitle: "Account",
         accountGuestTitle: "Local Guest",
         accountGuestHint: "You can keep playing without an account. Progress stays in this browser only.",
-        accountSignedInHint: "Signed in. This account can only be active in one browser at a time.",
+        accountSignedInHint: "Signed in. You can use the same nickname and password on another device.",
         accountNickname: "Nickname",
         accountPassword: "Password",
         accountCreate: "Create Account",
         accountLogin: "Log In",
         accountLogout: "Log Out",
         accountHint: "After logging in, achievements, coins, player levels, and training records sync to this nickname. Passwords are never shown here.",
-        accountNeedFirebase: "Enable Email/Password sign-in in Firebase Authentication first.",
+        accountNeedFirebase: "Enable Email/Password sign-in in Firebase Authentication and deploy Firestore rules first.",
         accountNeedInput: "Enter a nickname and password.",
         accountLoggedIn: "Signed in: {name}",
         accountCreated: "Account created and signed in.",
         accountLoginSuccess: "Logged in. Cloud progress restored.",
-        accountLoginNoCloudSave: "Logged in, but this account has no cloud save yet. To avoid overwriting old progress, this browser will not auto-upload local data.",
+        accountLoginNoCloudSave: "Logged in. This account now uses the local progress from this browser as its cloud save.",
         accountLoginCloudUnavailable: "Logged in, but cloud data could not be loaded yet. To avoid progress conflicts, please do not keep playing yet.",
         accountLoginBackupRestored: "Logged in. Progress was restored from the local backup made before logout, and the game will try to sync it.",
         accountCloudSaveMissing: "Password accepted, but this account has no cloud save, so it was not kept signed in. Restore the save or create the account again.",
         accountCloudSaveUnavailable: "Password accepted, but cloud progress failed to load, so it was not kept signed in. Check the network and Firestore rules, then try again.",
+        accountUploadLocalPrompt: "This account has no cloud save yet. Upload the current progress from this browser to this account?",
         accountLoadingKicker: "Please do not refresh",
         accountLoadingTitle: "Signing in and loading data",
         accountLoadingAuth: "Verifying account...",
@@ -3130,7 +3132,7 @@
         accountLoadingEta: "About {seconds}s left",
         accountLoginCanceledRefresh: "The previous login was canceled after a refresh or interruption. Local progress from before the login was restored.",
         accountLoggedOut: "Logged out. Local progress was reset; logging back in restores account progress.",
-        accountBusy: "This account is already active in another browser.",
+        accountBusy: "This account cannot sync right now. Try again in a moment.",
         accountExists: "That nickname is already registered. Try another nickname or log in.",
         accountBadCredentials: "Incorrect nickname or password.",
         accountInvalidInput: "Nickname must be 2-24 characters, password must be 4-64 characters, and nickname cannot contain /.",
@@ -4287,6 +4289,29 @@
         this.lastProfileLoadStatus = status;
         return status;
       },
+      async resolveMissingCloudSave(account, status) {
+        if (["loaded", "backup-restored"].includes(status)) return status;
+        if (status !== "empty") return status;
+        const pending = safeLoadPlain(STORAGE_KEYS.pendingAccountLogin, null);
+        const profile = pending?.previousProfile || currentProgressSnapshot();
+        const shouldUploadLocal = window.confirm(tr("accountUploadLocalPrompt"));
+        if (!shouldUploadLocal) return status;
+        this.syncingFromCloud = true;
+        try {
+          applyProgressSnapshot(profile);
+        } finally {
+          this.syncingFromCloud = false;
+        }
+        this.lastProfileLoadStatus = "loaded";
+        try {
+          await this.saveProfile({ throwOnError: true });
+          return "loaded";
+        } catch (error) {
+          console.info("Firebase initial profile upload failed.", error);
+          this.lastProfileLoadStatus = "failed";
+          return "failed";
+        }
+      },
       async clearUnloadedAccountSession(status) {
         if (this.heartbeatTimer) nativeClearInterval.call(window, this.heartbeatTimer);
         this.heartbeatTimer = 0;
@@ -4440,9 +4465,9 @@
         const account = { accountId: this.uid, displayName: this.auth.currentUser?.displayName || displayName, sessionId, firebaseAuth: true };
         setAccountLoadingStep("cloud");
         this.setAccountSession(account, { persist: false });
-        await this.tryClaimFirebaseAuthSession();
         this.startHeartbeat();
-        const status = await this.restoreBackupIfNeeded(account, await this.tryLoadProfile());
+        const restoredStatus = await this.restoreBackupIfNeeded(account, await this.tryLoadProfile());
+        const status = await this.resolveMissingCloudSave(account, restoredStatus);
         await this.requireLoadedAccountProgress(status);
         setAccountLoadingStep("apply");
         this.setAccountSession(account);
@@ -4481,6 +4506,12 @@
       },
       async createAccount(nickname, password) {
         try {
+          return this.createAccountFallback(nickname, password);
+        } catch (error) {
+          if (!["functions-not-deployed", "firebase-unavailable", "account-auth-provider-disabled"].includes(error?.message)
+            && !String(error?.message || "").startsWith("account-unknown:")) throw error;
+        }
+        try {
           const data = await this.callFunction("createGameAccount", {
             nickname,
             password,
@@ -4500,12 +4531,19 @@
       },
       async loginAccount(nickname, password) {
         try {
+          return this.loginAccountFallback(nickname, password);
+        } catch (error) {
+          if (!["functions-not-deployed", "firebase-unavailable", "account-auth-provider-disabled", "bad-credentials"].includes(error?.message)
+            && !String(error?.message || "").startsWith("account-unknown:")) throw error;
+        }
+        try {
           const data = await this.callFunction("loginGameAccount", { nickname, password });
           if (!data?.ok) throw new Error(data?.reason || "login failed");
           setAccountLoadingStep("cloud");
           this.setAccountSession(data.account, { persist: false });
           this.startHeartbeat();
-          const status = await this.restoreBackupIfNeeded(data.account, await this.tryLoadProfile());
+          const restoredStatus = await this.restoreBackupIfNeeded(data.account, await this.tryLoadProfile());
+          const status = await this.resolveMissingCloudSave(data.account, restoredStatus);
           await this.requireLoadedAccountProgress(status);
           setAccountLoadingStep("apply");
           this.setAccountSession(data.account);
@@ -4578,24 +4616,11 @@
         try {
           if (this.account.firebaseAuth) {
             const ref = this.firebaseSessionRef();
-            if (!ref) return;
-            const snap = await this.getDoc(ref);
-            const session = snap.data() || {};
-            if (snap.exists() && session.sessionId && session.sessionId !== this.account.sessionId) {
-              this.setAccountSession(null);
-              resetLocalProgressForGuest();
-              setAccountError(tr("accountBusy"));
-              return;
-            }
-            await this.claimFirebaseAuthSession();
+            if (ref) await this.claimFirebaseAuthSession();
             return;
           }
           const data = await this.callFunction("accountHeartbeat", this.account);
-          if (!data?.ok) {
-            this.setAccountSession(null);
-            resetLocalProgressForGuest();
-            setAccountError(tr("accountBusy"));
-          }
+          if (!data?.ok) console.info("Game account heartbeat was not accepted.");
         } catch (error) {
           console.info("Game account heartbeat failed.", error);
         }
@@ -4621,7 +4646,7 @@
           this.saveProfile();
         }, 900);
       },
-      async saveProfile() {
+      async saveProfile(options = {}) {
         const ref = this.profileRef();
         if (!ref || this.syncingFromCloud) return;
         if (this.account && !["loaded", "backup-restored"].includes(this.lastProfileLoadStatus)) return;
@@ -4629,6 +4654,7 @@
           await this.setDoc(ref, this.snapshot(), { merge: true });
         } catch (error) {
           console.info("Firebase profile save failed.", error);
+          if (options.throwOnError) throw error;
         }
       },
       async verifySupporterCode(tier, password) {
