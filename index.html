@@ -4896,6 +4896,21 @@
       accountLoadingPanel.classList.add("hidden");
     }
 
+    function waitForAccountLoading(ms) {
+      return new Promise((resolve) => nativeSetTimeout.call(window, resolve, ms));
+    }
+
+    async function finishAccountLoading() {
+      setAccountLoadingStep("done");
+      const startedAt = Date.now();
+      while (accountLoadingProgress < 100 && Date.now() - startedAt < 1500) {
+        updateAccountLoadingPanel(Math.min(100, accountLoadingProgress + 12));
+        await waitForAccountLoading(80);
+      }
+      updateAccountLoadingPanel(100);
+      await waitForAccountLoading(550);
+    }
+
     function accountCredentials() {
       const nickname = accountNicknameInput.value.trim();
       const password = accountPasswordInput.value;
@@ -4983,8 +4998,7 @@
         showAccountLoading("auth");
         await ensureFirebaseBridgeReady();
         await FirebaseBridge.createAccount(creds.nickname, creds.password);
-        setAccountLoadingStep("done");
-        updateAccountLoadingPanel(100);
+        await finishAccountLoading();
         clearPendingAccountLogin();
         accountPasswordInput.value = "";
         setAccountError(tr("accountCreated"));
@@ -5005,8 +5019,7 @@
         showAccountLoading("auth");
         await ensureFirebaseBridgeReady();
         await FirebaseBridge.loginAccount(creds.nickname, creds.password);
-        setAccountLoadingStep("done");
-        updateAccountLoadingPanel(100);
+        await finishAccountLoading();
         clearPendingAccountLogin();
         accountPasswordInput.value = "";
         setAccountError(accountLoginStatusMessage());
