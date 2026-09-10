@@ -4317,8 +4317,12 @@
         this.heartbeatTimer = 0;
         try {
           if (this.authModule?.signOut && this.auth) {
-            await this.authModule.signOut(this.auth);
-            const credential = await this.authModule.signInAnonymously(this.auth);
+            await this.withFirebaseTimeout(this.authModule.signOut(this.auth), "cleanup-sign-out", 4000);
+            const credential = await this.withFirebaseTimeout(
+              this.authModule.signInAnonymously(this.auth),
+              "cleanup-anonymous-sign-in",
+              5000
+            );
             this.uid = credential.user.uid;
           }
         } catch (error) {
@@ -4852,6 +4856,7 @@
     }
 
     let accountLoadingTimer = 0;
+    let accountLoadingDeadlineTimer = 0;
     let accountLoadingStartedAt = 0;
     let accountLoadingStep = "auth";
     let accountLoadingProgress = 0;
@@ -4900,6 +4905,16 @@
       updateAccountLoadingPanel();
       if (accountLoadingTimer) nativeClearInterval.call(window, accountLoadingTimer);
       accountLoadingTimer = nativeSetInterval.call(window, updateAccountLoadingPanel, 250);
+      if (accountLoadingDeadlineTimer) nativeClearTimeout.call(window, accountLoadingDeadlineTimer);
+      accountLoadingDeadlineTimer = nativeSetTimeout.call(window, () => {
+        accountLoadingDeadlineTimer = 0;
+        if (accountLoadingPanel.classList.contains("hidden")) return;
+        restorePendingAccountLoginState(false);
+        setAccountError(tr("accountCloudSaveUnavailable"));
+        trustDomMutation();
+        accountPanel.classList.remove("hidden");
+        setAccountActionInProgress(false);
+      }, 25000);
     }
 
     function setAccountLoadingStep(step) {
@@ -4911,6 +4926,8 @@
     function hideAccountLoading() {
       if (accountLoadingTimer) nativeClearInterval.call(window, accountLoadingTimer);
       accountLoadingTimer = 0;
+      if (accountLoadingDeadlineTimer) nativeClearTimeout.call(window, accountLoadingDeadlineTimer);
+      accountLoadingDeadlineTimer = 0;
       if (!accountLoadingPanel) return;
       trustDomMutation();
       accountLoadingPanel.classList.add("hidden");
@@ -5024,6 +5041,8 @@
         setAccountError(tr("accountCreated"));
       } catch (error) {
         restorePendingAccountLoginState(false);
+        trustDomMutation();
+        accountPanel.classList.remove("hidden");
         setAccountError(accountErrorMessage(error));
       } finally {
         setAccountActionInProgress(false);
@@ -5045,6 +5064,8 @@
         setAccountError(accountLoginStatusMessage());
       } catch (error) {
         restorePendingAccountLoginState(false);
+        trustDomMutation();
+        accountPanel.classList.remove("hidden");
         setAccountError(accountErrorMessage(error));
       } finally {
         setAccountActionInProgress(false);
