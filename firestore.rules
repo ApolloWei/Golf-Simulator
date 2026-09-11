@@ -29,6 +29,7 @@ service cloud.firestore {
           'economy',
           'dailyTasks',
           'trainingRecords',
+          'supporter',
           'sessionId',
           'updatedAt'
         ]);
@@ -49,6 +50,7 @@ service cloud.firestore {
           'economy',
           'dailyTasks',
           'trainingRecords',
+          'supporter',
           'updatedAt'
         ]);
       allow delete: if false;

@@ -2319,7 +2319,7 @@
   <script>
     const BOOT_SCRIPT_NODE = document.currentScript;
     const BOOT_SCRIPT_TEXT = BOOT_SCRIPT_NODE?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "06006953";
+    const SOURCE_INTEGRITY_HASH = "d4fe8766";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -4005,13 +4005,38 @@
       }
     }
 
+    function currentSupporterFlags() {
+      return {
+        normal: localStorage.getItem(STORAGE_KEYS.supporterUnlock) === "true",
+        future: localStorage.getItem(STORAGE_KEYS.supporterFutureUnlock) === "true",
+        max: localStorage.getItem(STORAGE_KEYS.supporterMaxUnlock) === "true",
+        creator: localStorage.getItem(STORAGE_KEYS.supporterCreatorUnlock) === "true"
+          && localStorage.getItem(STORAGE_KEYS.supporterCreatorProof) === creatorProofValue()
+      };
+    }
+
+    function applySupporterFlags(flags = {}) {
+      const setFlag = (key, value) => {
+        if (value) localStorage.setItem(key, "true");
+        else localStorage.removeItem(key);
+      };
+      trustSupporterStorage(5000);
+      setFlag(STORAGE_KEYS.supporterUnlock, flags.normal);
+      setFlag(STORAGE_KEYS.supporterFutureUnlock, flags.future);
+      setFlag(STORAGE_KEYS.supporterMaxUnlock, flags.max);
+      setFlag(STORAGE_KEYS.supporterCreatorUnlock, flags.creator);
+      if (flags.creator) saveSupporterCreatorProof();
+      else localStorage.removeItem(STORAGE_KEYS.supporterCreatorProof);
+    }
+
     function currentProgressSnapshot() {
       const snapshot = {
         achievements: AchievementManager.data,
         stats: StatsManager.data,
         economy: EconomyManager.data,
         dailyTasks: DailyTaskManager.data,
-        trainingRecords: TrainingRecordManager.records
+        trainingRecords: TrainingRecordManager.records,
+        supporter: currentSupporterFlags()
       };
       try {
         return JSON.parse(JSON.stringify(snapshot));
@@ -4034,6 +4059,7 @@
         || Number(economy.coins || 0) > 0
         || Object.values(playerLevels).some((level) => Number(level || 0) > 0)
         || (Array.isArray(profile.trainingRecords) && profile.trainingRecords.length > 0)
+        || Object.values(profile.supporter || {}).some(Boolean)
         || Boolean(dailyTasks.date);
     }
 
@@ -4062,6 +4088,7 @@
       if (Array.isArray(profile.trainingRecords)) {
         localStorage.setItem(STORAGE_KEYS.trainingRecords, JSON.stringify(profile.trainingRecords));
       }
+      if (profile.supporter) applySupporterFlags(profile.supporter);
       AchievementManager.data = safeLoad(STORAGE_KEYS.achievements, { unlocked: {} });
       StatsManager.data = safeLoad(STORAGE_KEYS.stats, defaultStats);
       EconomyManager.data = normalizedEconomyData(safeLoad(STORAGE_KEYS.economy, defaultEconomy));
@@ -4264,6 +4291,7 @@
           economy: EconomyManager.data,
           dailyTasks: DailyTaskManager.data,
           trainingRecords: TrainingRecordManager.records,
+          supporter: currentSupporterFlags(),
           updatedAt: this.serverTimestamp ? this.serverTimestamp() : Date.now()
         };
       },
@@ -4705,16 +4733,7 @@
         }
       },
       setSupporterFlags(flags = {}) {
-        const setFlag = (key, value) => {
-          if (value) localStorage.setItem(key, "true");
-          else localStorage.removeItem(key);
-        };
-        setFlag(STORAGE_KEYS.supporterUnlock, flags.normal);
-        setFlag(STORAGE_KEYS.supporterFutureUnlock, flags.future);
-        setFlag(STORAGE_KEYS.supporterMaxUnlock, flags.max);
-        setFlag(STORAGE_KEYS.supporterCreatorUnlock, flags.creator);
-        if (flags.creator) saveSupporterCreatorProof();
-        else localStorage.removeItem(STORAGE_KEYS.supporterCreatorProof);
+        applySupporterFlags(flags);
       },
       queueSave() {
         if (!this.ready || this.syncingFromCloud) return;
