@@ -2319,7 +2319,7 @@
   <script>
     const BOOT_SCRIPT_NODE = document.currentScript;
     const BOOT_SCRIPT_TEXT = BOOT_SCRIPT_NODE?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "87a1f7ca";
+    const SOURCE_INTEGRITY_HASH = "06006953";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -4020,6 +4020,39 @@
       }
     }
 
+    function hasMeaningfulProgress(profile) {
+      if (!profile || typeof profile !== "object") return false;
+      const achievements = profile.achievements?.unlocked || {};
+      const stats = profile.stats || {};
+      const economy = profile.economy || {};
+      const dailyTasks = profile.dailyTasks || {};
+      const playerLevels = economy.playerLevels || {};
+      return Object.keys(achievements).length > 0
+        || Number(stats.totalShots || 0) > 0
+        || Number(stats.totalDistance || 0) > 0
+        || Number(stats.longestShot || 0) > 0
+        || Number(economy.coins || 0) > 0
+        || Object.values(playerLevels).some((level) => Number(level || 0) > 0)
+        || (Array.isArray(profile.trainingRecords) && profile.trainingRecords.length > 0)
+        || Boolean(dailyTasks.date);
+    }
+
+    function refreshProgressUiAfterLoad() {
+      AchievementManager.evaluate();
+      EconomyManager.syncUnlockedAchievementRewards();
+      refreshPlayerUnlocks();
+      renderDailyTasks();
+      renderAchievements();
+      renderTrainingRecords();
+      updateCoinDisplay();
+      renderAccountPanel();
+      applyLanguage();
+      if (mode !== "lobby") {
+        updateGameInfo();
+        drawScene();
+      }
+    }
+
     function applyProgressSnapshot(profile) {
       if (!profile || typeof profile !== "object") return false;
       if (profile.achievements) localStorage.setItem(STORAGE_KEYS.achievements, JSON.stringify(profile.achievements));
@@ -4034,14 +4067,7 @@
       EconomyManager.data = normalizedEconomyData(safeLoad(STORAGE_KEYS.economy, defaultEconomy));
       DailyTaskManager.load();
       TrainingRecordManager.records = safeLoadArray(STORAGE_KEYS.trainingRecords);
-      AchievementManager.evaluate();
-      EconomyManager.syncUnlockedAchievementRewards();
-      refreshPlayerUnlocks();
-      renderDailyTasks();
-      renderAchievements();
-      renderTrainingRecords();
-      updateCoinDisplay();
-      if (mode !== "lobby") drawScene();
+      refreshProgressUiAfterLoad();
       return true;
     }
 
@@ -4247,6 +4273,7 @@
         const snap = await this.withFirebaseTimeout(this.getDoc(ref), "profile-load", 25000);
         if (!snap.exists()) return "empty";
         const profile = snap.data() || {};
+        if (!hasMeaningfulProgress(profile)) return "empty";
         this.syncingFromCloud = true;
         try {
           applyProgressSnapshot(profile);
@@ -4314,6 +4341,10 @@
           this.lastProfileLoadStatus = "failed";
           return "failed";
         }
+      },
+      clearQueuedSave() {
+        if (this.saveTimer) nativeClearTimeout.call(window, this.saveTimer);
+        this.saveTimer = 0;
       },
       async clearUnloadedAccountSession(status) {
         if (this.heartbeatTimer) nativeClearInterval.call(window, this.heartbeatTimer);
@@ -4493,6 +4524,7 @@
         const { displayName, password: passwordValue } = this.normalizeAccountCredentials(nickname, password);
         const email = await this.clientAccountEmail(displayName);
         const sessionId = this.randomToken();
+        this.clearQueuedSave();
         try {
           const credential = await this.withFirebaseTimeout(
             this.authModule.signInWithEmailAndPassword(this.auth, email, passwordValue),
@@ -4576,6 +4608,7 @@
         }
       },
       async loginAccount(nickname, password) {
+        this.clearQueuedSave();
         try {
           return this.loginAccountFallback(nickname, password);
         } catch (error) {
