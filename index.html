@@ -2319,7 +2319,7 @@
   <script>
     const BOOT_SCRIPT_NODE = document.currentScript;
     const BOOT_SCRIPT_TEXT = BOOT_SCRIPT_NODE?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "dbeec433";
+    const SOURCE_INTEGRITY_HASH = "1b39d3e8";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -8436,7 +8436,22 @@
       const storageOk = hasExpectedStorageIntegrity();
       const mutationGuardOk = !integrityMonitorStarted || hasExpectedMutationGuardIntegrity();
       const criticalOk = !integrityMonitorStarted || hasExpectedCriticalFunctionIntegrity();
-      if (!domOk || !functionsOk || !textOk || !sourceOk || !dataOk || !shapeOk || !injectedOk || !speedOk || !timerOk || !storageOk || !mutationGuardOk || !criticalOk) {
+      if (!shapeOk || !injectedOk) {
+        console.info("Soft integrity warning", { shapeOk, injectedOk });
+      }
+      if (!domOk || !functionsOk || !textOk || !sourceOk || !dataOk || !speedOk || !timerOk || !storageOk || !mutationGuardOk || !criticalOk) {
+        console.info("Integrity failure", {
+          domOk,
+          functionsOk,
+          textOk,
+          sourceOk,
+          dataOk,
+          speedOk,
+          timerOk,
+          storageOk,
+          mutationGuardOk,
+          criticalOk
+        });
         forceBrowserStartPage();
         return false;
       }
@@ -8537,9 +8552,31 @@
       window.alert(tr("abnormalClickExit"));
     }
 
+    function isPassiveToolbarClick(event) {
+      return Boolean(event?.target?.closest?.([
+        "#dailyBtn",
+        "#lobbyDailyBtn",
+        "#achievementsBtn",
+        "#lobbyAchievementsBtn",
+        "#trainingBtn",
+        "#lobbyTrainingBtn",
+        "#accountBtn",
+        "#lobbyAccountBtn",
+        "#languageBtn",
+        "#lobbyLanguageBtn",
+        "#achievementCloseBtn",
+        "#dailyCloseBtn",
+        "#trainingCloseBtn",
+        "#accountCloseBtn",
+        "#replayCloseBtn",
+        "#replayReturnBtn"
+      ].join(",")));
+    }
+
     function detectAbnormalClicking(event) {
       const now = performance.now();
       if (afkChallenge) return;
+      if (isPassiveToolbarClick(event)) return;
       if (mode === "lobby") {
         resetClickGuard();
         return;
@@ -9268,7 +9305,7 @@
     }
 
     function toggleTrainingPanel(show) {
-      if (!checkSiteIntegrity()) return;
+      if (integrityFailed) return;
       trustDomMutation(900);
       trainingPanel.classList.toggle("hidden", !show);
       if (show) renderTrainingRecords();
@@ -9514,14 +9551,14 @@
     }
 
     function toggleDailyPanel(show) {
-      if (!checkSiteIntegrity()) return;
+      if (integrityFailed) return;
       trustDomMutation();
       dailyPanel.classList.toggle("hidden", !show);
       if (show) renderDailyTasks();
     }
 
     function renderAchievements() {
-      if (!checkSiteIntegrity()) return;
+      if (integrityFailed) return;
       if (!achievementList || !statisticsList) return;
       trustDomMutation(900);
       const visibleDefinitions = visibleAchievementDefinitions();
@@ -9587,10 +9624,30 @@
     }
 
     function toggleAchievementPanel(show) {
-      if (!checkSiteIntegrity()) return;
+      if (integrityFailed) return;
       trustDomMutation();
       achievementPanel.classList.toggle("hidden", !show);
       if (show) renderAchievements();
+    }
+
+    function handlePassiveToolbarClick(event) {
+      const target = event.target?.closest?.("button");
+      if (!target) return;
+      const actions = {
+        dailyBtn: () => toggleDailyPanel(true),
+        lobbyDailyBtn: () => toggleDailyPanel(true),
+        achievementsBtn: () => toggleAchievementPanel(true),
+        lobbyAchievementsBtn: () => toggleAchievementPanel(true),
+        trainingBtn: () => toggleTrainingPanel(true),
+        lobbyTrainingBtn: () => toggleTrainingPanel(true),
+        accountBtn: () => toggleAccountPanel(true),
+        lobbyAccountBtn: () => toggleAccountPanel(true)
+      };
+      const action = actions[target.id];
+      if (!action) return;
+      event.preventDefault();
+      event.stopPropagation();
+      action();
     }
 
     function applyLanguage() {
@@ -9802,6 +9859,7 @@
     startFreeBtn.addEventListener("click", () => showSimulator("free"));
     homeBtn.addEventListener("click", handleHomeButton);
     supporterBtn.addEventListener("click", unlockSupporterMode);
+    document.addEventListener("click", handlePassiveToolbarClick, true);
     [achievementsBtn, lobbyAchievementsBtn].forEach((button) => {
       button.addEventListener("click", () => toggleAchievementPanel(true));
     });
