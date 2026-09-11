@@ -2319,7 +2319,7 @@
   <script>
     const BOOT_SCRIPT_NODE = document.currentScript;
     const BOOT_SCRIPT_TEXT = BOOT_SCRIPT_NODE?.textContent || "";
-    const SOURCE_INTEGRITY_HASH = "1b39d3e8";
+    const SOURCE_INTEGRITY_HASH = "87a1f7ca";
     const nativeSetTimeout = window.setTimeout;
     const nativeClearTimeout = window.clearTimeout;
     const nativeSetInterval = window.setInterval;
@@ -4157,6 +4157,7 @@
       saveTimer: 0,
       heartbeatTimer: 0,
       lastProfileLoadStatus: "empty",
+      lastProfileLoadError: "",
       account: safeLoadPlain(STORAGE_KEYS.accountSession, null),
       async init() {
         if (this.ready) return true;
@@ -4243,7 +4244,7 @@
       async loadProfile() {
         const ref = this.profileRef();
         if (!ref) return "empty";
-        const snap = await this.withFirebaseTimeout(this.getDoc(ref), "profile-load");
+        const snap = await this.withFirebaseTimeout(this.getDoc(ref), "profile-load", 25000);
         if (!snap.exists()) return "empty";
         const profile = snap.data() || {};
         this.syncingFromCloud = true;
@@ -4271,10 +4272,12 @@
       },
       async tryLoadProfile() {
         try {
+          this.lastProfileLoadError = "";
           this.lastProfileLoadStatus = await this.loadProfile();
           return this.lastProfileLoadStatus;
         } catch (error) {
           console.info("Firebase profile load failed.", error);
+          this.lastProfileLoadError = this.describeFirebaseError(error);
           this.lastProfileLoadStatus = "failed";
           return this.lastProfileLoadStatus;
         }
@@ -4437,6 +4440,25 @@
             reject(error);
           });
         });
+      },
+      describeFirebaseError(error) {
+        const raw = [error?.code, error?.message].filter(Boolean).join(" ");
+        if (/permission-denied|insufficient permissions/i.test(raw)) {
+          return currentLang === "zh"
+            ? "Firestore 规则还没有允许这个账号读取云端存档。请部署 firestore.rules。"
+            : "Firestore rules are not allowing this account to read the cloud save. Deploy firestore.rules.";
+        }
+        if (/firebase-timeout|deadline-exceeded|timeout/i.test(raw)) {
+          return currentLang === "zh"
+            ? "云端读取超时，通常是网络慢或 Firebase 暂时没有响应。"
+            : "Cloud save loading timed out. This is usually a slow network or Firebase delay.";
+        }
+        if (/unavailable|network|offline|failed to fetch/i.test(raw)) {
+          return currentLang === "zh"
+            ? "网络或 Firebase 服务暂时不可用。"
+            : "The network or Firebase service is temporarily unavailable.";
+        }
+        return raw.slice(0, 180);
       },
       async createAccountFallback(nickname, password) {
         if (!this.ready || !this.auth || !this.authModule) throw new Error("firebase-unavailable");
@@ -4675,7 +4697,7 @@
         if (!ref || this.syncingFromCloud) return;
         if (this.account && !["loaded", "backup-restored"].includes(this.lastProfileLoadStatus)) return;
         try {
-          await this.withFirebaseTimeout(this.setDoc(ref, this.snapshot(), { merge: true }), "profile-save");
+          await this.withFirebaseTimeout(this.setDoc(ref, this.snapshot(), { merge: true }), "profile-save", 18000);
         } catch (error) {
           console.info("Firebase profile save failed.", error);
           if (options.throwOnError) throw error;
@@ -4914,7 +4936,7 @@
         trustDomMutation();
         accountPanel.classList.remove("hidden");
         setAccountActionInProgress(false);
-      }, 25000);
+      }, 60000);
     }
 
     function setAccountLoadingStep(step) {
@@ -4970,7 +4992,10 @@
       if (error?.message === "account-auth-provider-disabled") return tr("accountProviderDisabled");
       if (error?.message === "account-quota-exceeded") return tr("accountQuotaExceeded");
       if (error?.message === "account-cloud-save-missing") return tr("accountCloudSaveMissing");
-      if (error?.message === "account-cloud-save-unavailable") return tr("accountCloudSaveUnavailable");
+      if (error?.message === "account-cloud-save-unavailable") {
+        const detail = FirebaseBridge.lastProfileLoadError;
+        return detail ? `${tr("accountCloudSaveUnavailable")} ${detail}` : tr("accountCloudSaveUnavailable");
+      }
       if (String(error?.message || "").startsWith("account-unknown:")) {
         return tr("accountUnknownError", { detail: error.message.replace("account-unknown:", "") });
       }
